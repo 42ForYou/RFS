@@ -9,6 +9,7 @@
         "eslint-plugin-prettier": "^5.1.3",
         "husky": "^8.0.3",
         "jira-prepare-commit-msg": "^1.7.2",
+        "lint-staged": "^15.2.0",
         "prettier": "^3.2.1"
     },
     "scripts": {
@@ -20,5 +21,11 @@
     "jira-prepare-commit-msg": {
         "messagePattern": "$J/$M",
         "ignoredBranchesPattern": "^(master|main|dev|develop|development|release)$"
+    },
+    "lint-staged": {
+        "*.{js,jsx}": [
+            "eslint --cache --fix",
+            "prettier --cache --write"
+        ]
     }
 }
