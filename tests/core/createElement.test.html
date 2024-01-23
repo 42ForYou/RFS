@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Document</title>
+        <script src="https://cdn.jsdelivr.net/npm/lodash/lodash.min.js"></script>
+        <script type="module">
+            const isArray = Array.isArray;
+            const isArr = Array.isArray;
+            const RfsElement = (type, props, children) => {
+                return {
+                    type: type === Fragment ? "fragment" : type,
+                    key: props?.key,
+                    ref: props?.ref,
+                    props: {
+                        ...props,
+                        children,
+                    },
+                };
+            };
+
+            const isNoValue = (val) => val === null || val === undefined;
+
+            const flatten = (arr) => {
+                return arr.reduce((acc, val) => {
+                    if (isNoValue(val)) return acc;
+                    return isArr(val) ? acc.concat(flatten(val)) : acc.concat(val);
+                }, []);
+            };
+
+            const createElement = (type, props = {}, ...children) => {
+                return RfsElement(type, props, flatten(children));
+            };
+
+            const Fragment = (props) => {
+                return props.children;
+            };
+            const expand = (arr, target = []) => {
+                arr.forEach((val) => {
+                    isArr(val)
+                        ? expand(val, target)
+                        : notSpecial(val) && target.push(val);
+                });
+                return target;
+            };
+            const notSpecial = (x) => x !== null && x !== undefined;
+            const h = (type, props = {}, ...children) => {
+                children = expand(children);
+                return createElement(type, props, children);
+            };
+
+            const MyComponent = () => {
+                return createElement(
+                    "div",
+                    null,
+                    ["First", "Second"].map((text) =>
+                        createElement("span", null, text)
+                    ),
+                    true && createElement("span", null, "Conditional Element")
+                );
+            };
+
+            const MyComponentWithH = () => {
+                return h(
+                    "div",
+                    null,
+                    ["First", "Second"].map((text) => h("span", null, text)),
+                    true && h("span", null, "Conditional Element")
+                );
+            };
+
+            // 두 버전의 결과 비교
+            const component1 = MyComponent();
+            const component2 = MyComponentWithH();
+
+            console.log(
+                "Are components equal? ",
+                _.isEqual(component1, component2)
+            );
+        </script>
+    </head>
+    <body></body>
+</html>
