@@ -1,0 +1,180 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Animation Test</title>
+        <style>
+            /* Moved the #animatedBox styles to be set via JavaScript */
+        </style>
+    </head>
+    <body>
+        <div id="animatedBox"></div>
+        <button id="animateButton">Toggle Animation</button>
+
+        <script>
+            // The Style class
+            const Style = ((_) => {
+                const prop = new Map(),
+                    prefix = "webkit,moz,ms,chrome,o,khtml".split(",");
+                const NONE = Symbol();
+                const BASE = document.body.style;
+                const getKey = (key) => {
+                    if (prop.has(key)) return prop.get(key);
+                    if (key in BASE) {
+                        prop.set(key, key);
+                    } else {
+                        const found = prefix.some((v) => {
+                            const newKey =
+                                v + key[0].toUpperCase() + key.substr(1);
+                            if (newKey in BASE) {
+                                prop.set(key, newKey);
+                                key = newKey;
+                                return true;
+                            }
+                            return false;
+                        });
+                        if (!found) prop.set(key, NONE);
+                    }
+                    return prop.get(key);
+                };
+                return class {
+                    constructor(style) {
+                        this._style = style;
+                    }
+                    get(key) {
+                        key = getKey(key);
+                        if (key === NONE) return null;
+                        return this._style[key];
+                    }
+                    set(key, val) {
+                        key = getKey(key);
+                        if (key !== NONE) this._style[key] = val;
+                        return this;
+                    }
+                };
+            })();
+
+            const Rule = class {
+                constructor(rule) {
+                    this._rule = rule;
+                    this._style = new Style(rule.style);
+                }
+                get(key) {
+                    return this._style.get(key);
+                }
+                set(key, val) {
+                    this._style.set(key, val);
+                    return this;
+                }
+            };
+
+            const Sheet = class {
+                constructor(sheet) {
+                    this._sheet = sheet;
+                    this._rules = new Map();
+                }
+                add(selector) {
+                    const index = this._sheet.cssRules.length;
+                    this._sheet.insertRule(`${selector}{}`, index);
+                    const cssRule = this._sheet.cssRules[index];
+                    let rule;
+                    if (selector.startsWith("@keyframes")) {
+                        rule = new KeyFramesRule(cssRule);
+                    } else {
+                        rule = new Rule(cssRule);
+                    }
+                    this._rules.set(selector, rule);
+                    return rule;
+                }
+                remove(selector) {
+                    if (!this._rules.has(selector)) return;
+                    const rule = this._rules.get(selector)._rule;
+                    Array.from(this._sheet.cssRules).some((cssRule, index) => {
+                        if (cssRule === rule._rule) {
+                            this._sheet.deleteRule(index);
+                            return true;
+                        }
+                        return false;
+                    });
+                }
+                get(selector) {
+                    return this._rules.get(selector);
+                }
+            };
+
+            const KeyFramesRule = class {
+                constructor(rule) {
+                    this._keyframe = rule;
+                    this._rules = new Map();
+                }
+                add(selector) {
+                    const index = this._keyframe.cssRules.length;
+                    this._keyframe.appendRule(`${selector}{}`);
+                    const cssRule = this._keyframe.cssRules[index];
+                    const rule = new Rule(cssRule);
+                    this._rules.set(selector, rule);
+                    return rule;
+                }
+                remove(selector) {
+                    if (!this._rules.has(selector)) return;
+                    const rule = this._rules.get(selector)._rule;
+                    Array.from(this._keyframe.cssRules).some(
+                        (cssRule, index) => {
+                            if (cssRule === rule._rule) {
+                                this._keyframe.deleteRule(index);
+                                return true;
+                            }
+                            return false;
+                        }
+                    );
+                }
+            };
+
+            let sheet;
+            let sizeRule;
+            let isAnimatingToZero = true; // Toggle flag
+
+            function startAnimation() {
+                if (isAnimatingToZero) {
+                    sizeRule.remove("from");
+                    sizeRule.remove("to");
+                    sizeRule.add("from").set("width", "500px");
+                    sizeRule.add("to").set("width", "0px");
+                } else {
+                    sizeRule.remove("from");
+                    sizeRule.remove("to");
+                    sizeRule.add("from").set("width", "0");
+                    sizeRule.add("to").set("width", "500px");
+                }
+                isAnimatingToZero = !isAnimatingToZero;
+
+                const animatedBox = document.getElementById("animatedBox");
+                // Reset the animation using inline styles
+                animatedBox.style.animationName = "none";
+                requestAnimationFrame(() => {
+                    // Trigger reflow
+                    animatedBox.offsetHeight;
+                    // Apply the animation with the updated keyframes
+                    animatedBox.style.animationName = "size";
+                });
+            }
+
+            document.addEventListener("DOMContentLoaded", function () {
+                sheet = new Sheet(document.styleSheets[0]);
+                sizeRule = sheet.add("@keyframes size");
+                sizeRule.add("from").set("width", "0");
+                sizeRule.add("to").set("width", "500px");
+
+                const animatedBoxStyleRule = sheet.add("#animatedBox");
+                animatedBoxStyleRule.set("width", "0");
+                animatedBoxStyleRule.set("height", "50px");
+                animatedBoxStyleRule.set("backgroundColor", "blue");
+                animatedBoxStyleRule.set("animationDuration", "2s");
+                animatedBoxStyleRule.set("animationFillMode", "forwards");
+
+                document
+                    .getElementById("animateButton")
+                    .addEventListener("click", startAnimation);
+            });
+        </script>
+    </body>
+</html>
