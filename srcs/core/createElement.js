@@ -11,13 +11,12 @@ const RfsElement = (type, props, children) => {
         },
     };
 };
+const isNoValue = (val) => val === null || val === undefined;
 
 const flatten = (arr) => {
     return arr.reduce((acc, val) => {
-        if (val === null || val === undefined) {
-            return acc;
-        }
-        return isArray(val) ? acc.concat(flatten(val)) : acc.concat(val);
+        if (isNoValue(val)) return acc;
+        return isArr(val) ? acc.concat(flatten(val)) : acc.concat(val);
     }, []);
 };
 

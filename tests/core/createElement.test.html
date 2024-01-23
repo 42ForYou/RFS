@@ -19,14 +19,12 @@
                 };
             };
 
+            const isNoValue = (val) => val === null || val === undefined;
+
             const flatten = (arr) => {
                 return arr.reduce((acc, val) => {
-                    if (val === null || val === undefined) {
-                        return acc;
-                    }
-                    return isArray(val)
-                        ? acc.concat(flatten(val))
-                        : acc.concat(val);
+                    if (isNoValue(val)) return acc;
+                    return isArr(val) ? acc.concat(flatten(val)) : acc.concat(val);
                 }, []);
             };
 
@@ -38,13 +36,13 @@
                 return props.children;
             };
             const expand = (arr, target = []) => {
-              arr.forEach(val => {
-                isArr(val)
-                  ? expand(val, target)
-                  : notSpecial(val) && target.push(val);
-              });
-              return target;
-            }
+                arr.forEach((val) => {
+                    isArr(val)
+                        ? expand(val, target)
+                        : notSpecial(val) && target.push(val);
+                });
+                return target;
+            };
             const notSpecial = (x) => x !== null && x !== undefined;
             const h = (type, props = {}, ...children) => {
                 children = expand(children);
