@@ -1,4 +1,4 @@
-import { isArray as isArr } from "../shared/isArray";
+import isArray from "../shared/isArray";
 
 const RfsElement = (type, props, children) => {
     return {
@@ -16,7 +16,7 @@ const isNoValue = (val) => val === null || val === undefined;
 const flatten = (arr) => {
     return arr.reduce((acc, val) => {
         if (isNoValue(val)) return acc;
-        return isArr(val) ? acc.concat(flatten(val)) : acc.concat(val);
+        return isArray(val) ? acc.concat(flatten(val)) : acc.concat(val);
     }, []);
 };
 

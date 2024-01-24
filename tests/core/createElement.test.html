@@ -24,7 +24,9 @@
             const flatten = (arr) => {
                 return arr.reduce((acc, val) => {
                     if (isNoValue(val)) return acc;
-                    return isArr(val) ? acc.concat(flatten(val)) : acc.concat(val);
+                    return isArr(val)
+                        ? acc.concat(flatten(val))
+                        : acc.concat(val);
                 }, []);
             };
 
