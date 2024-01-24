@@ -43,9 +43,8 @@
         "ignoredBranchesPattern": "^(master|main|dev|develop|development|release)$"
     },
     "lint-staged": {
-        "*.{js,jsx}": [
-            "eslint --cache --fix",
-            "prettier --cache --write"
+        "*.js": [
+            "eslint --cache ."
         ]
     }
 }
