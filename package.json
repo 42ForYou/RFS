@@ -23,9 +23,6 @@
         }
     },
     "devDependencies": {
-        "@babel/cli": "^7.10.5",
-        "@babel/core": "^7.11.1",
-        "@babel/preset-env": "^7.23.8",
         "@rollup/plugin-node-resolve": "^15.2.3",
         "@rollup/plugin-terser": "^0.4.4",
         "eslint": "^8.56.0",
@@ -46,9 +43,8 @@
         "ignoredBranchesPattern": "^(master|main|dev|develop|development|release)$"
     },
     "lint-staged": {
-        "*.{js,jsx}": [
-            "eslint --cache --fix",
-            "prettier --cache --write"
+        "*.js": [
+            "eslint --cache ."
         ]
     }
 }
