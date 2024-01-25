@@ -9,7 +9,7 @@
  * @property {Hook} workInProgressHook Status of Hooks in the current rendering phase
  * @property {Hook} currentHook The list is the state of the component when it was last rendered.
  */
-export const hookCore = {
+export default {
     currentlyRenderingFiber: null,
     workInProgressHook: null,
     currentHook: null,
