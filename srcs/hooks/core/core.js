@@ -13,4 +13,5 @@ export default {
     currentlyRenderingFiber: null,
     workInProgressHook: null,
     currentHook: null,
+    RfsCurrentDispatcher: { current: null },
 };
