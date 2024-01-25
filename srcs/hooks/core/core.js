@@ -14,14 +14,3 @@ export const hookCore = {
     workInProgressHook: null,
     currentHook: null,
 };
-
-/**
- * @property {Object} memoizedState
- * @property {Object} queue
- * @property {Hook} next
- */
-export const defaultHook = {
-    memoizedState: null,
-    queue: null,
-    next: null,
-};
