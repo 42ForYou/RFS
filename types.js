@@ -8,6 +8,8 @@
 // const FunctionComponent /**        */ = 1
 // const HostComponent /**            */ = 2
 // const HostText /**                 */ = 3
+// const Fragment /**                 */ = 4
+// const MemoComponent /**            */ = 5
 
 // effectTag
 // const ONCE = Symbol.for("ONCE");
@@ -39,6 +41,21 @@ const THookObject = Object.freeze({
     queue: null,
     next: null,
 });
+
+/**
+ * @typedef {Object} TRfsElement
+ * @property {null | string | number?} key
+ * @property {string | function} type
+ * @property {any} props
+ * @property {any} ref
+ */
+const TRfsElement = {
+    type: null | String | Function,
+    // props can cantain children array. and properties.
+    props: null | any,
+    key: null | String | Number,
+    ref: null | any,
+};
 
 /**
  * @typedef {Object} Tfiber
