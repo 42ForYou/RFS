@@ -1,7 +1,7 @@
 /**
- * @file core.js
+ * @file hookCore.js
  * @description This file defines the core hook object.
- * @module Hooks/Core
+ * @module Hooks/hookCore
  */
 
 /**

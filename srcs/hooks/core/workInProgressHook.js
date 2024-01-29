@@ -3,7 +3,7 @@
  * @description This module defines the workInProgressHook object function.
  */
 
-import c from "./core";
+import hookCore from "./hookCore.js";
 
 /**
  * @function mountWorkInProgressHook
@@ -13,19 +13,19 @@ import c from "./core";
  * @see workInProgressHook
  */
 export const mountWorkInProgressHook = () => {
-    const workInProgressHook = c.workInProgressHook;
+    const workInProgressHook = hookCore.workInProgressHook;
     const hook = {
         memoizedState: null,
         queue: null,
         next: null,
     };
-
     if (workInProgressHook === null) {
-        c.currentlyRenderingFiber.memoizedState = c.workInProgressHook = hook;
+        hookCore.currentlyRenderingFiber.memoizedState =
+            hookCore.workInProgressHook = hook;
     } else {
-        c.workInProgressHook = c.workInProgressHook.next = hook;
+        hookCore.workInProgressHook = hookCore.workInProgressHook.next = hook;
     }
-    return c.workInProgressHook;
+    return hookCore.workInProgressHook;
 };
 
 /**
@@ -38,30 +38,31 @@ export const mountWorkInProgressHook = () => {
  */
 export const updateWorkInProgressHook = () => {
     let nextCurrentHook;
-    if (c.currentHook === null) {
-        const current = c.currentlyRenderingFiber.alternate;
+    if (hookCore.currentHook === null) {
+        const current = hookCore.currentlyRenderingFiber.alternate;
         if (current !== null) {
             nextCurrentHook = current.memoizedState;
         } else {
             nextCurrentHook = null;
         }
     } else {
-        nextCurrentHook = c.currentHook.next ?? c.currentHook;
+        nextCurrentHook = hookCore.currentHook.next ?? hookCore.currentHook;
     }
-    c.currentHook = nextCurrentHook;
+    hookCore.currentHook = nextCurrentHook;
 
     const newHook = {
-        memoizedState: c.currentHook.memoizedState,
-        queue: c.currentHook.queue,
+        memoizedState: hookCore.currentHook.memoizedState,
+        queue: hookCore.currentHook.queue,
         next: null,
     };
 
-    if (c.workInProgressHook === null) {
-        c.currentlyRenderingFiber.memoizedState = c.workInProgressHook =
-            newHook;
+    if (hookCore.workInProgressHook === null) {
+        hookCore.currentlyRenderingFiber.memoizedState =
+            hookCore.workInProgressHook = newHook;
     } else {
-        c.workInProgressHook = c.workInProgressHook.next = newHook;
+        hookCore.workInProgressHook = hookCore.workInProgressHook.next =
+            newHook;
     }
 
-    return c.workInProgressHook;
+    return hookCore.workInProgressHook;
 };
