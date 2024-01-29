@@ -9,6 +9,7 @@
 // const NO_CHANGES = Symbol.for("NOCHANGES");
 
 /**
+ * @typedef {Object} TUpdate
  * @property {any} action
  * @property {boolean} hasEagerState
  * @property {any} eagerState
@@ -33,6 +34,7 @@ const TUpdate = Object.freeze({
 });
 
 /**
+ * @typedef {Object} TUpdateQueue
  * @property {TUpdate} pending
  * @property {function} dispatch
  * @property {function | baseicStateReducer} lastRenderedReducer
@@ -46,6 +48,7 @@ const TUpdateQueue = Object.freeze({
 });
 
 /**
+ * @typedef {Object} TEffect
  * @property {Symbol} tag
  * @property {Function} create
  * @property {Function} destroy
@@ -61,6 +64,7 @@ const TEffect = Object.freeze({
 });
 
 /**
+ * @typedef {Object} THookObject
  * @property {any} memoizedState
  * @property {Object} queue
  * @property {Hook} next
