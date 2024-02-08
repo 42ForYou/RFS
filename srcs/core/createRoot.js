@@ -4,7 +4,8 @@
  */
 
 import { ELEMENT_NODE, DOCUMENT_NODE, DOCUMENT_FRAGMENT_NODE } from "./const";
-
+import { ConcurrentRoot } from "./const";
+import { createFiberRoot } from "../fiber/fiberRoot";
 /**
  * @param {container} container-> Type은 노드 타입-> Element|Document|DocumentFragment
  * @returns {boolean} -> container가 유효한지 확인하는 함수
@@ -21,8 +22,16 @@ const isValidContainer = (container) => {
             container.nodeType === DOCUMENT_FRAGMENT_NODE)
     );
 };
-//todo: implement this function
-const createContainer = (container, RootTag) => {};
+
+/**
+ *
+ * @param {container} container -> Element|Document|DocumentFragment
+ * @param {RootTag} RootTag -> Refer to const.js
+ * @returns {fiberRootNode} -> fiberRoot에 대해 globalScope로 역할을 하는 객체를 반환합니다.
+ */
+const createContainer = (container, tag) => {
+    return createFiberRoot(containerinfo, tag);
+};
 //todo: implement this class
 const ReactDOMRoot = class {
     constructor(container) {}
@@ -39,7 +48,6 @@ export const createRoot = (container) => {
             "createRoot: container is not a valid DOM element -RFS error"
         );
     }
-    //TODO: implement this functions
     const root = createContainer(container, ConcurrentRoot);
     //Todo: this will be imported from the event module
     //listenToAllSupportedEvents();
