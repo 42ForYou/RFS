@@ -33,14 +33,7 @@ const FiberRootNode = class {
         this.callbackNode = null;
     }
 };
-/**
- * @param {containerinfo} container -> host Instance를 인자로 받는다-> Element|Document|DocumentFragment
- * @param {tag} RootTag -> Refer to const.js
- * @description FiberRoot는 해당 Fiber에 대해서 관리를 위한 그 스코프내의 전역관리 공간이라고 생각할 수 있습니다. 그 전역관리 공간의 설정은 해당 Class
- * 에 의해서 생성되며 그렇게 생성된 객체에 실제 대응될 Fiber를 생성하여 연결을 시켜줍니다. 그리고 conatiner를 생성된 파이버와 연결시켜줍니다.
- * 이후에 memoizedState를 초기화 시켜주고, updateQueue를 초기화 시켜줍니다.-> Todo: implement this functions
- * @returns {fiberRootNode} -> fiberRoot에 대해 globalScope로 역할을 하는 객체를 반환합니다.
- */
+
 /**
  * @param {tag} RootTag -> Refer to const.js
  * @param {FiberRoot} FiberRoot -> FiberRoot
@@ -56,6 +49,14 @@ const bindFiberRootToHostRootFiber = (tag, FiberRoot) => {
     FiberBoundedRoot.stateNode = FiberRoot;
     return FiberBoundedRoot;
 };
+/**
+ * @param {containerinfo} container -> host Instance를 인자로 받는다-> Element|Document|DocumentFragment
+ * @param {tag} RootTag -> Refer to const.js
+ * @description FiberRoot는 해당 Fiber에 대해서 관리를 위한 그 스코프내의 전역관리 공간이라고 생각할 수 있습니다. 그 전역관리 공간의 설정은 해당 Class
+ * 에 의해서 생성되며 그렇게 생성된 객체에 실제 대응될 Fiber를 생성하여 연결을 시켜줍니다. 그리고 conatiner를 생성된 파이버와 연결시켜줍니다.
+ * 이후에 memoizedState를 초기화 시켜주고, updateQueue를 초기화 시켜줍니다.-> Todo: implement this functions
+ * @returns {fiberRootNode} -> fiberRoot에 대해 globalScope로 역할을 하는 객체를 반환합니다.
+ */
 export const createFiberRoot = (containerInfo, tag) => {
     const root = new FiberRootNode(containerInfo, tag);
 
