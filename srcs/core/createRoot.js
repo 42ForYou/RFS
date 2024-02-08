@@ -3,8 +3,24 @@
  * @description This file defines the function related to the root of the application.
  */
 
-//todo: implement this function
-const isValidContainer = (container) => {};
+import { ELEMENT_NODE, DOCUMENT_NODE, DOCUMENT_FRAGMENT_NODE } from "./const";
+
+/**
+ * @param {container} container-> Type은 노드 타입-> Element|Document|DocumentFragment
+ * @returns {boolean} -> container가 유효한지 확인하는 함수
+ * @description container가 유효한지 확인하는 함수
+ */
+// note: !!()-> implicit type conversion to boolean
+// isValidContainer는 container가 유효한지 확인하는 함수 입니다. 기본적으로 유효한 것은 node여야 되며,
+// 그 node는 ELEMENT_NODE, DOCUMENT_NODE, DOCUMENT_FRAGMENT_NODE 중에 하나여야 합니다.
+const isValidContainer = (container) => {
+    return !!(
+        container &&
+        (container.nodeType === ELEMENT_NODE ||
+            container.nodeType === DOCUMENT_NODE ||
+            container.nodeType === DOCUMENT_FRAGMENT_NODE)
+    );
+};
 //todo: implement this function
 const createContainer = (container, RootTag) => {};
 //todo: implement this class
