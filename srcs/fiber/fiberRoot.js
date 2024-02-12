@@ -51,7 +51,6 @@ export const createFiberRoot = (containerInfo, tag) => {
  * @description    fiberRoot에 대응되는 HostRootFiber를 생성시키고
     // FiberRoot에 연결하며
     // 그 Fiber에 대해서 Root의 Container를 연결시켜줍니다.
-    @description Note!! side effect를 가지고 있음으로 단순히 추상적 의미로만 사용하시길 바랍니다. 재사용불가능합니다
     @return {Fiber} -> hostRootFiber를 반환합니다.
     */
     const bindFiberRootToHostRootFiber = (tag, FiberRoot) => {

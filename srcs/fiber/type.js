@@ -60,8 +60,8 @@ const TFiber = {
     alternate: TFiber | null, // to represent the old version of the fiber
 
     //related with Effect
-    flags: TEFlags, // to represent the flags of the fiber
-    subtreeFlags: TEFlags, // to represent the subtree flags of the fiber
+    flags: TEFlags | null, // to represent the flags of the fiber
+    subtreeFlags: TEFlags | null, // to represent the subtree flags of the fiber
     deletions: [], // to represent the deletions of the fiber, to tracks for child node to be deleted
 
     //Effect with prefix ->to Deliver effect(sideeffect) to parent
