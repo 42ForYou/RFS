@@ -35,21 +35,6 @@ const FiberRootNode = class {
 };
 
 /**
- * @param {tag} RootTag -> Refer to const.js
- * @param {FiberRoot} FiberRoot -> FiberRoot
- * @description    fiberRoot에 대응되는 HostRootFiber를 생성시키고
-    // FiberRoot에 연결하며
-    // 그 Fiber에 대해서 Root의 Container를 연결시켜줍니다.
-    @description Note!! side effect를 가지고 있음으로 단순히 추상적 의미로만 사용하시길 바랍니다. 재사용불가능합니다
-    @return {Fiber} -> hostRootFiber를 반환합니다.
-    */
-const bindFiberRootToHostRootFiber = (tag, FiberRoot) => {
-    const FiberBoundedRoot = createHostRootFiber(tag);
-    FiberRoot.current = FiberBoundedRoot;
-    FiberBoundedRoot.stateNode = FiberRoot;
-    return FiberBoundedRoot;
-};
-/**
  * @param {containerinfo} container -> host Instance를 인자로 받는다-> Element|Document|DocumentFragment
  * @param {tag} RootTag -> Refer to const.js
  * @description FiberRoot는 해당 Fiber에 대해서 관리를 위한 그 스코프내의 전역관리 공간이라고 생각할 수 있습니다. 그 전역관리 공간의 설정은 해당 Class
@@ -60,6 +45,21 @@ const bindFiberRootToHostRootFiber = (tag, FiberRoot) => {
 export const createFiberRoot = (containerInfo, tag) => {
     const root = new FiberRootNode(containerInfo, tag);
 
+    /**
+ * @param {tag} RootTag -> Refer to const.js
+ * @param {FiberRoot} FiberRoot -> FiberRoot
+ * @description    fiberRoot에 대응되는 HostRootFiber를 생성시키고
+    // FiberRoot에 연결하며
+    // 그 Fiber에 대해서 Root의 Container를 연결시켜줍니다.
+    @description Note!! side effect를 가지고 있음으로 단순히 추상적 의미로만 사용하시길 바랍니다. 재사용불가능합니다
+    @return {Fiber} -> hostRootFiber를 반환합니다.
+    */
+    const bindFiberRootToHostRootFiber = (tag, FiberRoot) => {
+        const FiberBoundedRoot = createHostRootFiber(tag);
+        FiberRoot.current = FiberBoundedRoot;
+        FiberBoundedRoot.stateNode = FiberRoot;
+        return FiberBoundedRoot;
+    };
     const FiberBoundedRoot = bindFiberRootToHostRootFiber(tag, root);
     //todo :: code for initializing the memoizedState
 
