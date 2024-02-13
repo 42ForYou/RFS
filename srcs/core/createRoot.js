@@ -32,9 +32,24 @@ const isValidContainer = (container) => {
 const createContainer = (container, tag) => {
     return createFiberRoot(containerinfo, tag);
 };
-//todo: implement this class
 const ReactDOMRoot = class {
-    constructor(container) {}
+    /**
+     *
+     * @param {inertnalRoot} FiberRootNode
+     * @description ReactDOMRoot는 전역관리 공간인 FiberRootNode를 래핑합니다
+     * @description 이 래핑은 render와 unmount의 원할한 공유를 위하여 이루어집니다
+     */
+    constructor(internalRoot) {
+        this._internalRoot = internalRoot;
+    }
+    /**
+     * @param {children} children -> ReactNodeList, jsx(reactelement) That want to display
+     * @description render는 해당 ReactDOMRoot에 대한 래핑된 FiberRootNode에 대해서 render를 수행합니다
+     * @description 이는 HostRoot의 Update를 Schedule하고, 그에 따른 작업을 수행하는걸 의미합니다
+     */
+    render(children) {
+        updateContainer(children, this._internalRoot, null, null);
+    }
 };
 /**
  *
