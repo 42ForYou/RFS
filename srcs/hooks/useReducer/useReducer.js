@@ -12,10 +12,12 @@ import hookCore from "../core/hookCore";
  * @argument {Function} init
  * @returns {Array} [state, dispatch]
  */
-export const useReducer = (reducer, initialArg, init) => {
+const useReducer = (reducer, initialArg, init) => {
     return hookCore.RfsCurrentDispatcher.current.useReducer(
         reducer,
         initialArg,
         init
     );
 };
+
+export default useReducer;
