@@ -6,8 +6,9 @@
 
 /**
  * @property {Fiber} currentlyRenderingFiber current rendering Fiber node
- * @property {Hook} workInProgressHook Status of Hooks in the current rendering phase
- * @property {Hook} currentHook The list is the state of the component when it was last rendered.
+ * @property {THookObject} workInProgressHook Status of Hooks in the current rendering phase
+ * @property {THookObject} currentHook The list is the state of the component when it was last rendered.
+ * @property {Object} RfsCurrentDispatcher The current dispatcher object.
  */
 export default {
     currentlyRenderingFiber: null,
