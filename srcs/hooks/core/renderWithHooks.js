@@ -10,13 +10,15 @@ import {
  * @param {TFiber} workInProgress
  * @param {Function} Component
  * @param {any} props
+ * @param {ref | context} secondArg
  * @returns {any} children
  */
 export default renderWithHooks = (
     current,
     workInProgress,
     Component,
-    props
+    props,
+    secondArg
 ) => {
     hookCore.currentlyRenderingFiber = workInProgress;
 
@@ -26,7 +28,7 @@ export default renderWithHooks = (
         hookCore.RfsCurrentDispatcher.current = hookDispatcherOnUpdate;
     }
 
-    const children = Component(props);
+    const children = Component(props, secondArg);
     hookCore.currentlyRenderingFiber = null;
     hookCore.workInProgressHook = null;
     hookCore.currentHook = null;
