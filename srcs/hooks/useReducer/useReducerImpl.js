@@ -10,10 +10,12 @@ import {
     updateWorkInProgressHook,
 } from "../core/workInProgressHook.js";
 
+import { createHookUpdate, createUpdateQueue } from "../constructor/index.js";
+
 /**
  *
- * @param {TUpdateQueue} queue
- * @param {TUpdate} update
+ * @param {THookUpdateQueue} queue
+ * @param {THookUpdate} update
  * @description - This function enqueues an update.
  * react Source에서는 enqueueRenderPhaseUpdate라는 이름으로 사용되었음.
  * enqueueConcurrentHookUpdate는 우선순위를 위한 것이기 때문에 사용하지 않음.
@@ -33,7 +35,7 @@ const enqueueUpdate = (queue, update) => {
 /**
  *
  * @param {TFiber} fiber currentlyRenderingFiber
- * @param {TUpdateQueue} queue
+ * @param {THookUpdateQueue} queue
  * @param {any} action
  * @description - This function dispatches an action to the reducer.
  * 다음과 같은 이유로, reducer에서는 eagerState를 사용하지 않습니다.
@@ -47,12 +49,7 @@ const enqueueUpdate = (queue, update) => {
  *  enqueueRenderPhaseUpdate를 호출하고 있습니다.
  */
 const dispatchReducerAction = (fiber, queue, action) => {
-    const update = {
-        action,
-        hasEagerState: false,
-        eagerState: null,
-        next: null,
-    };
+    const update = createHookUpdate(action, false, null, null);
     enqueueUpdate(queue, update);
     const lastRenderedReducer = queue.lastRenderedReducer;
     const currentState = queue.lastRenderedState;
@@ -141,13 +138,14 @@ export const mountReducer = (reducer, initialArg, init) => {
         initialState = initialArg;
     }
     hook.memoizedState = initialState;
-    const queue = {
-        pending: null,
-        dispatch: null,
-        lastRenderedReducer: reducer,
-        lastRenderedState: initialState,
-    };
+    const queue = createUpdateQueue(null, null, reducer, initialState);
     hook.queue = queue;
+
+    // dispatchReducerAction함수는 이후 사용자가 dispatch를 호출할 때마다 호출되는 내부 구현입니다.
+    // 해당 함수는 dispatch를 호출할 때마다 queue에 update를 추가하고, fiber를 이용해 re-render하기 때문에.
+    // 인자를 fiber, queue, action으로 받습니다
+    // 하지만 사용자는 내부 변수인 fiber와 queue를 알 필요가 없기 때문에,
+    // 해당 함수는 호출할 때는 Action만 인자로 넣도록 dispatch를 bind를 이용해 생성합니다.
     const dispatch = dispatchReducerAction.bind(
         null,
         hookCore.currentlyRenderingFiber,

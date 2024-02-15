@@ -1,11 +1,11 @@
 /**
- * @typedef {Object} TUpdate
+ * @typedef {Object} THookUpdate
  * @property {any} action
  * @property {boolean} hasEagerState
  * @property {any} eagerState
- * @property {TUpdate | null} next
+ * @property {THookUpdate | null} next
  */
-const TUpdate = Object.freeze({
+const ThookUpdate = Object.freeze({
     action: null,
     hasEagerState: null,
     eagerState: null,

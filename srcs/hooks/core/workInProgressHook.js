@@ -3,8 +3,8 @@
  * @description This module defines the workInProgressHook object function.
  */
 
-import THookObject from "../types/THookObject.js";
 import hookCore from "./hookCore.js";
+import { createHookObject } from "../constructor/index.js";
 
 /**
  * @function pushBackHookList
@@ -39,7 +39,7 @@ const pushBackHookList = (newHook) => {
  * 만약 wip가 있다면 hookCore의 list에 append합니다.
  */
 export const mountWorkInProgressHook = () => {
-    const hook = Object.assign({}, THookObject);
+    const hook = createHookObject(null, null, null);
     pushBackHookList(hook);
     return hookCore.workInProgressHook;
 };
@@ -87,12 +87,11 @@ export const updateWorkInProgressHook = () => {
         // Clone the current hook.
         hookCore.currentHook = nextCurrentHook;
 
-        const newHook = {
-            memoizedState: hookCore.currentHook.memoizedState,
-            queue: hookCore.currentHook.queue,
-            next: null,
-        };
-
+        const newHook = createHookObject(
+            hookCore.currentHook.memoizedState,
+            hookCore.currentHook.queue,
+            null
+        );
         pushBackHookList(newHook);
     }
     return hookCore.workInProgressHook;
