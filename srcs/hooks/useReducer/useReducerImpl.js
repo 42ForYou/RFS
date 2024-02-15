@@ -38,10 +38,13 @@ const enqueueUpdate = (queue, update) => {
  * @param {THookUpdateQueue} queue
  * @param {any} action
  * @description - This function dispatches an action to the reducer.
- * 다음과 같은 이유로, reducer에서는 eagerState를 사용하지 않습니다.
+ * 다음과 같은 이유로, useReducer에서는 eagerState를 사용하지 않습니다.
  * useReducer는 보다 복잡한 상태 로직을 관리할 때 사용되며,
  * 상태 업데이트 로직이 useState보다 더 복잡하거나 조건부 로직을 포함할 수 있기 때문에,
  * 선제적 계산을 기본 동작으로 사용하지 않습니다.
+ *
+ * 하지만 해당 dispatchReducerAction은 useState와 함께 사용할 예정이기 때문에
+ * eagerState를 추가하여 useState에서 선제적 계산(eager)을 사용하도록 하였습니다.
  *
  *  현재 RFS의 schedule logic을 포괄적으로 파악하지 못하였기 때문에
  *  dispatch로 인해 scheduleUpdateOnFiber를 호출하는 것으로 대체하였습니다.
