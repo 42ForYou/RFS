@@ -79,10 +79,14 @@ export const updateWorkInProgressHook = () => {
         nextWorkInProgressHook = hookCore.workInProgressHook.next;
     }
 
+    // NOTE: 3번째 이후 update일 때 아래 로직이 불릴 것으로 추정.
     if (nextWorkInProgressHook !== null) {
         // There's already a work-in-progress. Reuse it.
         hookCore.workInProgressHook = nextWorkInProgressHook;
+
+        nextWorkInProgressHook = hookCore.workInProgressHook.next;
         hookCore.currentHook = nextCurrentHook;
+        throw Error("updateWorkInProgressHook error!!! OMG");
     } else {
         // Clone the current hook.
         hookCore.currentHook = nextCurrentHook;
