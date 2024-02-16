@@ -3,6 +3,8 @@
  * @description This module defines the hooksDispatcher object.
  */
 
+import { mountReducer, updateReducer } from "../useReducer/useReducerImpl";
+
 /**
  * @description This object is dispatcher for mount hooks.
  * @property {Function} useState
@@ -10,9 +12,9 @@
  * @property {Function} useEffect
  * @property {Function} useMemo
  */
-export const HookDispatcherOnMount = {
+export const hookDispatcherOnMount = {
     // useState: mountState,
-    // useReducer: mountReducer,
+    useReducer: mountReducer,
     // useEffect: mountEffect,
     // useMemo: mountMemo,
 };
@@ -24,9 +26,9 @@ export const HookDispatcherOnMount = {
  * @property {Function} useEffect
  * @property {Function} useMemo
  */
-export const HookDispatcherOnUpdate = {
+export const hookDispatcherOnUpdate = {
     // useState: updateState,
-    // useReducer: updateReducer,
+    useReducer: updateReducer,
     // useEffect: updateEffect,
     // useMemo: updateMemo,
 };
