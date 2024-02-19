@@ -15,7 +15,22 @@ const TRefObject = {
     current: any,
 };
 
-const TEFlags = {}; // Todo: implement this type
+/**
+ * @typedef TEffectFlags
+ * @description Fiber Effect Flags
+ * Passive present the effect is passive
+ * simply you can think about useEffect hook
+ * Effect와 관련된 Fiber의 flag입니다.
+ */
+const TEffectFlags = {};
+export const Passive = /*                      */ 0b0000000000000000100000000000;
+
+// for insertion, layout
+export const Update = /*                       */ 0b0000000000000000000000000100;
+
+// Static Flags i've no idea....
+export const PassiveStatic = /*                */ 0b0000100000000000000000000000;
+
 // TWorkTag Type ends
 /**
  * @typedef {Object} Tfiber
@@ -60,8 +75,8 @@ const TFiber = {
     alternate: TFiber | null, // to represent the old version of the fiber
 
     //related with Effect
-    flags: TEFlags | null, // to represent the flags of the fiber
-    subtreeFlags: TEFlags | null, // to represent the subtree flags of the fiber
+    flags: TEffectFlags | null, // to represent the flags of the fiber
+    subtreeFlags: TEffectFlags | null, // to represent the subtree flags of the fiber
     deletions: [], // to represent the deletions of the fiber, to tracks for child node to be deleted
 
     //Effect with prefix ->to Deliver effect(sideeffect) to parent
