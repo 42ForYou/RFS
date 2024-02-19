@@ -20,6 +20,7 @@ const TRefObject = {
  * @description Fiber Effect Flags
  * Passive present the effect is passive
  * simply you can think about useEffect hook
+ * Effect와 관련된 Fiber의 flag입니다.
  */
 const TEffectFlags = {};
 export const Passive = /*                      */ 0b0000000000000000100000000000;
