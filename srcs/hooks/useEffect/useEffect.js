@@ -11,6 +11,8 @@ import hookCore from "../core/hookCore";
  * @argument {Array} deps
  * @returns {undefined}
  */
-export const useEffect = (create, deps) => {
+const useEffect = (create, deps) => {
     return hookCore.RfsCurrentDispatcher.current.useEffect(create, deps);
 };
+
+export default useEffect;
