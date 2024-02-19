@@ -110,20 +110,32 @@ const pushEffect = (tag, create, inst, deps) => {
  * @see commitHookPasssiveMountEffects
  * @returns
  */
-const updateEffectImpl = (fiberFlags, hookFlags, create, deps) => {
+export const updateEffectImpl = (fiberFlags, hookFlags, create, deps) => {
     const hook = updateWorkInProgressHook();
     const nextDeps = deps === undefined ? null : deps;
     const effect = hook.memoizedState;
     const inst = effect.inst;
 
     if (hookCore.currentHook !== null && nextDeps !== null) {
-        const prevEffect = currentHook.memoizedState;
+        const prevEffect = hookCore.currentHook.memoizedState;
         const prevDeps = prevEffect.deps;
         // if deps "[]" when mounted, and the prevDeps is "[]" -> true
         // so run the effect ONCE
         // Why not just use the memoizedState from current hook?
         // -> https://jser.dev/react/2022/01/19/lifecycle-of-effect-hook/#deps-are-compared
         if (areHookDepsEqual(nextDeps, prevDeps)) {
+            // 태그를 바꾸기 위해 이전 effect를 사용하지 않고 새로운 effect를 tag만 변경하여
+            // 사용.
+            // 1. effect는 기본적으로 circular니, 이전 effect
+            // 즉, currentHook.memoizedState(prevEffect)는 본인을 next로 가리키거나 다른 effect를 가리켜야하기 때문에
+            // 이번 renderPhase에서는 새로운 effect를 가리켜야 하기 때문에 pushEffect를 사용해서 새로운 Effect를 생성한다.
+            // 이 경우 이전 effect와 상태가 같기 때문에 effect를 재사용한다.
+
+            //가정 1. 여기선 업데이트큐에다가 데이터밀고 커밋단계에서 처리한다. 그리고 그건 hookFlags를 보고 처리한다
+            // 가정 2. updateEffectImpl에서 바뀌지 않았으면 처리되진 않지만 그 전 데이터를 복사해서 유지할 필요가 있다.
+            //가정 3. 그것을 위하여 기존에 있는거에서 flag만 처리하지않는다를 붙여서 복사해서 붙여넣는다
+            //가정4. 지우지 못하는 이유는 circularlist
+            //가정4. (모름) 가르키는 곳을 바꿔서 거기부터 처리한다.
             hook.memoizedState = pushEffect(hookFlags, create, inst, nextDeps);
             return;
         }
@@ -159,7 +171,7 @@ export const updateEffect = (create, deps) => {
  * @description - This function mounts an effect.
  * mount시 effect는 항상 실행되어야 하기 때문에 HookHasEffect flag를 추가하여 effect를 생성합니다.
  */
-const mountEffectImpl = (fiberFlags, hookFlags, create, deps) => {
+export const mountEffectImpl = (fiberFlags, hookFlags, create, deps) => {
     const hook = mountWorkInProgressHook();
     const nextDeps = deps === undefined ? null : deps;
     hookCore.currentlyRenderingFiber.flags |= fiberFlags;
