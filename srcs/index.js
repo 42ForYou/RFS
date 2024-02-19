@@ -1,3 +1,3 @@
 export { createElement, Fragment } from "./core/createElement.js";
 
-export { useReducer } from "./hooks/index.js";
+export { useReducer, useEffect } from "./hooks/index.js";

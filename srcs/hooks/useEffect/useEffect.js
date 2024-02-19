@@ -3,7 +3,7 @@
  * @description This module defines the useEffect function.
  */
 
-import c from "../core/core";
+import hookCore from "../core/hookCore";
 
 /**
  * @description This function is useEffect hook.
@@ -11,6 +11,8 @@ import c from "../core/core";
  * @argument {Array} deps
  * @returns {undefined}
  */
-export const useEffect = (create, deps) => {
-    return c.RfsCurrentDispatcher.current.useEffect(create, deps);
+const useEffect = (create, deps) => {
+    return hookCore.RfsCurrentDispatcher.current.useEffect(create, deps);
 };
+
+export default useEffect;

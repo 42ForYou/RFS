@@ -1,3 +1,4 @@
-import useReducer from "./hooks/useReducer/useReducer.js";
+import useReducer from "./useReducer/useReducer.js";
+import useEffect from "./useEffect/useEffect.js";
 
-export { useReducer };
+export { useReducer, useEffect };
