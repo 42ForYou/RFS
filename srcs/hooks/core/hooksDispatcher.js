@@ -17,6 +17,7 @@ export const hookDispatcherOnMount = {
     // useState: mountState,
     useReducer: mountReducer,
     useEffect: mountEffect,
+    useLayoutEffect: mountLayoutEffect,
     // useMemo: mountMemo,
 };
 
@@ -31,5 +32,6 @@ export const hookDispatcherOnUpdate = {
     // useState: updateState,
     useReducer: updateReducer,
     useEffect: updateEffect,
+    useLayoutEffect: updateLayoutEffect,
     // useMemo: updateMemo,
 };
