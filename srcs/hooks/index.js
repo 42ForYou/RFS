@@ -1,4 +1,6 @@
 import useReducer from "./useReducer/useReducer.js";
 import useEffect from "./useEffect/useEffect.js";
 
-export { useReducer, useEffect };
+import useMemo from "./useMemo/useMemo.js";
+
+export { useReducer, useEffect, useMemo };

@@ -3,7 +3,7 @@
  * @description This module defines the useMemo function.
  */
 
-import c from "../core/core";
+import hookCore from "../core/hookCore";
 
 /**
  * @description This function is useMemo hook.
@@ -11,6 +11,8 @@ import c from "../core/core";
  * @argument {Array} deps
  * @returns {any}
  */
-export const useMemo = (create, deps) => {
-    return c.RfsCurrentDispatcher.current.useMemo(create, deps);
+const useMemo = (create, deps) => {
+    return hookCore.RfsCurrentDispatcher.current.useMemo(create, deps);
 };
+
+export default useMemo;

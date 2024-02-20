@@ -6,6 +6,8 @@
 import { mountReducer, updateReducer } from "../useReducer/useReducerImpl";
 import { mountEffect, updateEffect } from "../useEffect/useEffectImpl";
 
+import { mountMemo, updateMemo } from "../useMemo/useMemoImpl";
+
 /**
  * @description This object is dispatcher for mount hooks.
  * @property {Function} useState
@@ -17,7 +19,7 @@ export const hookDispatcherOnMount = {
     // useState: mountState,
     useReducer: mountReducer,
     useEffect: mountEffect,
-    // useMemo: mountMemo,
+    useMemo: mountMemo,
 };
 
 /**
@@ -31,5 +33,5 @@ export const hookDispatcherOnUpdate = {
     // useState: updateState,
     useReducer: updateReducer,
     useEffect: updateEffect,
-    // useMemo: updateMemo,
+    useMemo: updateMemo,
 };
