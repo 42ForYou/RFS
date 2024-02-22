@@ -51,7 +51,7 @@ const createFunctionComponentUpdateQueue = () => {
  * useEffect의 deps 배열을 비교하여 같다면 true, 다르다면 false를 반환합니다.
  * @returns
  */
-const areHookDepsEqual = (prevDeps, nextDeps) => {
+export const areHookDepsEqual = (prevDeps, nextDeps) => {
     for (let i = 0; i < prevDeps.length && i < nextDeps.length; i++) {
         if (is(prevDeps[i], nextDeps[i])) {
             continue;
