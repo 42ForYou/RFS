@@ -30,6 +30,7 @@ export const Update = /*                       */ 0b0000000000000000000000000100
 
 // Static Flags i've no idea....
 export const PassiveStatic = /*                */ 0b0000100000000000000000000000;
+export const LayoutStatic = /*                 */ 0b0000010000000000000000000000;
 
 // TWorkTag Type ends
 /**

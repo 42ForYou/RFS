@@ -109,6 +109,7 @@ const pushEffect = (tag, create, inst, deps) => {
  * @see commitPassiveMountOnFiber
  * @see commitHookPasssiveMountEffects
  * @returns
+ * // TODO: move to separate file becasue of shared function
  */
 export const updateEffectImpl = (fiberFlags, hookFlags, create, deps) => {
     const hook = updateWorkInProgressHook();
@@ -170,6 +171,7 @@ export const updateEffect = (create, deps) => {
  * @param {Function} deps
  * @description - This function mounts an effect.
  * mount시 effect는 항상 실행되어야 하기 때문에 HookHasEffect flag를 추가하여 effect를 생성합니다.
+ * // TODO: move to separate file becasue of shared function
  */
 export const mountEffectImpl = (fiberFlags, hookFlags, create, deps) => {
     const hook = mountWorkInProgressHook();
