@@ -3,7 +3,7 @@
  * @description This module defines the useCallback function.
  */
 
-import c from "../core/core";
+import hookCore from "../core/hookCore";
 
 /**
  * @description This function is useCallback hook.
@@ -11,6 +11,8 @@ import c from "../core/core";
  * @argument {Array} deps
  * @returns {Function}
  */
-export const useCallback = (callback, deps) => {
-    return c.RfsCurrentDispatcher.current.useMemo(() => callback, deps);
+const useCallback = (callback, deps) => {
+    return hookCore.RfsCurrentDispatcher.current.useCallback(callback, deps);
 };
+
+export default useCallback;
