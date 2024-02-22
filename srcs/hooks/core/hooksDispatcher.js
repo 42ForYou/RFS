@@ -8,6 +8,7 @@ import { mountEffect, updateEffect } from "../useEffect/useEffectImpl";
 import { mountState, updateState } from "../useState/useStateImpl";
 import { mountCallback, updateCallback } from "../useCallback/useCallbackImpl";
 import { mountRef, updateRef } from "../useRef/useRefImpl";
+import { mountMemo, updateMemo } from "../useMemo/useMemoImpl";
 
 /**
  * @description This object is dispatcher for mount hooks.
@@ -20,8 +21,8 @@ export const hookDispatcherOnMount = {
     useState: mountState,
     useReducer: mountReducer,
     useEffect: mountEffect,
+    useMemo: mountMemo,
     useLayoutEffect: mountLayoutEffect,
-    // useMemo: mountMemo,
     useCallback: mountCallback,
     useRef: mountRef,
 };
@@ -37,8 +38,8 @@ export const hookDispatcherOnUpdate = {
     useState: updateState,
     useReducer: updateReducer,
     useEffect: updateEffect,
+    useMemo: updateMemo,
     useLayoutEffect: updateLayoutEffect,
-    // useMemo: updateMemo,
     useCallback: updateCallback,
     useRef: updateRef,
 };
