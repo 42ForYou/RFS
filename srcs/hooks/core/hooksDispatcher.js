@@ -6,6 +6,7 @@
 import { mountReducer, updateReducer } from "../useReducer/useReducerImpl";
 import { mountEffect, updateEffect } from "../useEffect/useEffectImpl";
 import { mountCallback, updateCallback } from "../useCallback/useCallbackImpl";
+import { mountRef, updateRef } from "../useRef/useRefImpl";
 
 /**
  * @description This object is dispatcher for mount hooks.
@@ -20,6 +21,7 @@ export const hookDispatcherOnMount = {
     useEffect: mountEffect,
     // useMemo: mountMemo,
     useCallback: mountCallback,
+    useRef: mountRef,
 };
 
 /**
@@ -35,4 +37,5 @@ export const hookDispatcherOnUpdate = {
     useEffect: updateEffect,
     // useMemo: updateMemo,
     useCallback: updateCallback,
+    useRef: updateRef,
 };
