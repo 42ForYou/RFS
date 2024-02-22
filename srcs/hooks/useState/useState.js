@@ -3,13 +3,15 @@
  * @description This module defines the useState function.
  */
 
-import c from "../core/core";
+import hookCore from "../core/hookCore";
 
 /**
  * @description This function is useState hook.
  * @param {any} initialState
  * @returns {Array} [state, setState]
  */
-export const useState = (initialState) => {
-    return c.RfsCurrentDispatcher.current.useState(initialState);
+const useState = (initialState) => {
+    return hookCore.RfsCurrentDispatcher.current.useState(initialState);
 };
+
+export default useState;

@@ -5,9 +5,9 @@
  * @property {function | baseicStateReducer} lastRenderedReducer -> last rendered reducer
  * @property {any} lastRenderedState -> last rendered state
  */
-const THookUpdateQueue = Object.freeze({
+const THookUpdateQueue = {
     pending: null,
     dispatch: null,
     lastRenderedReducer: null,
     lastRenderedState: null,
-});
+};
