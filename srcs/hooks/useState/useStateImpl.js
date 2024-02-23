@@ -7,10 +7,8 @@ import is from "../../shared/objectIs";
 import { createHookUpdate, createHookUpdateQueue } from "../constructor/index";
 import hookCore from "../core/hookCore";
 import { mountWorkInProgressHook } from "../core/workInProgressHook";
-import {
-    enqueueRenderPhaseUpdate,
-    updateReducer,
-} from "../useReducer/useReducerImpl";
+import enqueueRenderPhaseUpdate from "../shared/enqueueRenderPhaseUpdate";
+import { updateReducer } from "../useReducer/useReducerImpl";
 
 /**
  *
