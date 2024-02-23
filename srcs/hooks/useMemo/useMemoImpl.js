@@ -1,8 +1,9 @@
+import createMemoizedValueAndDeps from "../constructor/MemoizedValueAndDeps";
 import {
     mountWorkInProgressHook,
     updateWorkInProgressHook,
 } from "../core/workInProgressHook";
-import { areHookDepsEqual } from "../useEffect/useEffectImpl";
+import areHookDepsEqual from "../shared/areHookDepsEqual";
 
 /**
  * @function mountMemo
@@ -16,7 +17,9 @@ export const mountMemo = (nextCreate, deps) => {
     const hook = mountWorkInProgressHook();
     const nextDeps = deps === undefined ? null : deps;
     const nextValue = nextCreate();
-    hook.memoizedState = [nextValue, nextDeps];
+    const memoizedState = createMemoizedValueAndDeps(nextValue, nextDeps);
+
+    hook.memoizedState = memoizedState;
     return nextValue;
 };
 
@@ -41,7 +44,10 @@ export const updateMemo = (nextCreate, deps) => {
             return prevState[0];
         }
     }
+
     const nextValue = nextCreate();
-    hook.memoizedState = [nextValue, nextDeps];
+    const memoizedState = createMemoizedValueAndDeps(nextValue, nextDeps);
+
+    hook.memoizedState = memoizedState;
     return nextValue;
 };

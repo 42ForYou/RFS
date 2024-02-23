@@ -4,10 +4,8 @@
  * @property {Object} queue
  * @property {Hook} next
  */
-const THookObject = Object.freeze({
+const THookObject = {
     memoizedState: null,
     queue: null,
     next: null,
-});
-
-export default THookObject;
+};

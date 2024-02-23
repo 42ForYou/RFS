@@ -12,54 +12,17 @@ import {
     HasEffect as HookHasEffect,
     Passive as HookPassive,
 } from "../types/THookEffectFlags";
+import areHookDepsEqual from "../shared/areHookDepsEqual";
 
 import {
     mountWorkInProgressHook,
     updateWorkInProgressHook,
 } from "../core/workInProgressHook";
+import hookCore from "../core/hookCore";
 
 import createEffect from "../constructor/effect";
-import hookCore from "../core/hookCore";
-import is from "../../shared/objectIs";
-
-/**
- * @description - This function creates an effect instance.
- * @returns {Object} - An effect instance includes destroy function.
- */
-const createEffectInstance = () => {
-    return { destroy: undefined };
-};
-
-/**
- * @description - This function creates an update queue for function component.
- * stores와  events, memocache는 각각 다른 hook들에서 사용됩니다.
- * 각각 [useSyncExternalStore, useEffectEvent, useMemoCache]에서 사용.
- * 그래서 위의 property들은 제거되었습니다.
- * @returns {Object} - An update queue for function component.
- */
-const createFunctionComponentUpdateQueue = () => {
-    return {
-        lastEffect: null,
-    };
-};
-
-/**
- *
- * @param {Array<any>} prevDeps
- * @param {Array<any>} nextDeps
- * @description - This function checks if the deps are equal.
- * useEffect의 deps 배열을 비교하여 같다면 true, 다르다면 false를 반환합니다.
- * @returns
- */
-export const areHookDepsEqual = (prevDeps, nextDeps) => {
-    for (let i = 0; i < prevDeps.length && i < nextDeps.length; i++) {
-        if (is(prevDeps[i], nextDeps[i])) {
-            continue;
-        }
-        return false;
-    }
-    return true;
-};
+import createEffectInstance from "../constructor/EffectInstance";
+import createFunctionComponentUpdateQueue from "../constructor/FunctionComponentUpdateQueue";
 
 /**
  *
@@ -77,7 +40,7 @@ const pushEffect = (tag, create, inst, deps) => {
     let componentUpdateQueue = hookCore.currentlyRenderingFiber.updateQueue;
 
     if (componentUpdateQueue === null) {
-        componentUpdateQueue = createFunctionComponentUpdateQueue();
+        componentUpdateQueue = createFunctionComponentUpdateQueue(null);
         hookCore.currentlyRenderingFiber.updateQueue = componentUpdateQueue;
         componentUpdateQueue.lastEffect = effect.next = effect;
     } else {
@@ -180,7 +143,7 @@ export const mountEffectImpl = (fiberFlags, hookFlags, create, deps) => {
     hook.memoizedState = pushEffect(
         HookHasEffect | hookFlags,
         create,
-        createEffectInstance(),
+        createEffectInstance(undefined),
         nextDeps
     );
 };

@@ -6,10 +6,10 @@
  * @property {Array<any>} deps - dependency Array
  * @property {TEffect} next - next Effect
  */
-const TEffect = Object.freeze({
+const TEffect = {
     effectTag: null,
     create: null,
     inst: null,
     deps: null,
     next: null,
-});
+};

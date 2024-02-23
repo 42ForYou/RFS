@@ -11,29 +11,7 @@ import {
 } from "../core/workInProgressHook.js";
 
 import { createHookUpdate, createUpdateQueue } from "../constructor/index.js";
-
-/**
- *
- * @param {THookUpdateQueue} queue
- * @param {THookUpdate} update
- * @description - This function enqueues an update.
- * hook.queue에 update를 추가합니다.
- * 만약 어떤 update도 없다면, pending에 update를 추가하고, circular list를 만듭니다.
- * pending이 존재한다면 update를 enqueue하고 현재 queue.pending을 해당 update로 변경합니다.
- * 즉, pending은 circular list의 마지막 update를 가리키게 됩니다.
- * // TODO: move to this function to a separate file for shared use
- */
-export const enqueueRenderPhaseUpdate = (queue, update) => {
-    const pending = queue.pending;
-    if (pending === null) {
-        // This is the first update. Create a circular list.
-        update.next = update;
-    } else {
-        update.next = pending.next;
-        pending.next = update;
-    }
-    queue.pending = update;
-};
+import enqueueRenderPhaseUpdate from "../shared/enqueueRenderPhaseUpdate.js";
 
 /**
  * @param {TFiber} fiber currentlyRenderingFiber
@@ -136,6 +114,8 @@ export const updateReducer = (reducer, _, __) => {
  */
 export const mountReducer = (reducer, initialArg, init) => {
     const hook = mountWorkInProgressHook();
+
+    // init initialState
     let initialState;
     if (init !== undefined) {
         initialState = init(initialArg);
