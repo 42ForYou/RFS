@@ -2,11 +2,13 @@
     "name": "@42foryou/rfs",
     "description": "React From Scratch",
     "type": "module",
-    "version": "0.0.1",
+    "version": "0.0.3",
     "main": "dist/rfs.js",
+    "files": [
+        "/dist"
+    ],
     "scripts": {
-        "prepare": "git config --local commit.template .gitmessage.txt",
-        "postinstall": "husky install",
+        "prepare": "git config --local commit.template .gitmessage.txt && husky install",
         "format": "prettier --cache --write .",
         "lint": "eslint --cache .",
         "test": "jest",
