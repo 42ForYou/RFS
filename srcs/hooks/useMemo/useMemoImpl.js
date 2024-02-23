@@ -2,7 +2,7 @@ import {
     mountWorkInProgressHook,
     updateWorkInProgressHook,
 } from "../core/workInProgressHook";
-import { areHookDepsEqual } from "../useEffect/useEffectImpl";
+import { areHookDepsEqual } from "../shared/areHookDepsEqual";
 
 /**
  * @function mountMemo

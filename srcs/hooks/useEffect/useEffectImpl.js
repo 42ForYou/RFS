@@ -20,7 +20,7 @@ import {
 
 import createEffect from "../constructor/effect";
 import hookCore from "../core/hookCore";
-import is from "../../shared/objectIs";
+import { areHookDepsEqual } from "../shared/areHookDepsEqual";
 
 /**
  * @description - This function creates an effect instance.
@@ -41,24 +41,6 @@ const createFunctionComponentUpdateQueue = () => {
     return {
         lastEffect: null,
     };
-};
-
-/**
- *
- * @param {Array<any>} prevDeps
- * @param {Array<any>} nextDeps
- * @description - This function checks if the deps are equal.
- * useEffect의 deps 배열을 비교하여 같다면 true, 다르다면 false를 반환합니다.
- * @returns
- */
-export const areHookDepsEqual = (prevDeps, nextDeps) => {
-    for (let i = 0; i < prevDeps.length && i < nextDeps.length; i++) {
-        if (is(prevDeps[i], nextDeps[i])) {
-            continue;
-        }
-        return false;
-    }
-    return true;
 };
 
 /**
