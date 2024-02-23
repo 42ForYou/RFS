@@ -14,6 +14,21 @@ import {
 
 /**
  *
+ * @param {any} state
+ * @param {any} action
+ * @description - This function is a basic state reducer.
+ * useState에서 사용되는 기본적인 state reducer입니다.
+ * 만약 action이 function 이라면 state를 인자로 넣고 실행합니다.
+ * 이는 setState에 함수를 넣는 경우 사용될 수 있습니다.
+ * .e.g. setState(prevState => prevState + 1)
+ * @returns
+ */
+const basicStateReducer = (state, action) => {
+    return typeof action === "function" ? action(state) : action;
+};
+
+/**
+ *
  * @param {import("../../fiber/type").Tfiber} fiber
  * @param {import("../types/THookUpdateQueue").THookUpdateQueue} queue
  * @param {any} action
@@ -39,21 +54,6 @@ const dispatchSetState = (fiber, queue, action) => {
 
     // TODO: Implement this function.
     scheduleUpdateOnFiber(fiber);
-};
-
-/**
- *
- * @param {any} state
- * @param {any} action
- * @description - This function is a basic state reducer.
- * useState에서 사용되는 기본적인 state reducer입니다.
- * 만약 action이 function 이라면 state를 인자로 넣고 실행합니다.
- * 이는 setState에 함수를 넣는 경우 사용될 수 있습니다.
- * .e.g. setState(prevState => prevState + 1)
- * @returns
- */
-const basicStateReducer = (state, action) => {
-    return typeof action === "function" ? action(state) : action;
 };
 
 /**
