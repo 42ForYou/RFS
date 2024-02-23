@@ -1,3 +1,4 @@
+import createMemoizedValueAndDeps from "../constructor/MemoizedValueAndDeps";
 import {
     mountWorkInProgressHook,
     updateWorkInProgressHook,
@@ -15,7 +16,9 @@ import { areHookDepsEqual } from "../shared/areHookDepsEqual";
 export const mountCallback = (callback, deps) => {
     const hook = mountWorkInProgressHook();
     const nextDeps = deps === undefined ? null : deps;
-    hook.memoizedState = [callback, nextDeps];
+    const memoizedState = createMemoizedValueAndDeps(callback, nextDeps);
+
+    hook.memoizedState = memoizedState;
     return callback;
 };
 
@@ -42,6 +45,8 @@ export const updateCallback = (callback, deps) => {
             }
         }
     }
-    hook.memoizedState = [callback, nextDeps];
+    const memoizedState = createMemoizedValueAndDeps(callback, nextDeps);
+    hook.memoizedState = memoizedState;
+
     return callback;
 };
