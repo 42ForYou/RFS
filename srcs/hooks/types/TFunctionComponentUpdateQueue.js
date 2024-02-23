@@ -4,5 +4,5 @@
  * @property {TEffect} lastEffect - last effect the end of circular linked list
  */
 const TFunctionComponentUpdateQueue = {
-    lastEffect: null,
+    lastEffect: TEffect | null,
 };

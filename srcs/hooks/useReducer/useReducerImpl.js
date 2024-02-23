@@ -136,6 +136,8 @@ export const updateReducer = (reducer, _, __) => {
  */
 export const mountReducer = (reducer, initialArg, init) => {
     const hook = mountWorkInProgressHook();
+
+    // init initialState
     let initialState;
     if (init !== undefined) {
         initialState = init(initialArg);

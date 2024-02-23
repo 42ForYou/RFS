@@ -12,23 +12,17 @@ import {
     HasEffect as HookHasEffect,
     Passive as HookPassive,
 } from "../types/THookEffectFlags";
+import { areHookDepsEqual } from "../shared/areHookDepsEqual";
 
 import {
     mountWorkInProgressHook,
     updateWorkInProgressHook,
 } from "../core/workInProgressHook";
+import hookCore from "../core/hookCore";
 
 import createEffect from "../constructor/effect";
-import hookCore from "../core/hookCore";
-import { areHookDepsEqual } from "../shared/areHookDepsEqual";
-
-/**
- * @description - This function creates an effect instance.
- * @returns {Object} - An effect instance includes destroy function.
- */
-const createEffectInstance = () => {
-    return { destroy: undefined };
-};
+import createEffectInstance from "../constructor/EffectInstance";
+import createFunctionComponentUpdateQueue from "../constructor/FunctionComponentUpdateQueue";
 
 /**
  *
@@ -46,7 +40,7 @@ const pushEffect = (tag, create, inst, deps) => {
     let componentUpdateQueue = hookCore.currentlyRenderingFiber.updateQueue;
 
     if (componentUpdateQueue === null) {
-        componentUpdateQueue = createFunctionComponentUpdateQueue();
+        componentUpdateQueue = createFunctionComponentUpdateQueue(null);
         hookCore.currentlyRenderingFiber.updateQueue = componentUpdateQueue;
         componentUpdateQueue.lastEffect = effect.next = effect;
     } else {
@@ -149,7 +143,7 @@ export const mountEffectImpl = (fiberFlags, hookFlags, create, deps) => {
     hook.memoizedState = pushEffect(
         HookHasEffect | hookFlags,
         create,
-        createEffectInstance(),
+        createEffectInstance(undefined),
         nextDeps
     );
 };
