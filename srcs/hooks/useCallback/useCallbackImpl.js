@@ -10,7 +10,7 @@ import { areHookDepsEqual } from "../useEffect/useEffectImpl";
  * @param {Function} callback
  * @param {Array} deps
  * @description - useMemo와 동일한 코드입니다.
- * 하나 다른 점은 callback을 실행하지 않고 callback그 자체를 저장한다는 것입니다. 
+ * 하나 다른 점은 callback을 실행하지 않고 callback그 자체를 저장한다는 것입니다.
  * @returns
  */
 export const mountCallback = (callback, deps) => {
