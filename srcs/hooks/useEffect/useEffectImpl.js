@@ -12,7 +12,7 @@ import {
     HasEffect as HookHasEffect,
     Passive as HookPassive,
 } from "../types/THookEffectFlags";
-import { areHookDepsEqual } from "../shared/areHookDepsEqual";
+import areHookDepsEqual from "../shared/areHookDepsEqual";
 
 import {
     mountWorkInProgressHook,
