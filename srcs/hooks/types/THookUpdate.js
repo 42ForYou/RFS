@@ -5,9 +5,9 @@
  * @property {any} eagerState
  * @property {THookUpdate | null} next
  */
-const ThookUpdate = Object.freeze({
+const ThookUpdate = {
     action: null,
     hasEagerState: null,
     eagerState: null,
     next: null,
-});
+};
