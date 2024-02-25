@@ -6,9 +6,11 @@
  * @param {THookUpdate} next
  */
 const hookUpdate = class {
-    constructor(action, hasEagerState, eagerState, next) {
+    constructor(expirationTime, suspenseConfig, action, eagerReducer, eagerState, next) {
+        this.expirationTime = expirationTime;
+        this.suspenseConfig = suspenseConfig;
         this.action = action;
-        this.hasEagerState = hasEagerState;
+        this.eagerReducer = eagerReducer;
         this.eagerState = eagerState;
         this.next = next;
     }
@@ -22,8 +24,8 @@ const hookUpdate = class {
  * @param {THookUpdate} next
  * @returns hookUpdate
  */
-const createHookUpdate = (action, hasEagerState, eagerState, next) => {
-    return new hookUpdate(action, hasEagerState, eagerState, next);
+const createHookUpdate = (expirationTime, suspenseConfig, action, eagerReducer, eagerState, next) => {
+    return new hookUpdate(expirationTime, suspenseConfig, action, eagerReducer, eagerState, next);
 };
 
 export default createHookUpdate;

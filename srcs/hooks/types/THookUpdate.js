@@ -6,8 +6,10 @@
  * @property {THookUpdate | null} next
  */
 const ThookUpdate = {
+    expirationTime: 0,
+    suspenseConfig: null,
     action: null,
-    hasEagerState: null,
+    eagerReducer: null,
     eagerState: null,
     next: null,
 };
