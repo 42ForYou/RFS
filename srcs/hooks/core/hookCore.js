@@ -17,8 +17,17 @@
  * @see updateWorkInProgressHook
  */
 export default {
+    // TODO: define NoWork
+    renderExpirationTime: NoWork,
+
     currentlyRenderingFiber: null,
-    workInProgressHook: null,
+
     currentHook: null,
+    nextCurrentHook: null,
+
+    firstWorkInProgressHook: null,
+    workInProgressHook: null,
+    nextWorkInProgressHook: null,
+
     RfsCurrentDispatcher: { current: null },
 };
