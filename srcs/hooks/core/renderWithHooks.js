@@ -1,8 +1,5 @@
 import hookCore from "./hookCore";
-import {
-    hookDispatcherOnMount,
-    hookDispatcherOnUpdate,
-} from "./hooksDispatcher";
+import { hookDispatcherOnMount, hookDispatcherOnUpdate } from "./hooksDispatcher";
 
 /**
  *
@@ -27,13 +24,7 @@ const finishRenderingHooks = (hookCore) => {
  * @param {ref | context} secondArg
  * @returns {any} children
  */
-export default renderWithHooks = (
-    current,
-    workInProgress,
-    Component,
-    props,
-    secondArg
-) => {
+export default renderWithHooks = (current, workInProgress, Component, props, secondArg) => {
     hookCore.currentlyRenderingFiber = workInProgress;
 
     workInProgress.memoizedState = null;

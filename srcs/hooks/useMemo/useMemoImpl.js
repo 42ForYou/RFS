@@ -1,8 +1,5 @@
 import createMemoizedValueAndDeps from "../constructor/MemoizedValueAndDeps";
-import {
-    mountWorkInProgressHook,
-    updateWorkInProgressHook,
-} from "../core/workInProgressHook";
+import { mountWorkInProgressHook, updateWorkInProgressHook } from "../core/workInProgressHook";
 import areHookDepsEqual from "../shared/areHookDepsEqual";
 
 /**

@@ -83,12 +83,7 @@ const mountStateImpl = (initialState) => {
         initialState = initialStateInitializer();
     }
     hook.memoizedState = initialState;
-    const queue = createHookUpdateQueue(
-        null,
-        null,
-        basicStateReducer,
-        initialState
-    );
+    const queue = createHookUpdateQueue(null, null, basicStateReducer, initialState);
     hook.queue = queue;
     return hook;
 };
@@ -106,11 +101,7 @@ const mountStateImpl = (initialState) => {
 export const mountState = (initialState) => {
     const hook = mountStateImpl(initialState);
     const queue = hook.queue;
-    const dispatch = dispatchSetState.bind(
-        null,
-        hookCore.currentlyRenderingFiber,
-        queue
-    );
+    const dispatch = dispatchSetState.bind(null, hookCore.currentlyRenderingFiber, queue);
     queue.dispatch = dispatch;
     return [hook.memoizedState, dispatch];
 };

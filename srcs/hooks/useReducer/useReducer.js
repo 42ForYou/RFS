@@ -13,11 +13,7 @@ import hookCore from "../core/hookCore";
  * @returns {Array} [state, dispatch]
  */
 const useReducer = (reducer, initialArg, init) => {
-    return hookCore.RfsCurrentDispatcher.current.useReducer(
-        reducer,
-        initialArg,
-        init
-    );
+    return hookCore.RfsCurrentDispatcher.current.useReducer(reducer, initialArg, init);
 };
 
 export default useReducer;

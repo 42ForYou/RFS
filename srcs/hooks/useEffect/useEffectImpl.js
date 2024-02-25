@@ -3,21 +3,12 @@
  * @description This module contains the implementation of the useEffect hook.
  */
 
-import {
-    Passive as PassiveEffect,
-    PassiveStatic as PassiveStaticEffect,
-} from "../../fiber/type";
+import { Passive as PassiveEffect, PassiveStatic as PassiveStaticEffect } from "../../fiber/type";
 
-import {
-    HasEffect as HookHasEffect,
-    Passive as HookPassive,
-} from "../types/THookEffectFlags";
+import { HasEffect as HookHasEffect, Passive as HookPassive } from "../types/THookEffectFlags";
 import areHookDepsEqual from "../shared/areHookDepsEqual";
 
-import {
-    mountWorkInProgressHook,
-    updateWorkInProgressHook,
-} from "../core/workInProgressHook";
+import { mountWorkInProgressHook, updateWorkInProgressHook } from "../core/workInProgressHook";
 import hookCore from "../core/hookCore";
 
 import createEffect from "../constructor/effect";
@@ -107,12 +98,7 @@ export const updateEffectImpl = (fiberFlags, hookFlags, create, deps) => {
 
     hookCore.currentlyRenderingFiber.flags |= fiberFlags;
 
-    hook.memoizedState = pushEffect(
-        HookHasEffect | hookFlags,
-        create,
-        inst,
-        nextDeps
-    );
+    hook.memoizedState = pushEffect(HookHasEffect | hookFlags, create, inst, nextDeps);
 };
 
 /**
@@ -140,12 +126,7 @@ export const mountEffectImpl = (fiberFlags, hookFlags, create, deps) => {
     const hook = mountWorkInProgressHook();
     const nextDeps = deps === undefined ? null : deps;
     hookCore.currentlyRenderingFiber.flags |= fiberFlags;
-    hook.memoizedState = pushEffect(
-        HookHasEffect | hookFlags,
-        create,
-        createEffectInstance(undefined),
-        nextDeps
-    );
+    hook.memoizedState = pushEffect(HookHasEffect | hookFlags, create, createEffectInstance(undefined), nextDeps);
 };
 
 /**
@@ -157,10 +138,5 @@ export const mountEffectImpl = (fiberFlags, hookFlags, create, deps) => {
  * @see mountEffectImpl
  */
 export const mountEffect = (create, deps) => {
-    mountEffectImpl(
-        PassiveEffect | PassiveStaticEffect,
-        HookPassive,
-        create,
-        deps
-    );
+    mountEffectImpl(PassiveEffect | PassiveStaticEffect, HookPassive, create, deps);
 };

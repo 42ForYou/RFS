@@ -1,8 +1,5 @@
 import hookCore from "../../../srcs/hooks/core/hookCore.js";
-import {
-    mountReducer,
-    updateReducer,
-} from "../../../srcs/hooks/useReducer/useReducerImpl.js";
+import { mountReducer, updateReducer } from "../../../srcs/hooks/useReducer/useReducerImpl.js";
 
 window.__DEV__ = true;
 

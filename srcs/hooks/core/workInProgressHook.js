@@ -19,12 +19,10 @@ import { createHookObject } from "../constructor/index.js";
 const pushBackHookList = (newHook) => {
     if (hookCore.workInProgressHook === null) {
         // This is the first hook in the list.
-        hookCore.currentlyRenderingFiber.memoizedState =
-            hookCore.workInProgressHook = newHook;
+        hookCore.currentlyRenderingFiber.memoizedState = hookCore.workInProgressHook = newHook;
     } else {
         // Append to the end of the list.
-        hookCore.workInProgressHook = hookCore.workInProgressHook.next =
-            newHook;
+        hookCore.workInProgressHook = hookCore.workInProgressHook.next = newHook;
     }
 };
 
@@ -91,11 +89,7 @@ export const updateWorkInProgressHook = () => {
         // Clone the current hook.
         hookCore.currentHook = nextCurrentHook;
 
-        const newHook = createHookObject(
-            hookCore.currentHook.memoizedState,
-            hookCore.currentHook.queue,
-            null
-        );
+        const newHook = createHookObject(hookCore.currentHook.memoizedState, hookCore.currentHook.queue, null);
         pushBackHookList(newHook);
     }
     return hookCore.workInProgressHook;

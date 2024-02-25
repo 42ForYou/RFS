@@ -87,9 +87,7 @@ const ReactDOMRoot = class {
  */
 export const createRoot = (container) => {
     if (!isValidContainer(container)) {
-        throw new Error(
-            "createRoot: container is not a valid DOM element -RFS error"
-        );
+        throw new Error("createRoot: container is not a valid DOM element -RFS error");
     }
     return new ReactDOMRoot(container);
 };

@@ -24,9 +24,7 @@
             const flatten = (arr) => {
                 return arr.reduce((acc, val) => {
                     if (isNoValue(val)) return acc;
-                    return isArr(val)
-                        ? acc.concat(flatten(val))
-                        : acc.concat(val);
+                    return isArr(val) ? acc.concat(flatten(val)) : acc.concat(val);
                 }, []);
             };
 
@@ -39,9 +37,7 @@
             };
             const expand = (arr, target = []) => {
                 arr.forEach((val) => {
-                    isArr(val)
-                        ? expand(val, target)
-                        : notSpecial(val) && target.push(val);
+                    isArr(val) ? expand(val, target) : notSpecial(val) && target.push(val);
                 });
                 return target;
             };
@@ -55,9 +51,7 @@
                 return createElement(
                     "div",
                     null,
-                    ["First", "Second"].map((text) =>
-                        createElement("span", null, text)
-                    ),
+                    ["First", "Second"].map((text) => createElement("span", null, text)),
                     true && createElement("span", null, "Conditional Element")
                 );
             };
@@ -75,10 +69,7 @@
             const component1 = MyComponent();
             const component2 = MyComponentWithH();
 
-            console.log(
-                "Are components equal? ",
-                _.isEqual(component1, component2)
-            );
+            console.log("Are components equal? ", _.isEqual(component1, component2));
         </script>
     </head>
     <body></body>

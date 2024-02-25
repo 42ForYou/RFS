@@ -5,10 +5,7 @@
 
 import is from "../../shared/objectIs.js";
 import hookCore from "../core/hookCore.js";
-import {
-    mountWorkInProgressHook,
-    updateWorkInProgressHook,
-} from "../core/workInProgressHook.js";
+import { mountWorkInProgressHook, updateWorkInProgressHook } from "../core/workInProgressHook.js";
 
 import { createHookUpdate, createUpdateQueue } from "../constructor/index.js";
 import enqueueRenderPhaseUpdate from "../shared/enqueueRenderPhaseUpdate.js";
@@ -131,11 +128,7 @@ export const mountReducer = (reducer, initialArg, init) => {
     // 인자를 fiber, queue, action으로 받습니다
     // 하지만 사용자는 내부 변수인 fiber와 queue를 알 필요가 없기 때문에,
     // 해당 함수는 호출할 때는 Action만 인자로 넣도록 dispatch를 bind를 이용해 생성합니다.
-    const dispatch = dispatchReducerAction.bind(
-        null,
-        hookCore.currentlyRenderingFiber,
-        queue
-    );
+    const dispatch = dispatchReducerAction.bind(null, hookCore.currentlyRenderingFiber, queue);
     queue.dispatch = dispatch;
     return [hook.memoizedState, dispatch];
 };

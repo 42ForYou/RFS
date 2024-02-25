@@ -22,18 +22,8 @@ const hookUpdateQueue = class {
  * @param {any} lastRenderedState
  * @returns
  */
-const createHookUpdateQueue = (
-    pending,
-    dispatch,
-    lastRenderedReducer,
-    lastRenderedState
-) => {
-    return new hookUpdateQueue(
-        pending,
-        dispatch,
-        lastRenderedReducer,
-        lastRenderedState
-    );
+const createHookUpdateQueue = (pending, dispatch, lastRenderedReducer, lastRenderedState) => {
+    return new hookUpdateQueue(pending, dispatch, lastRenderedReducer, lastRenderedState);
 };
 
 export default createHookUpdateQueue;

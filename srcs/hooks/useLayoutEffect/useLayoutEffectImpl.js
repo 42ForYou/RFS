@@ -1,7 +1,4 @@
-import {
-    LayoutStatic as LayoutStaticEffect,
-    Update as UpdateEffect,
-} from "../../fiber/type";
+import { LayoutStatic as LayoutStaticEffect, Update as UpdateEffect } from "../../fiber/type";
 
 import { Layout as HookLayout } from "../types/THookEffectFlags";
 import { mountEffectImpl, updateEffectImpl } from "../useEffect/useEffectImpl";
@@ -19,12 +16,7 @@ import { mountEffectImpl, updateEffectImpl } from "../useEffect/useEffectImpl";
  * @returns
  */
 export const mountLayoutEffect = (create, deps) => {
-    return mountEffectImpl(
-        UpdateEffect | LayoutStaticEffect,
-        HookLayout,
-        create,
-        deps
-    );
+    return mountEffectImpl(UpdateEffect | LayoutStaticEffect, HookLayout, create, deps);
 };
 
 /**
