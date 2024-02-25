@@ -1,13 +1,13 @@
 /**
  *
- * @param {THookUpdate} pending
+ * @param {THookUpdate} last
  * @param {Function} dispatch
  * @param {Function} lastRenderedReducer
  * @param {any} lastRenderedState
  */
 const hookUpdateQueue = class {
-    constructor(pending, dispatch, lastRenderedReducer, lastRenderedState) {
-        this.pending = pending;
+    constructor(last, dispatch, lastRenderedReducer, lastRenderedState) {
+        this.last = last;
         this.dispatch = dispatch;
         this.lastRenderedReducer = lastRenderedReducer;
         this.lastRenderedState = lastRenderedState;
@@ -16,14 +16,14 @@ const hookUpdateQueue = class {
 
 /**
  *
- * @param {THookUpdate} pending
+ * @param {THookUpdate}last
  * @param {Function} dispatch
  * @param {Function} lastRenderedReducer
  * @param {any} lastRenderedState
  * @returns
  */
-const createHookUpdateQueue = (pending, dispatch, lastRenderedReducer, lastRenderedState) => {
-    return new hookUpdateQueue(pending, dispatch, lastRenderedReducer, lastRenderedState);
+const createHookUpdateQueue = (last, dispatch, lastRenderedReducer, lastRenderedState) => {
+    return new hookUpdateQueue(last, dispatch, lastRenderedReducer, lastRenderedState);
 };
 
 export default createHookUpdateQueue;
