@@ -17,9 +17,6 @@
  * @see updateWorkInProgressHook
  */
 export default {
-    // TODO: define NoWork
-    renderExpirationTime: NoWork,
-
     currentlyRenderingFiber: null,
 
     currentHook: null,
