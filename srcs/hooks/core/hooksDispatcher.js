@@ -1,21 +1,27 @@
 /**
  * @module hooksDispatcher
  * @description This module defines the hooksDispatcher object.
+ * @see useReducer
+ * @see useEffect
+ * @see useState
+ * @see useCallback
+ * @see useRef
+ * @see useMemo
+ * @see useLayoutEffect
+ * @see throwInvalidHookError
  */
 
-import { mountReducer, updateReducer } from "../useReducer/useReducerImpl";
-import { mountEffect, updateEffect } from "../useEffect/useEffectImpl";
-import { mountState, updateState } from "../useState/useStateImpl";
-import { mountCallback, updateCallback } from "../useCallback/useCallbackImpl";
-import { mountRef, updateRef } from "../useRef/useRefImpl";
-import { mountMemo, updateMemo } from "../useMemo/useMemoImpl";
+import { mountReducer, updateReducer } from "../useReducer/useReducerImpl.js";
+import { mountEffect, updateEffect } from "../useEffect/useEffectImpl.js";
+import { mountState, updateState } from "../useState/useStateImpl.js";
+import { mountCallback, updateCallback } from "../useCallback/useCallbackImpl.js";
+import { mountRef, updateRef } from "../useRef/useRefImpl.js";
+import { mountMemo, updateMemo } from "../useMemo/useMemoImpl.js";
+import { mountLayoutEffect, updateLayoutEffect } from "../useLayoutEffect/useLayoutEffectImpl.js";
+import throwInvalidHookError from "../shared/throwInvalidHookError.js";
 
 /**
  * @description This object is dispatcher for mount hooks.
- * @property {Function} useState
- * @property {Function} useReducer
- * @property {Function} useEffect
- * @property {Function} useMemo
  */
 export const hookDispatcherOnMount = {
     useState: mountState,
@@ -29,10 +35,6 @@ export const hookDispatcherOnMount = {
 
 /**
  * @decription This object is dispatcher for update hooks.
- * @property {Function} useState
- * @property {Function} useReducer
- * @property {Function} useEffect
- * @property {Function} useMemo
  */
 export const hookDispatcherOnUpdate = {
     useState: updateState,
@@ -42,4 +44,17 @@ export const hookDispatcherOnUpdate = {
     useLayoutEffect: updateLayoutEffect,
     useCallback: updateCallback,
     useRef: updateRef,
+};
+
+/**
+ * @description This object is dispatcher for context only.
+ */
+export const ContextOnlyDispatcher = {
+    useState: throwInvalidHookError,
+    useReducer: throwInvalidHookError,
+    useEffect: throwInvalidHookError,
+    useMemo: throwInvalidHookError,
+    useLayoutEffect: throwInvalidHookError,
+    useCallback: throwInvalidHookError,
+    useRef: throwInvalidHookError,
 };
