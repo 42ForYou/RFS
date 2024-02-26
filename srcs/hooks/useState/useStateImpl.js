@@ -3,11 +3,10 @@
  * @description - This module implements the useState hook.
  */
 
-import is from "../../shared/objectIs.js";
-import { createHookUpdate, createHookUpdateQueue } from "../constructor/index.js";
+import { createHookUpdateQueue } from "../constructor/index.js";
 import hookCore from "../core/hookCore.js";
 import { mountWorkInProgressHook } from "../core/workInProgressHook.js";
-import enqueueRenderPhaseUpdate from "../shared/enqueueRenderPhaseUpdate.js";
+import dispatchAction from "../shared/dispatchAction.js";
 import { updateReducer } from "../useReducer/useReducerImpl.js";
 
 /**
@@ -23,35 +22,6 @@ import { updateReducer } from "../useReducer/useReducerImpl.js";
  */
 const basicStateReducer = (state, action) => {
     return typeof action === "function" ? action(state) : action;
-};
-
-/**
- *
- * @param {import("../../fiber/type").Tfiber} fiber
- * @param {import("../types/THookUpdateQueue").THookUpdateQueue} queue
- * @param {any} action
- * @description - This function dispatches an action to the reducer.
- * useReducer의 dispatch와 다르게 eagerState를 사용합니다.
- * 이는 useState에서는 useReducer와 달리 로직이 단순할 것을 기대하기 때문에 eagerState를 사용합니다.
- * client가 단순한 상태 변경이라면 useState를 사용하고, 복잡한 상태 변경이라면 useReducer를 사용하도록 권장합니다.
- * @see dispatchReducerAction
- * @returns
- */
-const dispatchSetState = (fiber, queue, action) => {
-    const update = createHookUpdate(action, false, null, null);
-    enqueueRenderPhaseUpdate(queue, update);
-    const lastRenderedReducer = queue.lastRenderedReducer;
-    const currentState = queue.lastRenderedState;
-    const eagerState = lastRenderedReducer(currentState, action);
-
-    update.hasEagerState = true;
-    update.eagerState = eagerState;
-    if (is(eagerState, currentState)) {
-        return;
-    }
-
-    // TODO: Implement this function.
-    scheduleUpdateOnFiber(fiber);
 };
 
 /**
@@ -82,7 +52,7 @@ const mountStateImpl = (initialState) => {
 
         initialState = initialStateInitializer();
     }
-    hook.memoizedState = initialState;
+    hook.memoizedState = hook.baseState = initialState;
     const queue = createHookUpdateQueue(null, null, basicStateReducer, initialState);
     hook.queue = queue;
     return hook;
@@ -101,7 +71,7 @@ const mountStateImpl = (initialState) => {
 export const mountState = (initialState) => {
     const hook = mountStateImpl(initialState);
     const queue = hook.queue;
-    const dispatch = dispatchSetState.bind(null, hookCore.currentlyRenderingFiber, queue);
+    const dispatch = dispatchAction.bind(null, hookCore.currentlyRenderingFiber, queue);
     queue.dispatch = dispatch;
     return [hook.memoizedState, dispatch];
 };
