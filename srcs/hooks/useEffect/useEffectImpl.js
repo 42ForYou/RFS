@@ -3,17 +3,17 @@
  * @description This module contains the implementation of the useEffect hook.
  */
 
-import { Passive as PassiveEffect, PassiveStatic as PassiveStaticEffect } from "../../fiber/type";
+import { Passive as PassiveEffect, PassiveStatic as PassiveStaticEffect } from "../../fiber/type.js";
 
-import { HasEffect as HookHasEffect, Passive as HookPassive } from "../types/THookEffectFlags";
-import areHookDepsEqual from "../shared/areHookDepsEqual";
+import { HasEffect as HookHasEffect, Passive as HookPassive } from "../types/THookEffectFlags.js";
+import areHookDepsEqual from "../shared/areHookDepsEqual.js";
 
-import { mountWorkInProgressHook, updateWorkInProgressHook } from "../core/workInProgressHook";
-import hookCore from "../core/hookCore";
+import { mountWorkInProgressHook, updateWorkInProgressHook } from "../core/workInProgressHook.js";
+import hookCore from "../core/hookCore.js";
 
-import createEffect from "../constructor/effect";
-import createEffectInstance from "../constructor/EffectInstance";
-import createFunctionComponentUpdateQueue from "../constructor/FunctionComponentUpdateQueue";
+import createEffect from "../constructor/effect.js";
+import createEffectInstance from "../constructor/EffectInstance.js";
+import createFunctionComponentUpdateQueue from "../constructor/FunctionComponentUpdateQueue.js";
 
 /**
  *

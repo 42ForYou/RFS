@@ -1,4 +1,4 @@
-import is from "../../shared/objectIs";
+import is from "../../shared/objectIs.js";
 
 /**
  *

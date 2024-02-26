@@ -3,7 +3,7 @@
  * @description This module defines the useReducer function.
  */
 
-import hookCore from "../core/hookCore";
+import hookCore from "../core/hookCore.js";
 
 /**
  * @description This function is useReducer hook.

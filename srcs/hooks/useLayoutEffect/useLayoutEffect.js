@@ -3,7 +3,7 @@
  * @description This module defines the useLayoutEffect function.
  */
 
-import hookCore from "../core/hookCore";
+import hookCore from "../core/hookCore.js";
 
 /**
  * @description This function is useLayoutEffect hook.

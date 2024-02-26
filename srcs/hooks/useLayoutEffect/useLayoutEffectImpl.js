@@ -1,7 +1,7 @@
-import { LayoutStatic as LayoutStaticEffect, Update as UpdateEffect } from "../../fiber/type";
+import { LayoutStatic as LayoutStaticEffect, Update as UpdateEffect } from "../../fiber/type.js";
 
-import { Layout as HookLayout } from "../types/THookEffectFlags";
-import { mountEffectImpl, updateEffectImpl } from "../useEffect/useEffectImpl";
+import { Layout as HookLayout } from "../types/THookEffectFlags.js";
+import { mountEffectImpl, updateEffectImpl } from "../useEffect/useEffectImpl.js";
 
 /**
  *

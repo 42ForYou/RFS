@@ -3,7 +3,7 @@
  * @description This module defines the useRef function.
  */
 
-import hookCore from "../core/hookCore";
+import hookCore from "../core/hookCore.js";
 
 /**
  * @description This function is useRef hook.

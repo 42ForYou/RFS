@@ -3,12 +3,12 @@
  * @description - This module implements the useState hook.
  */
 
-import is from "../../shared/objectIs";
-import { createHookUpdate, createHookUpdateQueue } from "../constructor/index";
-import hookCore from "../core/hookCore";
-import { mountWorkInProgressHook } from "../core/workInProgressHook";
-import enqueueRenderPhaseUpdate from "../shared/enqueueRenderPhaseUpdate";
-import { updateReducer } from "../useReducer/useReducerImpl";
+import is from "../../shared/objectIs.js";
+import { createHookUpdate, createHookUpdateQueue } from "../constructor/index.js";
+import hookCore from "../core/hookCore.js";
+import { mountWorkInProgressHook } from "../core/workInProgressHook.js";
+import enqueueRenderPhaseUpdate from "../shared/enqueueRenderPhaseUpdate.js";
+import { updateReducer } from "../useReducer/useReducerImpl.js";
 
 /**
  *

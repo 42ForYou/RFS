@@ -1,6 +1,6 @@
-import createMemoizedValueAndDeps from "../constructor/MemoizedValueAndDeps";
-import { mountWorkInProgressHook, updateWorkInProgressHook } from "../core/workInProgressHook";
-import areHookDepsEqual from "../shared/areHookDepsEqual";
+import createMemoizedValueAndDeps from "../constructor/MemoizedValueAndDeps.js";
+import { mountWorkInProgressHook, updateWorkInProgressHook } from "../core/workInProgressHook.js";
+import areHookDepsEqual from "../shared/areHookDepsEqual.js";
 
 /**
  *
