@@ -10,15 +10,18 @@
  * // TODO: move to this function to a separate file for shared use
  */
 const enqueueRenderPhaseUpdate = (queue, update) => {
-    const pending = queue.pending;
-    if (pending === null) {
+    const last = queue.last;
+    if (last === null) {
         // This is the first update. Create a circular list.
         update.next = update;
     } else {
-        update.next = pending.next;
-        pending.next = update;
+        const first = last.next;
+        if (first !== null) {
+            update.next = first;
+        }
+        last.next = update;
     }
-    queue.pending = update;
+    queue.last = update;
 };
 
 export default enqueueRenderPhaseUpdate;
