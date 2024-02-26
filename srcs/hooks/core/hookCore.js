@@ -27,4 +27,7 @@ export default {
     nextWorkInProgressHook: null,
 
     RfsCurrentDispatcher: { current: null },
+
+    componentUpdateQueue: null,
+    effectTag: 0,
 };

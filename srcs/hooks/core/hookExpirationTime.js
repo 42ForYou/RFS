@@ -2,6 +2,8 @@
  * @module hookExpirationTime
  */
 
+import { NoWork } from "../../fiber/fiberExpirationTime.js";
+
 /**
  * @constant {number} NoWork - No expiration time.
  * @property {number} renderExpirationTime - The expiration time of the render.

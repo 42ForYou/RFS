@@ -3,8 +3,8 @@
  * @description This module defines the workInProgressHook object function.
  */
 
-import hookCore from "./hookCore.js";
 import { createHookObject } from "../constructor/index.js";
+import hookCore from "./hookCore.js";
 
 /**
  * @function pushBackHookList
