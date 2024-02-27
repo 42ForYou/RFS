@@ -8,13 +8,13 @@
  * @typedef {number} THookEffectFlags
  */
 export const HookFlags = {};
-export const NoFlags = /*   */ 0b0000;
-
-// Represents whether effect should fire.
-export const HasEffect = /* */ 0b0001;
+export const NoEffect = /*             */ 0b00000000;
 
 // Represents the phase in which the effect (not the clean-up) fires.
-// we don't support useInsertionEffect, useLayoutEffect
-// export const Insertion = /* */ 0b0010;
-export const Layout = /*    */ 0b0100;
-export const Passive = /*   */ 0b1000;
+export const UnmountSnapshot = /*      */ 0b00000010;
+export const UnmountMutation = /*      */ 0b00000100;
+export const MountMutation = /*        */ 0b00001000;
+export const UnmountLayout = /*        */ 0b00010000;
+export const MountLayout = /*          */ 0b00100000;
+export const MountPassive = /*         */ 0b01000000;
+export const UnmountPassive = /*       */ 0b10000000;

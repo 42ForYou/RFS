@@ -1,11 +1,11 @@
 /**
  * @module useEffectImpl
  * @description This module contains the implementation of the useEffect hook.
+ * @note 16.12.0은 EffectInstance를 사용하지 않는다. 하지만 이전에 논의하였던 대로 rust의 refCell개념을 차용해서 현 RFS에서는 사용하도록 한다.
  */
 
-import { Passive as PassiveEffect, PassiveStatic as PassiveStaticEffect } from "../../fiber/type.js";
+import { Update as UpdateEffect, Passive as PassiveEffect } from "../../fiber/type.js";
 
-import { HasEffect as HookHasEffect, Passive as HookPassive } from "../types/THookEffectFlags.js";
 import areHookDepsEqual from "../shared/areHookDepsEqual.js";
 
 import { mountWorkInProgressHook, updateWorkInProgressHook } from "../core/workInProgressHook.js";
@@ -14,6 +14,7 @@ import hookCore from "../core/hookCore.js";
 import createEffect from "../constructor/effect.js";
 import createEffectInstance from "../constructor/EffectInstance.js";
 import createFunctionComponentUpdateQueue from "../constructor/FunctionComponentUpdateQueue.js";
+import { NoEffect as NoHookEffect, MountPassive, UnmountPassive } from "../types/THookEffectFlags.js";
 
 /**
  *
@@ -28,23 +29,21 @@ import createFunctionComponentUpdateQueue from "../constructor/FunctionComponent
  */
 const pushEffect = (tag, create, inst, deps) => {
     const effect = createEffect(tag, create, inst, deps, null);
-    let componentUpdateQueue = hookCore.currentlyRenderingFiber.updateQueue;
 
-    if (componentUpdateQueue === null) {
-        componentUpdateQueue = createFunctionComponentUpdateQueue(null);
-        hookCore.currentlyRenderingFiber.updateQueue = componentUpdateQueue;
-        componentUpdateQueue.lastEffect = effect.next = effect;
+    if (hookCore.componentUpdateQueue === null) {
+        hookCore.componentUpdateQueue = createFunctionComponentUpdateQueue(null);
+        hookCore.componentUpdateQueue.lastEffect = effect.next = effect;
     } else {
-        const lastEffect = componentUpdateQueue.lastEffect;
+        const lastEffect = hookCore.componentUpdateQueue.lastEffect;
         // fiber에 updateQueue가 존재하지만, lastEffect가 null인 경우
         // 즉, updateQueue에 effect가 존재하지 않는 경우
         if (lastEffect === null) {
-            componentUpdateQueue.lastEffect = effect.next = effect;
+            hookCore.componentUpdateQueue.lastEffect = effect.next = effect;
         } else {
             const firstEffect = lastEffect.next;
             lastEffect.next = effect;
             effect.next = firstEffect;
-            componentUpdateQueue.lastEffect = effect;
+            hookCore.componentUpdateQueue.lastEffect = effect;
         }
     }
     return effect;
@@ -91,14 +90,14 @@ export const updateEffectImpl = (fiberFlags, hookFlags, create, deps) => {
             //가정 3. 그것을 위하여 기존에 있는거에서 flag만 처리하지않는다를 붙여서 복사해서 붙여넣는다
             //가정4. 지우지 못하는 이유는 circularlist
             //가정4. (모름) 가르키는 곳을 바꿔서 거기부터 처리한다.
-            hook.memoizedState = pushEffect(hookFlags, create, inst, nextDeps);
+            pushEffect(NoHookEffect, create, inst, nextDeps);
+            // NOTE: 16.12.0에서는 새롭게 생성된 effect를 사용하지 않는데, 이건 reconciler쪽을 봐야할 것 같다.
             return;
         }
     }
 
-    hookCore.currentlyRenderingFiber.flags |= fiberFlags;
-
-    hook.memoizedState = pushEffect(HookHasEffect | hookFlags, create, inst, nextDeps);
+    hookCore.sideEffectTag |= fiberFlags;
+    hook.memoizedState = pushEffect(hookFlags, create, inst, nextDeps);
 };
 
 /**
@@ -109,7 +108,7 @@ export const updateEffectImpl = (fiberFlags, hookFlags, create, deps) => {
  * @description - This function updates an effect.
  */
 export const updateEffect = (create, deps) => {
-    updateEffectImpl(PassiveEffect, HookPassive, create, deps);
+    updateEffectImpl(UpdateEffect | PassiveEffect, UnmountPassive | MountPassive, create, deps);
 };
 
 /**
@@ -125,8 +124,8 @@ export const updateEffect = (create, deps) => {
 export const mountEffectImpl = (fiberFlags, hookFlags, create, deps) => {
     const hook = mountWorkInProgressHook();
     const nextDeps = deps === undefined ? null : deps;
-    hookCore.currentlyRenderingFiber.flags |= fiberFlags;
-    hook.memoizedState = pushEffect(HookHasEffect | hookFlags, create, createEffectInstance(undefined), nextDeps);
+    hookCore.sideEffectTag |= fiberFlags;
+    hook.memoizedState = pushEffect(hookFlags, create, createEffectInstance(undefined), nextDeps);
 };
 
 /**
@@ -138,5 +137,5 @@ export const mountEffectImpl = (fiberFlags, hookFlags, create, deps) => {
  * @see mountEffectImpl
  */
 export const mountEffect = (create, deps) => {
-    mountEffectImpl(PassiveEffect | PassiveStaticEffect, HookPassive, create, deps);
+    mountEffectImpl(UpdateEffect | PassiveEffect, UnmountPassive | MountPassive, create, deps);
 };

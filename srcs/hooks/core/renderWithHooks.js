@@ -24,7 +24,7 @@ const finishRenderingHooks = (hookCore, hookExpirationTime) => {
     hookCore.nextWorkInProgressHook = null;
 
     hookCore.componentUpdateQueue = null;
-    hookCore.effectTag = 0;
+    hookCore.sideEffectTag = 0;
 
     // finish hookExpirationTime
     // TODO: import NoWork
@@ -97,7 +97,7 @@ export default renderWithHooks = (
     renderedWork.memoizedState = hookCore.firstWorkInProgressHook;
     renderedWork.expirationTime = hookExpirationTime.renderExpirationTime;
     renderedWork.updateQueue = hookCore.componentUpdateQueue;
-    renderedWork.effectTag |= hookCore.effectTag;
+    renderedWork.effectTag |= hookCore.sideEffectTag;
 
     // finish rendering hooks
     finishRenderingHooks(hookCore, hookExpirationTime);
