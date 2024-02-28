@@ -1,21 +1,10 @@
-// TWorkTag Type begins
-/**
- *@typedef TWorkTag
- */
-const TWorkTag = {}; // only for editor to recognize the type
-export const FunctionComponent = 0; //to represent the function component
-export const HostRoot = 1; // to represent the HostTree Root Node
-export const HostComponent = 2; // to represent the Host Component
-export const HostText = 3; // to represent the Host Text
-export const Fragment = 4; // to represent the Fragment
-export const ContextProvider = 5; // to represent the Context Provider
-export const MemoComponent = 6; // to represent the HighOrderComponent created by memo
-
+import { TWorkTag } from "./TWorkTag";
+import { TExpirationTime } from "./TExpirationTime";
 const TRefObject = {
     current: any,
 };
 
-const TEFlags = {}; // Todo: implement this type
+const TSideEffectFlags = {}; // Todo: implement this type, shoulde import from detail file
 // TWorkTag Type ends
 /**
  * @typedef {Object} Tfiber
@@ -35,13 +24,15 @@ const TEFlags = {}; // Todo: implement this type
  * @property {TFiber | null} firstEffect
  * @property {TFiber | null} lastEffect
  * @property {TFiber | null} alternate
+ * @description 1. to represent the fiber node
+ * @description 2. Duck Typing- side Effect and Fiber Node
  */
 const TFiber = {
     tag: TWorkTag,
     key: null | String, // conceptual identifier
     elementType: String | Function, // to represent Defined Type of Component, to Preserve Original Type for High Order Component
     type: String | Function, // to represent Instance Type of Component
-    stateNode: any, // to represent host instance.
+    stateNode: any, // to represent local state of the fiber(if hostCompoent== DOM, Root==RootNode, FunctionComponent==null, Fragment==null, ContextProvider==null, MemoComponent==null, HostText==null)
 
     //related with Tree
     return: TFiber | null, // to represent the parent of the fiber
@@ -55,17 +46,25 @@ const TFiber = {
     pendingProps: any, // to represent the props of the fiber
     memoizedProps: any, // to represent the memoized props of the fiber
 
-    updateQueue: any, // to saving effect information
+    updateQueue: any, // to represent queue of state updates and callbacks
+
+    memoizedState: any, //   // The state used to create the output
+    //if the fiber is a function component-> hook, hostRoot-> RootState ,..so on
 
     alternate: TFiber | null, // to represent the old version of the fiber
 
-    //related with Effect
-    flags: TEFlags | null, // to represent the flags of the fiber
-    subtreeFlags: TEFlags | null, // to represent the subtree flags of the fiber
-    deletions: [], // to represent the deletions of the fiber, to tracks for child node to be deleted
+    //Effect
+    effectTag: TSideEffectFlags, // to represent the type of effect
 
     //Effect with prefix ->to Deliver effect(sideeffect) to parent
     firstEffect: TFiber | null, // TOdo: to determine this type
     lastEffect: TFiber | null, // Todo: to determine this type
     nextEffect: TFiber | null, // Todo: to determine this type
+
+    // Represents a time in the future by which this work should be completed.
+    // Does not include work found in its subtree.
+    expirationTime: TExpirationTime, // to represent the expiration time of the fiber
+
+    // This is used to quickly determine if a subtree has no pending changes.
+    childExpirationTime: TExpirationTime, // to represent the expiration time of the child
 };
