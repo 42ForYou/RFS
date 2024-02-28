@@ -17,7 +17,11 @@
 //todo: ReactDOMRoot.render
 //todo: ReactDOMRoot.unmount
 
-import { ELEMENT_NODE, DOCUMENT_NODE, DOCUMENT_FRAGMENT_NODE } from "./const.js";
+import {
+    ELEMENT_NODE,
+    DOCUMENT_NODE,
+    DOCUMENT_FRAGMENT_NODE,
+} from "./const.js";
 import { ConcurrentRoot } from "../type/TRootTag.js";
 import { createFiberRoot } from "../fiber/fiberRoot.js";
 //todo: dom.js
