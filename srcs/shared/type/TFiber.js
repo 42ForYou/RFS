@@ -1,10 +1,11 @@
 import { TWorkTag } from "./TWorkTag";
 import { TExpirationTime } from "./TExpirationTime";
+import { TSideEffectFlags } from "./TSideEffectFlags";
+import { TTypeOfMode } from "./TTypeOfMode";
 const TRefObject = {
     current: any,
 };
 
-const TSideEffectFlags = {}; // Todo: implement this type, shoulde import from detail file
 // TWorkTag Type ends
 /**
  * @typedef {Object} Tfiber
@@ -73,6 +74,9 @@ const TFiber = {
     //각각의 파이버는 참조에 의해 연결되어야하는데 이를 위해 사용된다
     alternate: TFiber | null,
 
+    //mode
+    //해당 파이버가 어떻게 렌더링되어야 되는지 나타낸다 동기 Or Concurrent Or blocking
+    mode: TTypeOfMode, // to represent the mode of the fiber
     //Effect
     //파이버는 덕타이핑으로 파이버 그자체가 될수도, 사이드 이펙트가 될 수 있는데
     //사이드 이펙트로 작동될떄 사용되는 플래그이다
