@@ -78,7 +78,7 @@ const createFiber = (tag, pendingProps, key, mode) => {
 /**
  *
  * @param {tag} TRootTag -> shared/type/TRootTag.js
- * @returns TFiber
+ * @returns fiber @type TFiber
  * @description HostRoot에 대응되는 FiberNode를 생성하는 함수
  */
 export const createHostRootFiber = (tag) => {

@@ -52,11 +52,14 @@ export const createFiberRoot = (containerInfo, tag) => {
     @return {Fiber} -> hostRootFiber를 반환합니다.
     */
     const bindFiberRootToHostRootFiber = (tag, FiberRoot) => {
+        //현재 FiberRoot의 rootTag기반으로 호스트RootFiber를 생성합니다.
         const FiberBoundedRoot = createHostRootFiber(tag);
+        //현재 FiberRoot의 activeFiber를 호스트RootFiber로 설정합니다.
         FiberRoot.current = FiberBoundedRoot;
+        //호스트루트 파이버의 현재 로컬 상태로는 파이버루트가 설정되어야합니다.
+        //fiberRoot와 호스트루트파이버가 양방향으로 연결되어야합니다.
         FiberBoundedRoot.stateNode = FiberRoot;
-        return FiberBoundedRoot;
     };
-    const FiberBoundedRoot = bindFiberRootToHostRootFiber(tag, root);
+    bindFiberRootToHostRootFiber(tag, root);
     return root;
 };
