@@ -2,7 +2,7 @@
  * @module hookExpirationTime
  */
 
-import { NoWork } from "../../fiber/fiberExpirationTime.js";
+import { NoWork } from "../../type/TExpirationTime.js";
 
 /**
  * @constant {number} NoWork - No expiration time.
@@ -12,7 +12,6 @@ import { NoWork } from "../../fiber/fiberExpirationTime.js";
  * @see https://goidle.github.io/react/in-depth-react-hooks_1/#expirationtime
  */
 export default {
-    // TODO: define NoWork
     renderExpirationTime: NoWork,
     remainingExpirationTime: NoWork,
 };

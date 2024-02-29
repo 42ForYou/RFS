@@ -1,4 +1,4 @@
-import { NoWork } from "../../fiber/fiberExpirationTime.js";
+import { NoWork } from "../../type/TExpirationTime.js";
 import hookCore from "./hookCore.js";
 import hookExpirationTime from "./hookExpirationTime.js";
 import hookRenderPhase from "./hookRenderPhase.js";
@@ -43,14 +43,7 @@ const finishRenderingHooks = (hookCore, hookExpirationTime) => {
  * @param {ExpirationTime} nextRenderExpirationTime
  * @returns {any} children
  */
-export default renderWithHooks = (
-    current,
-    workInProgress,
-    Component,
-    props,
-    refOrContext,
-    nextRenderExpirationTime
-) => {
+const renderWithHooks = (current, workInProgress, Component, props, refOrContext, nextRenderExpirationTime) => {
     hookExpirationTime.renderExpirationTime = nextRenderExpirationTime;
     hookCore.currentlyRenderingFiber = workInProgress;
     hookCore.nextCurrentHook = current !== null ? current.memoizedState : null;
@@ -103,3 +96,5 @@ export default renderWithHooks = (
     finishRenderingHooks(hookCore, hookExpirationTime);
     return children;
 };
+
+export default renderWithHooks;

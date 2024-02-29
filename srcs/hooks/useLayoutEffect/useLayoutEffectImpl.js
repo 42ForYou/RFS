@@ -1,6 +1,6 @@
-import { Update as UpdateEffect } from "../../fiber/type.js";
+import { Update as UpdateEffect } from "../../type/TSideEffectFlags.js";
 
-import { MountLayout, UnmountMutation } from "../types/THookEffectFlags.js";
+import { MountLayout, UnmountMutation } from "../../type/THookEffectFlags.js";
 import { mountEffectImpl, updateEffectImpl } from "../useEffect/useEffectImpl.js";
 
 /**

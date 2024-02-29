@@ -1,6 +1,6 @@
-import { TRootTag } from "./TRootTag";
-import { TExpirationTime } from "./TExpirationTime";
-import { TFiber } from "./TFiber";
+import { TRootTag } from "./TRootTag.js";
+import { TExpirationTime } from "./TExpirationTime.js";
+import { TFiber } from "./TFiber.js";
 
 /**
  * @typedef {Object} @type TFiberRoot

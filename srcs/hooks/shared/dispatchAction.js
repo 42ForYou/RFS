@@ -1,4 +1,4 @@
-import { NoWork } from "../../fiber/fiberExpirationTime.js";
+import { NoWork } from "../../type/TExpirationTime.js";
 import is from "../../shared/objectIs.js";
 import createHookUpdate from "../constructor/hookUpdate.js";
 import hookCore from "../core/hookCore.js";
@@ -60,6 +60,7 @@ const dispatchAction = (fiber, queue, action) => {
         // TODO: Implement this function. requestCurrentSuspenseConfig
         const suspenseConfig = requestCurrentSuspenseConfig();
         // TODO: Implement this function. computeExpirationForFiber
+        // hookupdate에서 suspenseConfig를 사용하고 있는데 이후 updateReducer의 markRenderEventTimeAndConfig에서만 사용된다
         const expirationTime = computeExpirationForFiber(currentTime, fiber, suspenseConfig);
 
         const update = createHookUpdate(expirationTime, suspenseConfig, action, null, null, null);
