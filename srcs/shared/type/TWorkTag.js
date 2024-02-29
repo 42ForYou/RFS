@@ -1,6 +1,9 @@
-// TWorkTag Type begins
 /**
- *@typedef TWorkTag
+ * @file TWorkTag.js
+ * @description 파이버라는 추상화 안에서
+ * 그것이 함수형 컴포넌트건 , 호스트 컴포넌트건, 아니면 기타등등 다른 무엇이던
+ * 하나의 래핑안에서 처리된다. 이를 구분하기위해서는 해당 파이버가 어떻게 처리 되어야 할지가 정의 되어야한다
+ * 그를 의미한다..
  */
 export const TWorkTag = Number; // 파이버의 작동방식을 결정하는 타입으로 숫자형으로 정의한다.
 export const FunctionComponent = 0; //함수형 컴포넌트를 위한 Fiber

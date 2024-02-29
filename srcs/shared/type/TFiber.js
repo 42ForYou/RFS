@@ -8,25 +8,9 @@ const TRefObject = {
 
 // TWorkTag Type ends
 /**
- * @typedef {Object} Tfiber
- * @property {TWorkTag} tag
- * @property {null | string | number?} key
- * @property {string | function} type
- * @property {any} stateNode
- * @property {TFiber | null} return
- * @property {TFiber | null} child
- * @property {TFiber | null} sibling
- * @property {number} index
- * @property {any} props
- * @property {any} ref
- * @property {THookObject | null} memoizedState
- * @property {TDependencies | null} dependencies
- * @property {TFiber | null} nextEffect
- * @property {TFiber | null} firstEffect
- * @property {TFiber | null} lastEffect
- * @property {TFiber | null} alternate
+ * @typedef {Object} @type TFiber
  * @description 1. to represent the fiber node
- * @description 2. Duck Typing- side Effect and Fiber Node
+ * @description 2. 덕타이핑 방식으로 파이버객체를 나타내는 동시에 SideEffect를 나타내는 객체이다
  */
 const TFiber = {
     tag: TWorkTag,
@@ -34,6 +18,10 @@ const TFiber = {
     // li와 같은 경우는 key를 통해 구별해야 개별요소의 식별이 가능하다
 
     //타입
+    //hostComponent이면 타입이 string, functionComponent이면 타입이 function이다
+    //이는 타입이 스트링이면 해당 돔으로 접근해서 렌더링을 하고
+    //functionComponent이면 초기 Jsx를 통해서 입력받은 컴포넌트를 저장하는 공간으로
+    //나중에 리액트가 필요할때 비동기적으로 component를 호출한다(callback으로 호출한다)
     elementType: String | Function, // 정의 타입을 의미한다->본 타입을 유지하기 위해 사용한다
     //예를 들어 고차 컴포넌트와 같은 경우는 고차 컴포넌트가 인스턴스화되면서 고차 컴포넌트 자체를 나타낼 타입과
     //고차 컴포넌트가 실제로 인자로 받아서 나타내는 타입이 다른데 이를 구분하기 위해 사용한다
