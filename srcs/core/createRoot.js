@@ -78,10 +78,15 @@ const ReactDOMRoot = class {
     constructor(container) {
         this._internalRoot = createRootImpl(container, ConcurrentRoot);
     }
-    // Todo: implement render
-    // render(children) {
-    //     updateContainer(children, this._internalRoot, null, null);
-    // }
+
+    /**
+     * @param {children} children -> RFSNodeList -> ReactNodeList
+     *
+     */
+    render(children) {
+        const root = this._internalRoot;
+        updateContainer(children, root, null, null);
+    }
 };
 /**
  *

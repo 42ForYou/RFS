@@ -1,7 +1,7 @@
 /**
  * @file TExpirationTime.js
  * @description
- *     //Expiration Time
+ *   //Expiration Time
     //기본적으로 scheduler와 reconciler에서 사용되는 Context가 다르다.
     //scheduler에서는 Task의 만료시간을 의미하고
     //reconciler에서는 이벤트가 발생한 시간, 즉 dispatcher에 의해 트리거 된 시간을 의미한다.
@@ -20,7 +20,8 @@ export const TExpirationTime = Number; // only for editor to recognize the type
 //만료시간 자체의 값 자체를 우선순위 값으로 바라볼 수 있다.
 //Sync가 가장 우선순위가 크게 있음으로 가능한 가장 큰 수인 MAX_SIGNED_31_BIT_INT를 사용한다.
 //그다음 우선순위는 Batched로 그다음으로 큰 수인 MAX_SIGNED_31_BIT_INT - 1을 사용한다.
-//expiration Time의 계산식은 general하게는 Sync - performance.now()로
+//expiration Time의 계산식은 general하게는 Sync - performance.now()로 하고 싶었는데-> 이러면 Sync,Batched crash날수 있으니까
+//MAGIC_NUMBER_OFFSET = Batched - 1을 사용한다. expirationTime = MAGIC_NUMBER_OFFSEt - performance.now()/10;
 export const NoWork = 0;
 export const Idle = 1;
 export const Sync = MAX_SIGNED_31_BIT_INT;
