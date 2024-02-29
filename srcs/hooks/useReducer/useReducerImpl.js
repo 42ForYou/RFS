@@ -53,7 +53,7 @@ const updateReducerImpl = (hook, reducer) => {
                     update = update.next;
                 } while (update !== null);
 
-                if (!is(newState, hook.memoizedState)) {
+                if (is(newState, hook.memoizedState) === false) {
                     // TODO: Implement this function.
                     // 함수 구현이 간단하긴 하지만 beginWork의 module scope를 참조해야 하기 때문에
                     // 이후 추가 구현을 위해 주석처리 하였습니다
@@ -103,7 +103,7 @@ const updateReducerImpl = (hook, reducer) => {
         let didSkip = false;
         do {
             const updateExpirationTime = update.expirationTime;
-            // expirationTime을 대소로 비교하는 조건문이 있을 때는 큰 숫자가 더 먼저 발생한 작업
+            // expirationTime을 대소로 비교하는 조건문이 있을 때는 큰 숫자가 더 우선순위가 높다.
             if (updateExpirationTime < hookExpirationTime.renderExpirationTime) {
                 if (!didSkip) {
                     didSkip = true;
