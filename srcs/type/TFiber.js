@@ -1,7 +1,10 @@
-import { TWorkTag } from "./TWorkTag";
-import { TExpirationTime } from "./TExpirationTime";
-import { TSideEffectFlags } from "./TSideEffectFlags";
-import { TTypeOfMode } from "./TTypeOfMode";
+import { TWorkTag } from "./TWorkTag.js";
+import { TExpirationTime } from "./TExpirationTime.js";
+import { TSideEffectFlags } from "./TSideEffectFlags.js";
+import { TTypeOfMode } from "./TTypeOfMode.js";
+
+const any = "any";
+
 const TRefObject = {
     current: any,
 };
@@ -12,7 +15,7 @@ const TRefObject = {
  * @description 1. to represent the fiber node
  * @description 2. 덕타이핑 방식으로 파이버객체를 나타내는 동시에 SideEffect를 나타내는 객체이다
  */
-const TFiber = {
+export const TFiber = {
     tag: TWorkTag,
     key: null | String, // 개념적 식별자를 위함이다. 기본적으로 파이버 diff는 타입으로 구별되는데
     // li와 같은 경우는 key를 통해 구별해야 개별요소의 식별이 가능하다

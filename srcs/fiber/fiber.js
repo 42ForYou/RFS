@@ -1,9 +1,8 @@
-import { HostRoot } from "../shared/type";
-import { NoEffect } from "../shared/type/TSideEffectFlags";
-import { Tfiber } from "../shared/type/TFiber";
-import { NoWork } from "../shared/type/TExpirationTime";
-import { ConcurrentMode } from "../shared/type/TTypeOfMode";
-import { ConcurrentRoot } from "../shared/type/TRootTag";
+import { HostRoot } from "../type/TWorkTag.js";
+import { NoEffect } from "../type/TSideEffectFlags.js";
+import { NoWork } from "../type/TExpirationTime.js";
+import { ConcurrentMode } from "../type/TTypeOfMode.js";
+import { ConcurrentRoot } from "../type/TRootTag.js";
 /**
  * 
  * @param {tag} TWorkTag 
@@ -77,7 +76,7 @@ const createFiber = (tag, pendingProps, key, mode) => {
 
 /**
  *
- * @param {tag} TRootTag -> shared/type/TRootTag.js
+ * @param {tag} TRootTag ->/type/TRootTag.js
  * @returns fiber @type TFiber
  * @description HostRoot에 대응되는 FiberNode를 생성하는 함수
  */

@@ -17,9 +17,9 @@
 //todo: ReactDOMRoot.render
 //todo: ReactDOMRoot.unmount
 
-import { ELEMENT_NODE, DOCUMENT_NODE, DOCUMENT_FRAGMENT_NODE } from "./const";
-import { ConcurrentRoot } from "../shared/type/TRootTag";
-import { createFiberRoot } from "../fiber/fiberRoot";
+import { ELEMENT_NODE, DOCUMENT_NODE, DOCUMENT_FRAGMENT_NODE } from "./const.js";
+import { ConcurrentRoot } from "../type/TRootTag.js";
+import { createFiberRoot } from "../fiber/fiberRoot.js";
 //todo: dom.js
 import { markContainerAsRoot } from "../dom/dom.js";
 /**
@@ -87,9 +87,7 @@ const ReactDOMRoot = class {
  */
 export const createRoot = (container) => {
     if (!isValidContainer(container)) {
-        throw new Error(
-            "createRoot: container is not a valid DOM element -RFS error"
-        );
+        throw new Error("createRoot: container is not a valid DOM element -RFS error");
     }
     return new ReactDOMRoot(container);
 };

@@ -1,4 +1,4 @@
-import isArray from "../shared/isArray";
+import isArray from "../shared/isArray.js";
 
 const RfsElement = (type, props, children) => {
     return {

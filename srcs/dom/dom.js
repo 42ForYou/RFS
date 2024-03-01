@@ -11,7 +11,7 @@
  * 필요할 수 있다
  */
 
-import { HostComponent, HostText, HostRoot } from "../shared/type/TWorkTag";
+import { HostComponent, HostText, HostRoot } from "../type/TWorkTag.js";
 
 /**
  * @description 랜덤한 문자열 키를 생성합니다
