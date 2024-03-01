@@ -43,6 +43,7 @@ const updateReducerImpl = (hook, reducer) => {
         // 이를 linked list로 변환하여 순회한다.
         if (hookRenderPhase.renderPhaseUpdates !== null) {
             const firstRenderPhaseUpdate = hookRenderPhase.renderPhaseUpdates.get(queue);
+
             if (firstRenderPhaseUpdate !== undefined) {
                 hookRenderPhase.renderPhaseUpdates.delete(queue);
                 let newState = hook.memoizedState;
@@ -62,6 +63,7 @@ const updateReducerImpl = (hook, reducer) => {
 
                 hook.memoizedState = newState;
 
+                // 모든 update를 resolve하였기 때문에, baseState를 마지막 update로 옮깁니다.
                 if (hook.baseState === queue.last) {
                     hook.baseState = newState;
                 }

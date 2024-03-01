@@ -55,6 +55,7 @@ const renderWithHooks = (current, workInProgress, Component, props, refOrContext
     }
 
     // Component render
+    // TODO: ?? 그러면 props랑 context랑 같이 들어오는데? 이게 뭐지.
     let children = Component(props, refOrContext);
 
     // render phase시에 update가 발생했다면 해당 Component를 다시 렌더링합니다.

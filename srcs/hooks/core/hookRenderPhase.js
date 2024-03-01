@@ -14,6 +14,10 @@ export const RE_RENDER_LIMIT = 25;
  *
  * @property {boolean} didScheduleRenderPhaseUpdate - Whether the render phase update is scheduled or not.
  * @property {Map<THookUpdateQueue, THookUpdate>} renderPhaseUpdates - Lazily created map of render-phase updates.
+ * // key: hook.queue , value: firstUpdate
+ * // key Object
+ * // Key Object Map밖에 없음. 다른 자료구조는 Object를 key로 사용을 못함.
+ * // 이 변수가 있어야하는이유는 렌더 페이즈에 일어난 update들을 저장할 필요가 있기 때문.
  * @property {number} numberOfReRenders - The number of re-renders. prevent infinite loops.
  */
 export default {

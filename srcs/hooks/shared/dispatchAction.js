@@ -27,6 +27,7 @@ import enqueueRenderPhaseUpdate from "./enqueueRenderPhaseUpdate.js";
 const dispatchAction = (fiber, queue, action) => {
     const alternate = fiber.alternate;
 
+    // TODO: isRenderPhaseUpdate 함수로 Refactor
     if (
         fiber === hookCore.currentlyRenderingFiber ||
         (alternate !== null && alternate === hookCore.currentlyRenderingFiber)
@@ -44,8 +45,10 @@ const dispatchAction = (fiber, queue, action) => {
         const firstRenderPhaseUpdate = hookRenderPhase.renderPhaseUpdates.get(queue);
         if (firstRenderPhaseUpdate === undefined) {
             // create new Map for restore update during render phase
+            // Map을 쓰는 이유는 hook.queue를 key로 사용하기 위함이다.
             hookRenderPhase.renderPhaseUpdates.set(queue, update);
         } else {
+            // 원형 큐가 아니라 그냥 큐입니다.
             let lastRenderPhaseUpdate = firstRenderPhaseUpdate;
             while (lastRenderPhaseUpdate.next !== null) {
                 lastRenderPhaseUpdate = lastRenderPhaseUpdate.next;
@@ -57,7 +60,7 @@ const dispatchAction = (fiber, queue, action) => {
 
         // TODO: Implement this function. requestCurrentTimeForUpdate
         const currentTime = requestCurrentTimeForUpdate();
-        // TODO: Implement this function. requestCurrentSuspenseConfig
+        // TODO: Implement this function. requestCurrentSuspenseConfig 사용하지 않을 수 있음
         const suspenseConfig = requestCurrentSuspenseConfig();
         // TODO: Implement this function. computeExpirationForFiber
         // hookupdate에서 suspenseConfig를 사용하고 있는데 이후 updateReducer의 markRenderEventTimeAndConfig에서만 사용된다
@@ -66,6 +69,7 @@ const dispatchAction = (fiber, queue, action) => {
         const update = createHookUpdate(expirationTime, suspenseConfig, action, null, null, null);
         enqueueRenderPhaseUpdate(queue, update);
 
+        // TODO: refactor this statement, isNoWorkOnBothFiber
         if (fiber.expirationTime === NoWork && (alternate === null || alternate.expirationTime === NoWork)) {
             // The queue is currently empty, which means we can eagerly compute the
             // next state before entering the render phase. If the new state is the
@@ -74,6 +78,8 @@ const dispatchAction = (fiber, queue, action) => {
             if (lastRenderedReducer !== null) {
                 try {
                     const currentState = queue.lastRenderedState;
+                    // 사용자가 만든 Reducer이기 때문에 어떤 에러가 발생할지 모름.
+                    // 때문에, try catch로 감싼다.
                     const eagerState = lastRenderedReducer(currentState, action);
 
                     update.eagerReducer = lastRenderedReducer;
