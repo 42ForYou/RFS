@@ -4,8 +4,7 @@
  * @description 모듈 과 관련해서 모듈 변수 객체가 정의되어 있고, 해당 객체는 모듈 스코프에서 관리됩니다
  */
 
-import { TFiberRoot } from "../type/TFiberRoot";
-
+import { enqueueUpdate, createUpdate } from "../core/UpdateQueue.js";
 /**
  *
  * @param {TRfsNodeList} element @see 파일경로: [TRfsType.js](srcs/type/TRfsType.js)
@@ -51,7 +50,6 @@ export const updateContainer = (
     // } else {
     //     container.pendingContext = context;
     // }
-    //TODO: createUpdate 구현 필요
     //그렇게 되면 해당 파이버에 업데이틀 보관하고 있는 updateQueue에 업데이트를 추가해야합니다.
     //그에 들어갈 Update객체를 생성합니다
     const update = createUpdate(expirationTime);
@@ -61,9 +59,9 @@ export const updateContainer = (
     update.payload = { element };
     update.callback = callback;
 
-    //TODO: enqueueUpdate 구현 필요
-    //해당 파이버의 UpdateQueue에 업데이트를 추가합니다.
+    //updateQueue에 해당 업데이트를 추가합니다.
     enqueueUpdate(current, update);
+
     //TODO: scheduleWork 구현 필요
     //스케줄러에게 해당 파이버에 대한 작업을 스케줄링하라고 요청합니다.
     scheduleWork(current, expirationTime);
