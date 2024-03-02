@@ -32,5 +32,5 @@ jobs:
         fi
     - name: Execute script forEach file
       run: |
-        chmod +x ./scripts/run-tests.sh
-        ./scripts/run-tests.sh
+        chmod +x ./scripts/execJsFile.sh
+        ./scripts/execJsFile.sh
