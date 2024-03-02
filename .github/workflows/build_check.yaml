@@ -1,19 +1,18 @@
 name: Node.js CI
 
 on:
-  push:
-    branches: [ main, FY-64/feature-react-hooks-구현 ]
-  pull_request:
-    branches: [ main, FY-64/feature-react-hooks-구현 ]
+    push:
+        branches: [main, FY-64/feature-react-hooks-구현]
+    pull_request:
+        branches: [main, FY-64/feature-react-hooks-구현]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+    build:
+        runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [16.x, 18.x, 20.x]
-
+        strategy:
+            matrix:
+                node-version: [16.x, 18.x, 20.x]
     steps:
     - uses: actions/checkout@v2
     - name: Use Node.js ${{ matrix.node-version }}

@@ -22,6 +22,8 @@ import { ConcurrentRoot } from "../type/TRootTag.js";
 import { createFiberRoot } from "../fiber/fiberRoot.js";
 //todo: dom.js
 import { markContainerAsRoot } from "../dom/dom.js";
+import { TFiberRoot } from "../type/TFiberRoot.js";
+import { TDOMRootType, DOMContainer } from "../type/TDomType.js";
 /**
  * @param {container} container-> Type은 노드 타입-> Element|Document|DocumentFragment
  * @returns {boolean} -> container가 유효한지 확인하는 함수
@@ -42,7 +44,7 @@ const isValidContainer = (container) => {
 /**
  *
  * @param {container} container -> Element|Document|DocumentFragment
- * @param {RootTag} RootTag -> Refer to const.js
+ * @param {RootTag} RootTag -> Refer to const.js @type {TRootTag}
  * @returns {fiberRootNode} -> fiberRoot에 대해 globalScope로 역할을 하는 객체를 반환합니다.
  * @description container = fiberRoot인건데 이렇게 래핑하는 이유는, 일반적인 프론트엔드 프레임워크에서
  * spa의 짐입점을 나타내는 것을 container라고 합니다. 이 함수는 그 짐입점을 만들어주는 것을 의미합니다.
@@ -55,7 +57,7 @@ const createContainer = (container, tag) => {
 /**
  * @param {container} container -> Element|Document|DocumentFragment -> 파이버 루트에 대응되는 돔 노드
  * @param {tag} TRootTag -> Refer srcs/shared/type/TRootTag.js
- * @returns {TFiberRoot} -> fiberRoot에 대해 globalScope로 역할을 하는 객체를 반환합니다.
+ * @returns {root}  @type {TFiberRoot}-> fiberRoot에 대해 globalScope로 역할을 하는 객체를 반환합니다.
  */
 const createRootImpl = (container, tag) => {
     const root = createContainer(container, tag);
@@ -70,18 +72,24 @@ const ReactDOMRoot = class {
      * @param {container} 파이버의 루트노드를 할 DOM노드를 인자로 받는다
      * @description ReactDOMRoot는 전역관리 공간인 FiberRootNode를 래핑합니다
      * @description 이 래핑은 render와 unmount의 원할한 공유를 위하여 이루어집니다
+     * @returns {TDOMRootType} -> @type {TDOMRootType}
      */
     constructor(container) {
         this._internalRoot = createRootImpl(container, ConcurrentRoot);
     }
-    // Todo: implement render
-    // render(children) {
-    //     updateContainer(children, this._internalRoot, null, null);
-    // }
+
+    /**
+     * @param {children} children -> RFSNodeList -> ReactNodeList
+     *
+     */
+    render(children) {
+        const root = this._internalRoot;
+        updateContainer(children, root, null, null);
+    }
 };
 /**
  *
- * @param {container} container -> host Instance를 인자로 받는다-> Element|Document|DocumentFragment
+ * @param {container} @type {DOMContainer} container -> host Instance를 인자로 받는다-> Element|Document|DocumentFragment
  * @description // createRoot는 해당 Fiber에 대해서 관리를 위한 그 스코프내의 전역관리 공간이라고 생각할 수 있습니다.
  * @description // 이 전역공간은 ReactDOMRoot에 의해 래핑되어 있습니다.
  */
@@ -91,8 +99,3 @@ export const createRoot = (container) => {
     }
     return new ReactDOMRoot(container);
 };
-
-/**
- * @param {container} container
- * @param {rootTag} RootTag // refer to const.js
- */
