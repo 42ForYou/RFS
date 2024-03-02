@@ -1,7 +1,4 @@
-import {
-    MAX_SIGNED_31_BIT_INT,
-    MAGIC_NUMBER_OFFSET,
-} from "../type/TExpirationTime";
+import { MAGIC_NUMBER_OFFSET } from "../type/TExpirationTime";
 
 //(ms / UNIT_SIZE) | 0 == Floor(ms / UNIT_SIZE)
 //자바 스크립트는 |0->비트Or연산자-> 피연산자 32비트 정수로 변환

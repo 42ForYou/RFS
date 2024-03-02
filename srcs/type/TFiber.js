@@ -1,4 +1,3 @@
-<<<<<<<< HEAD:srcs/type/TFiber.js
 import { TWorkTag } from "./TWorkTag.js";
 import { TExpirationTime } from "./TExpirationTime.js";
 import { TSideEffectFlags } from "./TSideEffectFlags.js";
@@ -6,12 +5,6 @@ import { TTypeOfMode } from "./TTypeOfMode.js";
 
 const any = "any";
 
-========
-import { TWorkTag } from "./TWorkTag";
-import { TExpirationTime } from "./TExpirationTime";
-import { TSideEffectFlags } from "./TSideEffectFlags";
-import { TTypeOfMode } from "./TTypeOfMode";
->>>>>>>> 878f6d8 (FY-199/refactor(fiber,core,shared): type관련된 것들 shared로 이전, fiber생성자 수정, mode추가):srcs/shared/type/TFiber.js
 const TRefObject = {
     current: any,
 };

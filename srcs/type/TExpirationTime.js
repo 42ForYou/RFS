@@ -15,7 +15,7 @@
 //31비트인 이유 :
 // VM(실제로는 대부분 V8)은 가능한 경우 정수 유형에 최적화하려고 하기 때문에 32비트 시스템에서 단일 32비트 단어에 맞추기를 원할 때가 있습니다.
 // 이 숫자로 인해 이러한 가정을 포기하고 슬롯을 확장해야 할 수도 있습니다.
-const MAX_SIGNED_31_BIT_INT = 1073741823;
+export const MAX_SIGNED_31_BIT_INT = 1073741823;
 export const TExpirationTime = Number; // only for editor to recognize the type
 //만료시간 자체의 값 자체를 우선순위 값으로 바라볼 수 있다.
 //Sync가 가장 우선순위가 크게 있음으로 가능한 가장 큰 수인 MAX_SIGNED_31_BIT_INT를 사용한다.
