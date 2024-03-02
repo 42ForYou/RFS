@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# 시작 디렉토리를 입력받거나 현재 디렉토리를 기본값으로 사용
-START_DIR=${1:-../srcs/}
+# 시작 디렉토리를 입력받거나 스크립트의 상위 디렉토리를 기본값으로 사용
+START_DIR=${1:-$(dirname "$(dirname "$(realpath "$0")")")}/srcs
 ERROR_OCCURRED=0
 
 echo "Node.js로 실행할 JavaScript 파일 검색 중 ('type' 폴더 제외)..."
