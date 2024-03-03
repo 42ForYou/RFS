@@ -26,6 +26,10 @@ const FiberRootNode = class {
         this.callbackNode = null;
         this.callbackPriority = null;
         this.callbackExpirationTime = NoWork;
+        /**
+         * @description 해당 FiberRootNode의 첫번째 pendingTime을 설정합니다.
+         * @description 해당 파이버 루트내에서 가장 빨리 처리되어야할 우선순위(expirationTime)을 설정합니다.
+         */
         this.firstPendingTime = NoWork;
         this.lastExpiredTime = NoWork;
     }
@@ -61,4 +65,15 @@ export const createFiberRoot = (containerInfo, tag) => {
     };
     bindFiberRootToHostRootFiber(tag, root);
     return root;
+};
+
+export const markRootUpdatedAtTime = (root, expirationTime) => {
+    const firstPendingTime = root.firstPendingTime;
+
+    //만약 현재 expirationTime이 firstPendingTime보다 크다면
+    //즉 우선순위가 높은 (이벤트로 치면 좀더 예전에 발생한) expirationTime이라면
+    //가장 먼저 처리되어야하는 일임으로 firstPendingTime을 expirationTime으로 설정합니다.
+    if (expirationTime > firstPendingTime) {
+        root.firstPendingTime = expirationTime;
+    }
 };

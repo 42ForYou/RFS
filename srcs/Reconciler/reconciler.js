@@ -5,6 +5,7 @@
  */
 
 import { enqueueUpdate, createUpdate } from "../core/UpdateQueue.js";
+import { scheduleWork } from "../work/workloop.js";
 /**
  *
  * @param {TRfsNodeList} element @see 파일경로: [TRfsType.js](srcs/type/TRfsType.js)
@@ -62,8 +63,8 @@ export const updateContainer = (
     //updateQueue에 해당 업데이트를 추가합니다.
     enqueueUpdate(current, update);
 
-    //TODO: scheduleWork 구현 필요
     //스케줄러에게 해당 파이버에 대한 작업을 스케줄링하라고 요청합니다.
+    //이는 workLoop모듈에서 처리됩니다
     scheduleWork(current, expirationTime);
 
     return expirationTime;
