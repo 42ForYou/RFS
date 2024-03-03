@@ -7,7 +7,7 @@ import {
     LegacyUnbatchedContext,
 } from "../type/TExecutionContext.js";
 import { RootIncomplete, RootCompleted } from "../type/TRootExitStatus.js";
-
+import { expirationTimeToMs, msToExpirationTime } from "../fiber/fiberExiprationTime.js";
 import { markRootUpdatedAtTime } from "../fiber/fiberRoot.js";
 import { TFiberRoot } from "../type/TFiberRoot.js";
 import { NoWork, Sync } from "../type/TExpirationTime.js";
@@ -272,6 +272,63 @@ export const performSyncWorkOnRoot = (root) => {
 };
 
 /**
+ *
+ * @param {TFiberRoot} root @see 파일경로: [TFiberRoot.js](srcs/type/TFiberRoot.js)
+ * @returns {TExpirationTime} expirationTime @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
+ * @description     스케쥴 단계에서 ExpiredTime은 lastExpiredTime과
+ * @description firstPendingTime을 기준으로 결정합니다.
+ * @description 이전 우선순위가 notWork이 아니라면 lastExpiredTime을 반환합니다.
+ * @description 아니라면 firstPendingTime을 반환합니다.->이는 이후 이벤트가 발생했을 때
+ * @description 다음 해야될 우선순위 관련된걸 firstPendingTime에 저장하기 때문입니다.
+ */
+const getNextRootExpirationTimeToWorkOn = (root) => {
+    //스케쥴 단계에서 ExpiredTime은 lastExpiredTime과
+    //firstPendingTime을 기준으로 결정합니다.
+    //이전 우선순위가 notWork이 아니라면 lastExpiredTime을 반환합니다.
+    //아니라면 firstPendingTime을 반환합니다.->이는 이후 이벤트가 발생했을 때
+    //다음 해야될 우선순위 관련된걸 firstPendingTime에 저장하기 때문입니다.
+    const lastExpiredTime = root.lastExpiredTime;
+    if (lastExpiredTime !== NoWork) {
+        return lastExpiredTime;
+    }
+    return root.firstPendingTime;
+};
+
+/**
+ * @description ExpirationTime을 구하는 방식에 의하면 event는 배치가 될수가 없습니다.
+ * @description 그렇다면 임의적으로 event와 관련된 우선순위를 따로 묶어줄 수 있는 방법이 필요합니다
+ * @description 이를 위한 변수입니다.
+ * @description 생애주기가 currentWorkContext와 다름으로 다른 객체로 관리합니다.
+ * @type {TExpirationTime} @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
+ */
+// 만료 시간은 현재 시간(시작 시간)에 더하여 계산됩니다.
+// 시간)을 더하여 계산합니다. 그러나 동일한 이벤트 내에서 두 개의 업데이트가 예약된 경우에는
+// 실제 시계가 첫 번째 호출과 두 번째 호출 사이에 진행되었더라도 시작 시간을 동시에 처리해야 합니다.
+// 첫 번째 호출과 두 번째 호출 사이에 시간이 앞당겨지더라도 시작 시간을 동시에 처리해야 합니다.
+
+// 즉, 만료 시간에 따라 업데이트가 일괄 처리되는 방식이 결정되기 때문입니다,
+// 동일한 이벤트 내에서 발생하는 동일한 우선순위의 모든 업데이트가 동일한 만료 시간을
+// 동일한 만료 시간을 받기를 원합니다.
+// 예를 들면 현재 리엑트가 idle상태일때 여러 이벤트가 idle상태에서 한번에 들어왔을 때
+// 우리는 이벤트를 일괄적으로 처리하고 싶습니다.(배치처리) 이를 위해서는 이벤트가 동일한 만료시간을 받아야합니다.
+let currentEventTime = NoWork;
+export const requestCurrentTimeForUpdate = () => {
+    if ((executionContext & (RenderContext | CommitContext)) !== NoContext) {
+        //이벤트가 발생한 경우
+        //이벤트가 발생한 경우에는 이벤트의 만료시간을 반환합니다.
+        //TODO:: implement now();
+        return msToExpirationTime(now());
+    }
+    //rfs상태가 아닌, 우리가 브라우저 이벤트 context에서 일어나는 경우
+    if (currentEventTime !== NoWork) {
+        // 우리가 rfs Context로 오기까지 모든 이벤트에 대해서 똑같은 만료시간을 반환합니다.
+        return currentEventTime;
+    }
+    //첫번쨰 이벤트 타임을 셋팅하는 경우
+    currentEventTime = msToExpirationTime(now());
+    return currentEventTime;
+};
+/**
  * @param {TFiberRoot} root @see 파일경로: [TFiberRoot.js](srcs/type/TFiberRoot.js)
  * @description 이 함수는 root의 task를 스케줄링합니다.
  * @description 루트당 오직 하나의 task만을 가질 수 있습니다.
@@ -279,7 +336,7 @@ export const performSyncWorkOnRoot = (root) => {
  * @description 해당 함수에서의 ExpiredTime은 sheduler에서의 task만료로써, workLoop에서의 비동기적인 작업의 만료시간을 의미합니다.
  * @description 작동 순서
  * @description 1. 동기적으로 일어나야되는 일인지 확인하고 동기적으로 일어나야 되는 일이라면 동기적으로 일어나게 합니다.(performSyncWorkOnRoot)
- * @description 2. 비동기적으로 일어나야되는 일이면 root에 작업이 있는지 확인하고 작업이 없다면 TODO:
+ * @description 2. 비동기적으로 일어나야되는 일이면 root에 작업이 있는지 확인하고 판단하고 새로운 작업을 스케줄링해야되면 그 전작업을 취소하고 스케줄링합니다.
  */
 const ensureRootIsScheduled = (root) => {
     //ExpiredTime은 두가지 문맥이 존재하는데 scheduler에서는 task의 만료,
@@ -290,21 +347,68 @@ const ensureRootIsScheduled = (root) => {
     //이전 만료시간이
     if (lastExpiredTime !== NoWork) {
         // Special case: Expired work should flush synchronously.
-        //timeout관련된 코드 타임아웃 나면 리액트에서 lastExpiredTime을 설정함
         //정확히는 동기적으로 한번에 처리하고 싶을때 해당 lastExpiredTime을 설정함
         //markRootExpiredAtTime에 의하여 사용됨
         //예) 일반적으로 처음으로 Root를 스케줄링할떄는 동기로 일어나는게 효율적
+        //예)//timeout관련된 코드 타임아웃 나면 리액트에서 lastExpiredTime을 설정함
         root.callbackExpirationTime = Sync;
 
         //TODO:  scheduler 모듈에서 priority를 명세하고 구현할 예정입니다.
-        // root.callbackPriority = ImmediatePriority;
+        root.callbackPriority = ImmediatePriority;
 
         //TODO: scheduleSyncCallback
         //해당 함수는 schedule 모듈에서 구현할 예정입니다.
         root.callbackNode = scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root));
         return;
     }
-    //TODO: ensureRootIsScheduled 나머지 부분 구현
+    const expirationTime = getNextRootExpirationTimeToWorkOn(root);
+    const existingCallbackNode = root.callbackNode;
+    //schedule할게 없는 경우
+    if (expirationTime === NoWork) {
+        //할일이 없습니다. 그렇다면 callback관련된것을 초기화합니다.
+        if (existingCallbackNode !== null) {
+            root.callbackNode = null;
+            root.callbackExpirationTime = NoWork;
+            root.callbackPriority = NoPriority;
+        }
+        return;
+    }
+
+    const currentTime = requestCurrentTimeForUpdate();
+    //TODO: scheduler 관련 처리에서 같이 진행할예정입니다.
+    const priorityLevel = inferPriorityFromExpirationTime(currentTime, expirationTime);
+
+    //루트에는 하나의 작업만 존재해야합니다.
+    //만약 루트에 작업이 존재한다면 어떤 작업을 수행해야할지 결정합니다.
+    if (existingCallbackNode !== null) {
+        const existingCallbackPriority = root.callbackPriority;
+        const existingCallbackExpirationTime = root.callbackExpirationTime;
+        //만약 expirationTime이 동일하고 우선순위가 기존 콜백이 더 높다면 작업을 수행하지 않습니다.
+        if (existingCallbackExpirationTime === expirationTime && existingCallbackPriority >= priorityLevel) {
+            return;
+        }
+        //TODO: cancelCallback
+        //callback을 취소하고 새로운 callback을 준비합니다.
+        cancelCallback(existingCallbackNode);
+    }
+    root.callbackExpirationTime = expirationTime;
+    root.callbackPriority = priorityLevel;
+    let callbackNode;
+    if (expirationTime === Sync) {
+        // 동기적으로 스케쥴링 되어야하는 경우, 동기 큐에 schedule합니다.
+        //TODO: scheduleSyncCallback
+        callbackNode = scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root));
+    } else {
+        //TODO: scheduleCallback
+        //비동기로 스케쥴링 되어야하는 경우, 비동기 큐에 schedule합니다.
+        callbackNode = scheduleCallback(
+            priorityLevel,
+            performConcurrentWorkOnRoot.bind(null, root),
+            //TODO: 이 밑 부분 정확히 해야됨
+            { timeout: expirationTimeToMs(expirationTime) - now() }
+        );
+    }
+    root.callbackNode = callbackNode;
 };
 /**
  *
