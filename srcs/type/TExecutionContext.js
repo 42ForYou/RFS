@@ -14,7 +14,8 @@ export const BatchedContext = /*               */ 0b000001;
 export const EventContext = /*                 */ 0b000010;
 //TODO: 이부분에 대한 더 자세한 설명이 필요하다
 // export const DiscreteEventContext = /*         */ 0b000100;
-export const LegacyUnbatchedContext = /*       */ 0b001000;
+//Legacy Render와 관련된걸로 보임 TODO: 확정되면 완전히 제거
+// export const LegacyUnbatchedContext = /*       */ 0b001000;
 //렌더를 하는중
 export const RenderContext = /*                */ 0b010000;
 //커밋을 하는중

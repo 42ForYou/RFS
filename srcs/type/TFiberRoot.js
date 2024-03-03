@@ -20,10 +20,11 @@ export const TFiberRoot = {
     //현재 활성화된 Fiber Tree에대한 참조
     current: any,
 
-    //Todo: 정보가 더 필요합니다.
+    //커밋할 준비가 완료된 wip의 expirationTime
     finishedExpirationTime: TExpirationTime,
 
-    //렌더가 완료된 Fiber Nodes
+    //커밋할 준비가 완료된 wip HostRoot
+    // A finished work-in-progress HostRoot that's ready to be committed.
     finishedWork: TFiber | null,
 
     //Todo: 정말로 필요한가?
@@ -37,11 +38,16 @@ export const TFiberRoot = {
 
     //Scheduling에 사용 되는 callBackNode
     //Todo: 정확한 설명 필요
+    //실행될 함수를 바인드 해놓은 노드
     callbackNode: any,
     callbackExpirationTime: TExpirationTime,
     callbackPriority: any,
 
     //이전 렌더의 첫번째 Pending Time
+    /**
+     * @description 해당 FiberRootNode의 첫번째 pendingTime을 설정합니다.
+     * @description 해당 파이버 루트내에서 가장 빨리 처리되어야할 우선순위(expirationTime)을 설정합니다.
+     */
     firstPendingTime: TExpirationTime,
 
     lastExpiredTime: TExpirationTime,

@@ -3,7 +3,8 @@
  * @description
  *   //Expiration Time
     //기본적으로 scheduler와 reconciler에서 사용되는 Context가 다르다.
-    //scheduler에서는 Task의 만료시간을 의미하고
+    //scheduler에서는 Task의 만료시간을 의미하고 이말은 즉슨 workLoop문맥에서는
+    //schedule이 비동기적으로 수행이 끝나고 만료된 시간을 의미한다.
     //reconciler에서는 이벤트가 발생한 시간, 즉 dispatcher에 의해 트리거 된 시간을 의미한다.
     //이는 해당 이벤트를 구분하는 기준으로 쓰일 수 있다.
     //이에 reconciler에서는 expiratonTime에서 발생한 연속적인 이벤트를 하나의 이벤트로 간주한다.
