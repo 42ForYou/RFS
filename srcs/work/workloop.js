@@ -7,10 +7,29 @@ import {
     LegacyUnbatchedContext,
 } from "../type/TExecutionContext.js";
 import { RootIncomplete, RootCompleted } from "../type/TRootExitStatus.js";
-import { expirationTimeToMs, msToExpirationTime } from "../fiber/fiberExiprationTime.js";
+import { expirationTimeToMs, msToExpirationTime, computeAsyncExpiration } from "../fiber/fiberExiprationTime.js";
 import { markRootUpdatedAtTime } from "../fiber/fiberRoot.js";
 import { TFiberRoot } from "../type/TFiberRoot.js";
-import { NoWork, Sync } from "../type/TExpirationTime.js";
+import { NoWork, Sync, Idle } from "../type/TExpirationTime.js";
+import { createWorkInProgress } from "../fiber/fiber.js";
+import {
+    // scheduleCallback,
+    // cancelCallback,
+    getCurrentPriorityLevel,
+    runWithPriority,
+    shouldYield,
+    requestPaint,
+    now,
+    NoPriority,
+    ImmediatePriority,
+    UserBlockingPriority,
+    NormalPriority,
+    LowPriority,
+    IdlePriority,
+    //TODO: implementFlushSyncCallbackQueue,scheduleSyncCallback
+    // flushSyncCallbackQueue,
+    // scheduleSyncCallback,
+} from "../scheduler/schedulerInterface.js";
 /**
  * @description WorkLoop내부에서 nested하게 업데이트가 계속 반복되는걸 관리하는 객체입니다.
  * @description moduleScope로 관리되는 객체입니다.
@@ -171,6 +190,12 @@ const markUpdateTimeFromFiberToRoot = (fiber, expirationTime) => {
     return root;
 };
 
+/**
+ *
+ * @param {TFiberRoot} root @see 파일경로: [TFiberRoot.js](srcs/type/TFiberRoot.js)
+ * @param {TExpirationTime} expirationTime @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
+ * @description 해당함수는 currentWorkContext를 초기화하고 새로운 스택을 준비합니다.
+ */
 const prepareFreshStack = (root, expirationTime) => {
     //커밋과 관련된 이전 작업을 초기화합니다.
     root.finishedWork = null;
@@ -196,12 +221,83 @@ const prepareFreshStack = (root, expirationTime) => {
     }
     //현재 작업 컨텍스트를 초기화합니다.
     currentWorkContext.workInProgressRoot = root;
-    //TODO: createWorkInProgress
+    //Root를 기반으로 새로운 WorkInProgress를 만듭니다.
     currentWorkContext.workInProgress = createWorkInProgress(root.current, null, expirationTime);
     currentWorkContext.renderExpirationTime = expirationTime;
     currentWorkContext.workInProgressRootExitStatus = RootIncomplete;
     currentWorkContext.workInProgressRootLatestProcessedExpirationTime = Sync;
     currentWorkContext.workInProgressRootNextUnprocessedUpdateTime = NoWork;
+};
+
+/**
+ *
+ * @param {TExpirationTime} currentTime @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
+ * @param {TFiber} fiber @see 파일경로: [TFiber.js](srcs/type/TFiber.js)
+ * @description 현재 ExpirationTIme을 기반으로 이친구가 진짜 이시간에 끝나야 되는
+ * @description 만료시간을 계산하는 함수임
+ * @description 현재 만료되어야 되는 시간을 얻을떄 concurrent가 아니면 스케줄러가 작동이 즉시가 아니면
+ * @description batched처리한다
+ */
+export const computeExpirationForFiber = (currentTime, fiber) => {
+    const mode = fiber.mode;
+
+    //Batched : https://github.com/facebook/react/pull/15502
+    //하나의 이벤트 핸들러안에 있는 여러개의 setState같은 건 배치처리를 이미 하고 있으나
+    //외부시스템에 의한 업데이트 등에 대한 일괄 처리는 진행되고 있지 않음
+    //그런데 이거에 대한 대처 방안은 사실 concurrent모드가 이를 해결함:
+    //그러나 동기적인 모드에서는 concurrent모드가 아니기 때문에 이를 처리해야함
+    //그거떄문에 이상적으로 배치모드라는 sync이외의 모드가 존재함
+    //이를 이용해서 배치모드는 모든 업데이트를 다음 React이벤트로 연기하는 일괄처리 기본모드를 활성화함
+    const priorityLevel = getCurrentPriorityLevel();
+    if ((mode & ConcurrentMode) === NoMode) {
+        return priorityLevel === ImmediatePriority ? Sync : Batched;
+    }
+
+    //여기부터는 항상 ConcurrentMode이다.
+    //concurrentMode이면서 현재 문맥이 렌더링중이라면, 해당 renderExpirationTime을 반환합니다.
+    //이유?: 만약 a->를 렌더링중이라고 하자 그런데 a의 자식중 b가 존재한다라고 가정했을떄
+    //dispatchAction에 의해 트리거 되면 computeExpirationForFiber에 의해 update에 expirationTime이 설정됩니다.
+    //그런데 그건 당연히 a를 렌더링하고 있던 중이니까 a를 렌더하면서 b도 그 영향을 받길 원합니다.
+    //그렇다면 renderExpirationTime을 반환하는게 맞습니다.
+    if ((currentWorkContext.executionContext & RenderContext) !== NoContext) {
+        return currentWorkContext.renderExpirationTime;
+    }
+
+    //여기부터는 concurrentMode이면서 현재 문맥이 렌더링중이 아닌 경우입니다.
+    //여기 부터는 이미 랜더링이 아닌 상태임
+    //그렇다면 이 친구가 만료되어야 되는 시간 을 어떻게 구하냐 ?
+    //즉시해야되는 일이면 즉시해야된다라고 알려준다.
+    //만약에 normalPriority를 가지고 있으면 computeAsyncExpiration을 기반으로
+    //현재 시간 보다 얼마나 비동기적으로 여유가 있는지를 computeAsyncExpiration을 기반으로 계산한다.
+    let expirationTime;
+    switch (priorityLevel) {
+        case ImmediatePriority:
+            expirationTime = Sync;
+            break;
+        case UserBlockingPriority:
+            //TODO: implement computeInteractiveExpiration
+            expirationTime = computeInteractiveExpiration(currentTime);
+            break;
+        case NormalPriority:
+        case LowPriority:
+            expirationTime = computeAsyncExpiration(currentTime);
+            break;
+        case IdlePriority:
+            expirationTime = Idle;
+            break;
+        default:
+            console.error("Unknown priority level. .");
+            throw new Error("Unknown priority level. ");
+    }
+
+    // If we're in the middle of rendering a tree, do not update at the same
+    // expiration time that is already rendering.
+    //만약에 위에서 계산된 값이 현재 랜더링 중인 값과 같다면
+    //렌더링보다는 한 우선순위 이후로 배치해야한다. 왜냐하면 렌더링 문맥중에 일어난 것은 아니기 떄문에 한 사이클 뒤에 일어나야한다.
+    if (currentWorkContext.workInProgressRoot !== null && expirationTime < currentWorkContext.renderExpirationTime) {
+        expirationTime -= 1;
+    }
+    return expirationTime;
 };
 /**
  *
@@ -425,7 +521,6 @@ export const scheduleUpdateOnFiber = (fiber, expirationTime) => {
 
     const root = markUpdateTimeFromFiberToRoot(fiber, expirationTime);
 
-    //TODO: scheduleWork
     const priorityLevel = getCurrentPriorityLevel();
     const executionContext = currentWorkContext.executionContext;
     //expirationTime이 가장 높은 우선순위
