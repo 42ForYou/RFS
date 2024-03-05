@@ -1,5 +1,6 @@
 import isArray from "../shared/isArray.js";
 
+//TODO: refactoring this
 const RfsElement = (type, props, children) => {
     return {
         type: type === Fragment ? "fragment" : type,

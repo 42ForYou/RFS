@@ -48,6 +48,10 @@ export const TFiber = {
     pendingProps: any, //이제 새로 컴포넌트에 전달될 props를 나타낸다
     memoizedProps: any, //이전 레더링시 사용되었던 props를 나타낸다
 
+    // Dependencies (contexts, events) for this fiber, if it has any
+    // TODO: 해당 부분에 대한 명세가 필요하다
+    dependencies: TDependencies | null,
+
     updateQueue: any, // to represent queue of state updates and callbacks
     //리액트 본 소스에서는 현재 파이버에 대한 상태 업데이트와 콜백을 나타낸다
     //여기서 예외처리 throw suspense,등등 여러가지를 나타내는데 현재 지금까지 RFS구현 모델에서는

@@ -7,15 +7,45 @@ import {
     LegacyUnbatchedContext,
 } from "../type/TExecutionContext.js";
 import { RootIncomplete, RootCompleted } from "../type/TRootExitStatus.js";
-import { expirationTimeToMs, msToExpirationTime } from "../fiber/fiberExiprationTime.js";
+import {
+    expirationTimeToMs,
+    msToExpirationTime,
+    computeAsyncExpiration,
+    inferPriorityFromExpirationTime,
+} from "../fiber/fiberExiprationTime.js";
 import { markRootUpdatedAtTime } from "../fiber/fiberRoot.js";
 import { TFiberRoot } from "../type/TFiberRoot.js";
-import { NoWork, Sync } from "../type/TExpirationTime.js";
+import { NoWork, Sync, Idle } from "../type/TExpirationTime.js";
+import { createWorkInProgress } from "../fiber/fiber.js";
+import {
+    // scheduleCallback,
+    // cancelCallback,
+    getCurrentPriorityLevel,
+    runWithPriority,
+    shouldYield,
+    requestPaint,
+    now,
+    //TODO: implementFlushSyncCallbackQueue,scheduleSyncCallback
+    // flushSyncCallbackQueue,
+    // scheduleSyncCallback,
+} from "../scheduler/schedulerInterface.js";
+
+import {
+    NoPriority,
+    ImmediatePriority,
+    UserBlockingPriority,
+    NormalPriority,
+    LowPriority,
+    IdlePriority,
+} from "../type/TRfsPriorityLevel.js";
+import { PerformedWork } from "../type/TSideEffectFlags.js";
 /**
  * @description WorkLoop내부에서 nested하게 업데이트가 계속 반복되는걸 관리하는 객체입니다.
  * @description moduleScope로 관리되는 객체입니다.
  */
 const nestedUpdate = {
+    NESTED_PASSIVE_UPDATE_LIMIT: 50,
+    nestedPassiveUpdateCount: 0,
     NESTED_UPDATE_LIMIT: 50,
     nestedUpdateCount: 0,
     /**
@@ -28,6 +58,12 @@ const nestedUpdate = {
     },
     checkForNestedUpdates: () => {
         if (nestedUpdateCount > NESTED_UPDATE_LIMIT) {
+            return true;
+        }
+        return false;
+    },
+    checkforNsetedPassiveUpdates: () => {
+        if (nestedPassiveUpdateCount > NESTED_PASSIVE_UPDATE_LIMIT) {
             return true;
         }
         return false;
@@ -84,6 +120,31 @@ export const currentWorkContext = {
 };
 
 /**
+ * @description workLoop모듈내에서 passiveEffect를 관리하는 객체입니다.
+ */
+const currentPassiveEffectContext = {
+    /**
+     * @description 햔재루트가 passiveEffect를 가지고 있는지 여부를 나타냅니다.
+     * @description TODO:좀더 자세히 언제 사용되는지 명세필요
+     */
+    rootDoesHavePassiveEffects: false,
+    /**
+     * @description passiveEffect가 등록된 root TODO: 더 자세한 명세필요
+     * @type {TFiberRoot | null} @see 파일경로: [TFiberRoot.js](srcs/type/TFiberRoot.js)
+     */
+    rootWithPendingPassiveEffects: null,
+    /**
+     * @description passiveeffect가 등록된 root의 priorityLevel
+     * @type {TRfsPriorityLevel} @see 파일경로: [TRfsPriorityLevel.js](srcs/type/TRfsPriorityLevel.js)
+     */
+    pendingPassiveEffectsRenderPriority: NoPriority,
+    /**
+     * @description passiveEffect가 등록된 root의 expirationTime
+     * @type {TExpirationTime} @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
+     */
+    pendingPassiveEffectsExpirationTime: NoWork,
+};
+/**
  * @description 현재 렌더링중인 루트에 대해서 컴포넌트가 남긴 작업이 있을떄
  * @description currentWorkContext에 처리되지 않은 다음 업데이트를 마킹합니다.
  * @param {TExpirationTime} expirationTime @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
@@ -97,7 +158,12 @@ export const markUnprocessedUpdateTime = (expirationTime) => {
 const checkForNestedUpdates = () => {
     if (nestedUpdate.checkForNestedUpdates()) {
         nestedUpdate.clear();
+        console.log("Maximum update depth exceeded. nested update shouldeDebugThis");
         throw new Error("Maximum update depth exceeded. shouldeDebugThis");
+    }
+    if (nestedUpdate.checkforNsetedPassiveUpdates()) {
+        nestedUpdate.nestedPassiveUpdateCount = 0;
+        console.error("Maximum update depth exceeded. nestedPassiveEffect");
     }
 };
 /**
@@ -171,6 +237,12 @@ const markUpdateTimeFromFiberToRoot = (fiber, expirationTime) => {
     return root;
 };
 
+/**
+ *
+ * @param {TFiberRoot} root @see 파일경로: [TFiberRoot.js](srcs/type/TFiberRoot.js)
+ * @param {TExpirationTime} expirationTime @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
+ * @description 해당함수는 currentWorkContext를 초기화하고 새로운 스택을 준비합니다.
+ */
 const prepareFreshStack = (root, expirationTime) => {
     //커밋과 관련된 이전 작업을 초기화합니다.
     root.finishedWork = null;
@@ -196,17 +268,293 @@ const prepareFreshStack = (root, expirationTime) => {
     }
     //현재 작업 컨텍스트를 초기화합니다.
     currentWorkContext.workInProgressRoot = root;
-    //TODO: createWorkInProgress
+    //Root를 기반으로 새로운 WorkInProgress를 만듭니다.
     currentWorkContext.workInProgress = createWorkInProgress(root.current, null, expirationTime);
     currentWorkContext.renderExpirationTime = expirationTime;
     currentWorkContext.workInProgressRootExitStatus = RootIncomplete;
     currentWorkContext.workInProgressRootLatestProcessedExpirationTime = Sync;
     currentWorkContext.workInProgressRootNextUnprocessedUpdateTime = NoWork;
 };
+
+/**
+ *
+ * @param {TExpirationTime} currentTime @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
+ * @param {TFiber} fiber @see 파일경로: [TFiber.js](srcs/type/TFiber.js)
+ * @description 현재 ExpirationTIme을 기반으로 이친구가 진짜 이시간에 끝나야 되는
+ * @description 만료시간을 계산하는 함수임
+ * @description 현재 만료되어야 되는 시간을 얻을떄 concurrent가 아니면 스케줄러가 작동이 즉시가 아니면
+ * @description batched처리한다
+ */
+export const computeExpirationForFiber = (currentTime, fiber) => {
+    const mode = fiber.mode;
+
+    //Batched : https://github.com/facebook/react/pull/15502
+    //하나의 이벤트 핸들러안에 있는 여러개의 setState같은 건 배치처리를 이미 하고 있으나
+    //외부시스템에 의한 업데이트 등에 대한 일괄 처리는 진행되고 있지 않음
+    //그런데 이거에 대한 대처 방안은 사실 concurrent모드가 이를 해결함:
+    //그러나 동기적인 모드에서는 concurrent모드가 아니기 때문에 이를 처리해야함
+    //그거떄문에 이상적으로 배치모드라는 sync이외의 모드가 존재함
+    //이를 이용해서 배치모드는 모든 업데이트를 다음 React이벤트로 연기하는 일괄처리 기본모드를 활성화함
+    const priorityLevel = getCurrentPriorityLevel();
+    if ((mode & ConcurrentMode) === NoMode) {
+        return priorityLevel === ImmediatePriority ? Sync : Batched;
+    }
+
+    //여기부터는 항상 ConcurrentMode이다.
+    //concurrentMode이면서 현재 문맥이 렌더링중이라면, 해당 renderExpirationTime을 반환합니다.
+    //이유?: 만약 a->를 렌더링중이라고 하자 그런데 a의 자식중 b가 존재한다라고 가정했을떄
+    //dispatchAction에 의해 트리거 되면 computeExpirationForFiber에 의해 update에 expirationTime이 설정됩니다.
+    //그런데 그건 당연히 a를 렌더링하고 있던 중이니까 a를 렌더하면서 b도 그 영향을 받길 원합니다.
+    //그렇다면 renderExpirationTime을 반환하는게 맞습니다.
+    if ((currentWorkContext.executionContext & RenderContext) !== NoContext) {
+        return currentWorkContext.renderExpirationTime;
+    }
+
+    //여기부터는 concurrentMode이면서 현재 문맥이 렌더링중이 아닌 경우입니다.
+    //여기 부터는 이미 랜더링이 아닌 상태임
+    //그렇다면 이 친구가 만료되어야 되는 시간 을 어떻게 구하냐 ?
+    //즉시해야되는 일이면 즉시해야된다라고 알려준다.
+    //만약에 normalPriority를 가지고 있으면 computeAsyncExpiration을 기반으로
+    //현재 시간 보다 얼마나 비동기적으로 여유가 있는지를 computeAsyncExpiration을 기반으로 계산한다.
+    let expirationTime;
+    switch (priorityLevel) {
+        case ImmediatePriority:
+            expirationTime = Sync;
+            break;
+        case UserBlockingPriority:
+            //TODO: implement computeInteractiveExpiration
+            expirationTime = computeInteractiveExpiration(currentTime);
+            break;
+        case NormalPriority:
+        case LowPriority:
+            expirationTime = computeAsyncExpiration(currentTime);
+            break;
+        case IdlePriority:
+            expirationTime = Idle;
+            break;
+        default:
+            console.error("Unknown priority level. .");
+            throw new Error("Unknown priority level. ");
+    }
+
+    // If we're in the middle of rendering a tree, do not update at the same
+    // expiration time that is already rendering.
+    //만약에 위에서 계산된 값이 현재 랜더링 중인 값과 같다면
+    //렌더링보다는 한 우선순위 이후로 배치해야한다. 왜냐하면 렌더링 문맥중에 일어난 것은 아니기 떄문에 한 사이클 뒤에 일어나야한다.
+    if (currentWorkContext.workInProgressRoot !== null && expirationTime < currentWorkContext.renderExpirationTime) {
+        expirationTime -= 1;
+    }
+    return expirationTime;
+};
+
+/**
+ * @description 예약되어 있는 passiveEffectPriorty가 noPriority가 아닌 경우 우선순위함께 실행합니다.
+ * @description 기본적으로 NormalPriority보다 큰 우선순위를 가진것도 NormalPriority로 실행됩니다.
+ * @returns {boolean}
+ */
+export const flushPassiveEffects = () => {
+    if (currentPassiveEffectContext.pendingPassiveEffectsRenderPriority !== NoPriority) {
+        //동기보다 우선순위가 높으면 flushPassive같은경우는 NormalPriority로 수행됩니다.
+        const priorityLevel =
+            currentPassiveEffectContext.pendingPassiveEffectsRenderPriority > NormalPriority
+                ? NormalPriority
+                : currentPassiveEffectContext.pendingPassiveEffectsRenderPriority;
+        currentPassiveEffectContext.pendingPassiveEffectsRenderPriority = NoPriority;
+        return runWithPriority(priorityLevel, flushPassiveEffectsImpl);
+    }
+};
+/**
+ * @description flushPassiveEffects의 구현체입니다.
+ * @description 해당함수는 모아진 passiveEffect를 모두 수행합니다.
+ * @description flush하면서 syncCallback이 쌓여있으면 수행합니다.
+ * @returns {boolean}
+ */
+const flushPassiveEffectsImpl = () => {
+    if (currentPassiveEffectContext.rootWithPendingPassiveEffects === null) {
+        return false;
+    }
+    const root = currentPassiveEffectContext.rootWithPendingPassiveEffects;
+    const expirationTime = currentPassiveEffectContext.pendingPassiveEffectsExpirationTime;
+    currentPassiveEffectContext.rootWithPendingPassiveEffects = null;
+    currentPassiveEffectContext.pendingPassiveEffectsExpirationTime = NoWork;
+
+    const prevExecutionContext = currentWorkContext.executionContext;
+    currentWorkContext.executionContext |= CommitContext;
+
+    let effect = root.current.firstEffect;
+    while (effect !== null) {
+        //TODO: commitPassiveHookEffects
+        commitPassiveHookEffects(effect);
+        const nextNextEffect = effect.nextEffect;
+        // nextEffect를 가비지콜렉팅하기 위해 null로 만듭니다.
+        effect.nextEffect = null;
+        effect = nextNextEffect;
+    }
+
+    currentWorkContext.executionContext = prevExecutionContext;
+
+    //TODO: implement flushSyncCallbackQueue
+    //commit과정에서 syncCallback이 쌓여있으면 수행합니다.
+    //Detail:
+    //commitPassiveHookEffects에 create(),destroy() 에 의해
+    //내부적으로 다시 setState가 불려서
+    //ensureRootIsScheduled이 호출되어서
+    //scheduleSyncCallback이 호출되어 sync가 생겨서 해당일을 처리해야될 수 있음
+    flushSyncCallbackQueue();
+
+    nestedUpdate.nestedPassiveUpdateCount = rootWithPendingPassiveEffects = null
+        ? 0
+        : nestedUpdate.nestedPassiveUpdateCount + 1;
+    return true;
+};
+
+/**
+ * @description leaf를 반환 받은 경우 해당 파이버의 작업을 마무리(effect를 전달하거나, htmlElement를 만들거나, 변경된 부분을 기록합니다.)
+ * @description 이후 찾을수 있다면 형제를 반환합니다. 없다면 null을 반환합니다.
+ * @param {TFiber} unitOfWork @see 파일경로: [TFiber.js](srcs/type/TFiber.js)
+ */
+const completeUnitOfWork = (unitOfWork) => {
+    currentWorkContext.workInProgress = unitOfWork;
+    do {
+        const current = currentWorkContext.workInProgress.alternate;
+        const returnFiber = currentWorkContext.workInProgress.return;
+
+        //TODO: completeWork
+        const next = completeWork(current, currentWorkContext.workInProgress, currentWorkContext.renderExpirationTime);
+        //TODO: resetChildExpirationTime
+        resetChildExpirationTime(currentWorkContext.workInProgress);
+        //이 파이버에 대해서 새로운 work를 만드는데 완수했습니다. 다음에 이어서 작업을 할 수 있도록 반환합니다.
+        if (next !== null) {
+            return next;
+        }
+        //이제 후위 순회로 수거해야될 타이밍. if(next===null)이면 leaf이므로 부모로 effect를 올려야됨
+        if (returnFiber !== null) {
+            // 하위 트리와 이 파이버의 모든 효과를 이펙트에 추가합니다.
+            // 부모 목록에 추가합니다. 하위 트리의 완료 순서는 부모 트리의
+            // 부수 효과 순서에 영향을 줍니다.
+
+            //만약 헤드가 없다면 wip의 헤드를 부모의 헤드로 설정
+            if (returnFiber.firstEffect === null) {
+                returnFiber.firstEffect = currentWorkContext.workInProgress.firstEffect;
+            }
+
+            //서브트리의 effectlist를 부모의 effectlist에 연결합니다.
+            if (currentWorkContext.workInProgress.lastEffect !== null) {
+                if (returnFiber.lastEffect !== null) {
+                    returnFiber.lastEffect.nextEffect = currentWorkContext.workInProgress.firstEffect;
+                }
+                returnFiber.lastEffect = currentWorkContext.workInProgress.lastEffect;
+            }
+
+            //TODO:해당 상황을 조금더 자세히 이해하자
+            // 만약 이 Fiber 노드에 사이드 이펙트가 존재한다면,
+            // 해당 사이드 이펙트는 자식 노드들의 사이드 이펙트가 처리된 후에 추가됩니다.
+            // 필요한 경우, 우리는 effect 리스트를 여러 번 순회하며 사이드 이펙트를 보다 조기에 처리할 수 있습니다.
+            //  그러나 우리는 우리 자신의 사이드 이펙트를 자신의 리스트에 바로 스케줄링하고자 하지 않습니다.
+            // 이유는, 자식 노드들을 재사용하는 경우에
+            // 우리는 결국 이 사이드 이펙트를 자기 자신에게 스케줄링하게 될 것이기 때문입니다
+
+            //자신도 sideeffect가 있으면 부모의 effectlist에 연결해야합니다.
+            //performedWork updateFunctionComponent에서 커스텀 컴포넌트를 호출한 후에 달아줌.
+            //커스텀 컴포넌트 호출이외에 sideEeffect가 발생한다면 자신을 effect로 간주하고 위로 올려야합니다.
+            //sideEffect가 있다라는것은 performedWork보다 크다라는것을 의미합니다.
+            const effectTag = currentWorkContext.workInProgress.effectTag;
+            if (effectTag > PerformedWork) {
+                if (returnFiber.lastEffect !== null) {
+                    returnFiber.lastEffect.nextEffect = currentWorkContext.workInProgress;
+                } else {
+                    returnFiber.firstEffect = currentWorkContext.workInProgress;
+                }
+                returnFiber.lastEffect = currentWorkContext.workInProgress;
+            }
+        }
+        //후위 순회 임으로 형제가 있으면 형제를 먼저 반환합니다.
+        const siblingFiber = currentWorkContext.workInProgress.sibling;
+        if (siblingFiber !== null) {
+            // 만약에 이 파이버에 형제가 있다면 형제를 반환합니다.
+            return siblingFiber;
+        }
+        // 형제가 없다면 부모로 올라갑니다.
+        currentWorkContext.workInProgress = returnFiber;
+    } while (currentWorkContext.workInProgress !== null);
+
+    //TODO: RootINcomplete필요한지 확인
+    if (currentWorkContext.workInProgressRootExitStatus === RootIncomplete) {
+        //만약에 현재 루트가 완료되지 않았다면 완료되었다고 표시합니다.
+        currentWorkContext.workInProgressRootExitStatus = RootCompleted;
+    }
+    return null;
+};
+/**
+ * @param {TFiber} unitOfWork  @see 파일경로: [TFiber.js](srcs/type/TFiber.js)
+ * @description workLoopSync의 order부분을 확인하시면 됩니다.
+ * @description beginwork를 수행하고 만약 leaf이면 completeUnitOfWork를 수행합니다.
+ */
+const performUnitOfWork = (unitOfWork) => {
+    const current = unitOfWork.alternate;
+
+    //TODO: beginWork
+    //beginwork를 수행해서 다음 수행할 작업을 반환합니다.
+    //beginwork에서 bailout이나, update~로 분기됩니다. 만약 next가 leaf이면 null을 반환합니다.
+    let next = beginWork(current, unitOfWork, currentWorkContext.renderExpirationTime);
+
+    //props를 이제 pendingProps를 이제 사용했고, 이제 memoizedProps로 바꿉니다.
+    unitOfWork.memoizedProps = unitOfWork.pendingProps;
+    //leaf인 경우 effect를 부모로 전달하고, 형제를 찾을 수 있으면 형제를 반환합니다. 없으면 null을 반환합니다.
+    if (next === null) {
+        next = completeUnitOfWork(unitOfWork);
+    }
+    //TODO:필요한지 확인
+    //ReactCurrentOwner.current = null;
+    return next;
+};
+
+/** @noinline */
+/**
+ * @description workLoop를 동기적으로 진행합니다.
+ * @description 동기적으로 진행하기 때문에 shouldYield가 없습니다.
+ * @description workLoop는 hot path이기 떄문에 이 해당 클로저를 가만히 놨두면 최적화를 해서 코드가 커집니다.
+ * @description 이러한 최적화를 안하기 위해서는 @noinline을 사용합니다.
+ * @description detail:해당 함수들은 단순히 loop를 돌리는데, 여기서 주의점은 workLoopConcurrent가
+ * @description  해당 작업을 다음 프레임, 다음으로 넘기는 방법은 ensureRootIsScheduled를 통해서 이뤄집니다.
+ * @description  그리고 @noinline같은 경우는 기본적으로 V8engine같은 경우는
+ * @description  ignition과 turbofan으로 이뤄져있습니다. ignition이 만든 코드가 hotPath(굉장히 많이사용되면)
+ * @description  turbofan이 메모리를 좀더 쓴 코드로 최적화하여 코드를 바꿔두게 됩니다. 여기서 noinline은 해당부분을
+ * @description  원하지 않는다는 부분입니다. turbofan에게 해당부분을 바꾸지 말라고 합니다.
+ * @description Order
+ * @description WorkLoopSync:work시작
+ * @description -*- performUnitOfWork:work시작과 마무리(effect리스트 전달)을 모두 진행합니다. 일반적으로 fiber가 리턴됩니다.(null인 경우 끝)
+ * @description -*- -*- beginWork: 해당 파이버의 작업을 시작합니다. 여기선 bailout상황과 update~~상태로 분리됩니다.
+ * @description -*- -*- -*- update~: 컴포넌트의 diff를 보고 업데이트가 되었으면 업데이트를 적용하고 만약 functionComponent와 같은 경우에 reactElement를 내뱉습니다 이후 reconciliation을 진행합니다.
+ * @description -*- -*- -*- -*- reconcileChildren: 반환 ReactElement를 기반으로 새로운 파이버를 만들어 반환합니다
+ * @description -*- -*- -*- bailoutOnAlreadyFinishedWork: 만약에 자손의 상태가 변경된 경우(자신이아니라) 자손의 workinprogress를 만들어 반환합니다.
+ * @description -*- -*- completeUnitOfWork: null(leaft)일 경우 해당 파이버의 작업을 마무리합니다. work를 마무리 및 부모로 effect를 전달합니다. 그리고 이제 형제로 넘어갑니다.
+ * @description -*- -* - -*- completework: 마운트라면 htmlelement를 만들고 업데이트라면 변경된 부분을 기록하여 work를 마무리합니다.
+ */
+const workLoopSync = () => {
+    while (currentWorkContext.workInProgress !== null) {
+        //TODO: performUnitOfWork
+        currentWorkContext.workInProgress = performUnitOfWork(currentWorkContext.workInProgress);
+    }
+};
+
+/** @noinline */
+/**
+ * @description workLoop를 비동기적으로 진행합니다.
+ * @description 비동기적으로 진행하기 때문에 shouldYield가 있습니다.
+ */
+const workLoopConcurrent = () => {
+    while (currentWorkContext.workInProgress !== null && !shouldYield()) {
+        currentWorkContext.workInProgress = performUnitOfWork(currentWorkContext.workInProgress);
+    }
+};
+
 /**
  *
  * @param {TFiberRoot} root
  * @description 해당함수는 동기 task의 집임점 함수입니다.
+ * @description 동기로 work를 수행합니다.
+ * @description 이후 호출되는 ensureRootIsScheduled를 통해 나머지 작업을 다음으로 연기합니다.
  */
 export const performSyncWorkOnRoot = (root) => {
     //lastExpiredTime->timeout이 일어났을떄 마크됨
@@ -221,7 +569,6 @@ export const performSyncWorkOnRoot = (root) => {
         //TODO: implement commitRoot
         commitRoot(root);
     } else {
-        //TODO: flushPassiveEffects
         //모아진 passiveEffect를 모두 수행합니다.
         //React의 작동순서를 보면
         //Render -> ReactUpdateDOM->cleanup LayoutEffects
@@ -248,14 +595,13 @@ export const performSyncWorkOnRoot = (root) => {
             //TODO: pushDispatcher
             const prevDispatcher = pushDispatcher(root);
 
-            //TODO: implement workLoopSync
             //TODO: 만약 error처리 로직이 필요하면 try로직으로 리팩
             workLoopSync();
 
             //TODO: 필요한지확인
             //resetContextDependencies();
             currentWorkContext.executionContext = prevExecutionContext;
-            //TODO: popDispatcher
+            //TODO: popDispatcher --context할떄
             popDispatcher(prevDispatcher);
 
             root.finishedWork = root.current.alternate;
@@ -301,27 +647,29 @@ const getNextRootExpirationTimeToWorkOn = (root) => {
  * @description 생애주기가 currentWorkContext와 다름으로 다른 객체로 관리합니다.
  * @type {TExpirationTime} @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
  */
-// 만료 시간은 현재 시간(시작 시간)에 더하여 계산됩니다.
-// 시간)을 더하여 계산합니다. 그러나 동일한 이벤트 내에서 두 개의 업데이트가 예약된 경우에는
-// 실제 시계가 첫 번째 호출과 두 번째 호출 사이에 진행되었더라도 시작 시간을 동시에 처리해야 합니다.
-// 첫 번째 호출과 두 번째 호출 사이에 시간이 앞당겨지더라도 시작 시간을 동시에 처리해야 합니다.
-
-// 즉, 만료 시간에 따라 업데이트가 일괄 처리되는 방식이 결정되기 때문입니다,
-// 동일한 이벤트 내에서 발생하는 동일한 우선순위의 모든 업데이트가 동일한 만료 시간을
-// 동일한 만료 시간을 받기를 원합니다.
-// 예를 들면 현재 리엑트가 idle상태일때 여러 이벤트가 idle상태에서 한번에 들어왔을 때
-// 우리는 이벤트를 일괄적으로 처리하고 싶습니다.(배치처리) 이를 위해서는 이벤트가 동일한 만료시간을 받아야합니다.
 let currentEventTime = NoWork;
+
+/**
+ * @description 이 함수는 현재 시간을 계산합니다.->(현재시간을 ExpirationTime으로 변환합니다.)
+ * @returns {TExpirationTime} expirationTime @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
+ * @description  만료 시간은 현재 시간(시작 시간)에 더하여 계산됩니다.
+ * @description  시간)을 더하여 계산합니다. 그러나 동일한 이벤트 내에서 두 개의 업데이트가 예약된 경우에는
+ * @description  실제 시계가 첫 번째 호출과 두 번째 호출 사이에 진행되었더라도 시작 시간을 동시에 처리해야 합니다.
+ * @description  첫 번째 호출과 두 번째 호출 사이에 시간이 앞당겨지더라도 시작 시간을 동시에 처리해야 합니다*
+ * @description  즉, 만료 시간에 따라 업데이트가 일괄 처리되는 방식이 결정되기 때문입니다,
+ * @description  동일한 이벤트 내에서 발생하는 동일한 우선순위의 모든 업데이트가 동일한 만료 시간을
+ * @description  동일한 만료 시간을 받기를 원합니다.
+ * @description  예를 들면 현재 리엑트가 idle상태일때 여러 이벤트가 idle상태에서 한번에 들어왔을 때
+ * @description  우리는 이벤트를 일괄적으로 처리하고 싶습니다.(배치처리) 이를 위해서는 이벤트가 동일한 currentTIme을 받아야합니다.
+ */
 export const requestCurrentTimeForUpdate = () => {
     if ((executionContext & (RenderContext | CommitContext)) !== NoContext) {
-        //이벤트가 발생한 경우
-        //이벤트가 발생한 경우에는 이벤트의 만료시간을 반환합니다.
-        //TODO:: implement now();
+        //렌더링이나 커밋인 상황인 경우 현재 시간은 now()를 기반으로 합니다.
         return msToExpirationTime(now());
     }
     //rfs상태가 아닌, 우리가 브라우저 이벤트 context에서 일어나는 경우
     if (currentEventTime !== NoWork) {
-        // 우리가 rfs Context로 오기까지 모든 이벤트에 대해서 똑같은 만료시간을 반환합니다.
+        // 우리가 rfs Context로 오기까지 모든 이벤트에 대해서 똑같은 currenTime을 반환합니다.
         return currentEventTime;
     }
     //첫번쨰 이벤트 타임을 셋팅하는 경우
@@ -349,11 +697,12 @@ const ensureRootIsScheduled = (root) => {
         // Special case: Expired work should flush synchronously.
         //정확히는 동기적으로 한번에 처리하고 싶을때 해당 lastExpiredTime을 설정함
         //markRootExpiredAtTime에 의하여 사용됨
+        //좀더 정확히는 performConcurrentWorkOnRoot에서 didTimeout이면
+        //lastExpiredTime을 설정함->타임아웃이 될때
+        //그럼이걸 동기적으로 무조건 수행하길원함
         //예) 일반적으로 처음으로 Root를 스케줄링할떄는 동기로 일어나는게 효율적
         //예)//timeout관련된 코드 타임아웃 나면 리액트에서 lastExpiredTime을 설정함
         root.callbackExpirationTime = Sync;
-
-        //TODO:  scheduler 모듈에서 priority를 명세하고 구현할 예정입니다.
         root.callbackPriority = ImmediatePriority;
 
         //TODO: scheduleSyncCallback
@@ -361,6 +710,8 @@ const ensureRootIsScheduled = (root) => {
         root.callbackNode = scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root));
         return;
     }
+    //ExpirationTime결정  lastExpiredTime이 없다면, firstPendingTime을 기준으로 결정합니다.
+    //여기선 firstPendingTime을 가져와서 어떤 expirationTime이 기다리고 있었는지를 바라봅니다.
     const expirationTime = getNextRootExpirationTimeToWorkOn(root);
     const existingCallbackNode = root.callbackNode;
     //schedule할게 없는 경우
@@ -373,9 +724,9 @@ const ensureRootIsScheduled = (root) => {
         }
         return;
     }
-
+    //currentTime을 얻어옵니다.
     const currentTime = requestCurrentTimeForUpdate();
-    //TODO: scheduler 관련 처리에서 같이 진행할예정입니다.
+    //currentTime과 expirationTime을 기반으로 우선순위를 결정합니다.
     const priorityLevel = inferPriorityFromExpirationTime(currentTime, expirationTime);
 
     //루트에는 하나의 작업만 존재해야합니다.
@@ -387,6 +738,7 @@ const ensureRootIsScheduled = (root) => {
         if (existingCallbackExpirationTime === expirationTime && existingCallbackPriority >= priorityLevel) {
             return;
         }
+        //만약우선순위가 기존것보다 높다면 하던걸 멈추고 갈아치워야함
         //TODO: cancelCallback
         //callback을 취소하고 새로운 callback을 준비합니다.
         cancelCallback(existingCallbackNode);
@@ -425,7 +777,6 @@ export const scheduleUpdateOnFiber = (fiber, expirationTime) => {
 
     const root = markUpdateTimeFromFiberToRoot(fiber, expirationTime);
 
-    //TODO: scheduleWork
     const priorityLevel = getCurrentPriorityLevel();
     const executionContext = currentWorkContext.executionContext;
     //expirationTime이 가장 높은 우선순위
@@ -443,10 +794,10 @@ export const scheduleUpdateOnFiber = (fiber, expirationTime) => {
         //     performSyncWorkOnRoot(root);
         // } else {
         //C end
-        //TODO: implement ensureRootIsScheduled
         ensureRootIsScheduled(root);
         //Reconciler가 놀고있는 경우 Work를 바로 실행
         if (executionContext === NoContext) {
+            //TODO: flushSyncCallbackQueue
             flushSyncCallbackQueue();
         }
         // } C
