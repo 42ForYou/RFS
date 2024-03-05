@@ -13,7 +13,7 @@ import {
     computeAsyncExpiration,
     inferPriorityFromExpirationTime,
 } from "../fiber/fiberExiprationTime.js";
-import { markRootUpdatedAtTime } from "../fiber/fiberRoot.js";
+import { markRootUpdatedAtTime, markRootExpiredAtTime } from "../fiber/fiberRoot.js";
 import { TFiberRoot } from "../type/TFiberRoot.js";
 import { NoWork, Sync, Idle } from "../type/TExpirationTime.js";
 import { createWorkInProgress } from "../fiber/fiber.js";
@@ -125,11 +125,10 @@ export const currentWorkContext = {
 const currentPassiveEffectContext = {
     /**
      * @description 햔재루트가 passiveEffect를 가지고 있는지 여부를 나타냅니다.
-     * @description TODO:좀더 자세히 언제 사용되는지 명세필요
      */
     rootDoesHavePassiveEffects: false,
     /**
-     * @description passiveEffect가 등록된 root TODO: 더 자세한 명세필요
+     * @description passiveEffect가 등록된 root를 나타냅니다.
      * @type {TFiberRoot | null} @see 파일경로: [TFiberRoot.js](srcs/type/TFiberRoot.js)
      */
     rootWithPendingPassiveEffects: null,
@@ -144,6 +143,17 @@ const currentPassiveEffectContext = {
      */
     pendingPassiveEffectsExpirationTime: NoWork,
 };
+
+/**
+ * @description ExpirationTime을 구하는 방식에 의하면 event는 배치가 될수가 없습니다.
+ * @description 그렇다면 임의적으로 event와 관련된 우선순위를 따로 묶어줄 수 있는 방법이 필요합니다
+ * @description 이를 위한 변수입니다.
+ * @description 생애주기가 currentWorkContext와 다름으로 다른 객체로 관리합니다.
+ * @description requestCurrentTimeForUpdate과 깊은 연관이 있습니다.(performConcurrentWork에서도 사용됨)
+ * @type {TExpirationTime} @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
+ */
+let currentEventTime = NoWork;
+
 /**
  * @description 현재 렌더링중인 루트에 대해서 컴포넌트가 남긴 작업이 있을떄
  * @description currentWorkContext에 처리되지 않은 다음 업데이트를 마킹합니다.
@@ -446,7 +456,6 @@ const completeUnitOfWork = (unitOfWork) => {
                 returnFiber.lastEffect = currentWorkContext.workInProgress.lastEffect;
             }
 
-            //TODO:해당 상황을 조금더 자세히 이해하자
             // 만약 이 Fiber 노드에 사이드 이펙트가 존재한다면,
             // 해당 사이드 이펙트는 자식 노드들의 사이드 이펙트가 처리된 후에 추가됩니다.
             // 필요한 경우, 우리는 effect 리스트를 여러 번 순회하며 사이드 이펙트를 보다 조기에 처리할 수 있습니다.
@@ -533,7 +542,6 @@ const performUnitOfWork = (unitOfWork) => {
  */
 const workLoopSync = () => {
     while (currentWorkContext.workInProgress !== null) {
-        //TODO: performUnitOfWork
         currentWorkContext.workInProgress = performUnitOfWork(currentWorkContext.workInProgress);
     }
 };
@@ -549,6 +557,99 @@ const workLoopConcurrent = () => {
     }
 };
 
+/**
+ *
+ * @param {TFiberRoot} root @see 파일경로: [TFiberRoot.js](srcs/type/TFiberRoot.js)
+ * @description 해당함수는 concurrent렌더를 마무리짓습니다. 이는 커밋을 진행합니다.
+ */
+const finishConcurrentRender = (root) => {
+    currentWorkContext.workInProgressRoot = null;
+    //TODO: commitRoot
+    commitRoot(root);
+    //TODO: 해당부분이 만약 rootExitStatus 가 필요하다면 리팩토링해야된다
+};
+
+/**
+ *
+ * @param {TFiberRoot} root
+ * @param {boolean} didTimeout
+ * @returns {null | lambda(performConcurrentWorkOnRoot)}
+ * @description 비동기적으로 root부터 작업을 수행합니다.
+ */
+export const performConcurrentWorkOnRoot = (root, didTimeout) => {
+    //새로운 비동기 사이클을 시작했음으로(rfsEvent로 들어옴) currentEvent타임을 초기화해야된다
+    //그래야 next Update가 새로운 new Event타임으로 계산됩니다.
+    currentEventTime = NoWork;
+
+    if (didTimeout) {
+        //렌더 작업이 완수가 너무 길어져서, 만료시간이 넘어 버렸음.
+        //현재 루트가 만료됬다라고 마크를 남기고, 동기적으로 작업을 수행하도록하게함.
+        //이 문맥에서 currentTime이 무조건 NoWork가 아니라
+        //root.lastExpiredTime으로 설정됨으로
+        //ensureRootIsScheduled에서 동기적으로 작업을 수행하게 됩니다.
+        const currentTime = requestCurrentTimeForUpdate();
+        markRootExpiredAtTime(root, currentTime);
+        ensureRootIsScheduled(root);
+    }
+
+    //다음 할 일의 expirationTime을 얻습니다.
+    const expirationTime = getNextRootExpirationTimeToWorkOn(root);
+    //할일이 없으면 null을 반환합니다.
+    if (expirationTime === NoWork) {
+        return null;
+    }
+    //기존 callbackNode를 저장합니다.
+    const originalCallbackNode = root.callbackNode;
+
+    //sideEffect를 flush합니다.
+    flushPassiveEffects();
+
+    //만약 루트가 현재 렌더링중인 루트가 아니거나, 새로 배정된 expirationTime(우선순위)가
+    //현재 렌더링중인 expirationTime와 다르다면 새로운 스택을 준비하고 아니면 이전 스택을 사용합니다.
+    if (root !== currentWorkContext.workInProgressRoot || expirationTime !== currentWorkContext.renderExpirationTime) {
+        prepareFreshStack(root, expirationTime);
+    }
+
+    //workInprogress가 존재하지 않는다면 렌더를 하지않고 null을 반환합니다.
+    if (currentWorkContext.workInProgress === null) {
+        return null;
+    }
+    //workInprogress가 존재한다면 작업을 수행합니다.
+    //이 경우는 root가 생성됬건, 이전 작업이 남아있던 거기부터 시작합니다.
+    //렌더를 시작합니다.
+    //현재 작업 컨텍스트를 초기화합니다.
+    const prevExecutionContext = currentWorkContext.executionContext;
+    currentWorkContext.executionContext |= RenderContext;
+    //TODO: pushDispatcher -context할떄
+    const prevDispatcher = pushDispatcher(root);
+    //만약 try로 래핑 필요하면 리팩
+    workLoopConcurrent();
+    //TODO: resetContextDependencies
+    resetContextDependencies();
+    currentWorkContext.executionContext = prevExecutionContext;
+    //TODO: popDispatcher --context할떄
+    popDispatcher(prevDispatcher);
+    //모든 작업을 마무리했다면
+    if (currentWorkContext.workInProgress === null) {
+        //일을 마무리 지었음으로 커밋을 진행할 파이버와 ExpirationTime을 설정합니다.
+        //커밋할 fiber 는 wip에 해당함으로 root.current.alternate입니다.
+        const finishedWork = (root.finishedWork = root.current.alternate);
+        root.finishedExpirationTime = expirationTime;
+        //커밋을 시작하는 코드
+        finishConcurrentRender(root, finishedWork, expirationTime);
+    }
+
+    // 다시 비동기로 루트를 스케쥴링합니다.
+    ensureRootIsScheduled(root);
+    //POINT X:에 해당하는 부분 이 경우에는 그대로 우선순위에서 밀려서 root의 콜백이 기존의 콜백을 이용하게 됨
+    //TODO:이 부분이 어떻게 이용되는지 확인
+    //이 루트에 예약된 작업노드는 현재 실행된것과 똑같음, 연속을 반환해야됨 ?? TODO:이 말이 무슨말인지 확인
+    //아마 스케줄러에서 해결되는 부분으로 보임
+    if (originalCallbackNode === root.callbackNode) {
+        return performConcurrentWorkOnRoot.bind(null, root);
+    }
+    return null;
+};
 /**
  *
  * @param {TFiberRoot} root
@@ -595,7 +696,6 @@ export const performSyncWorkOnRoot = (root) => {
             //TODO: pushDispatcher
             const prevDispatcher = pushDispatcher(root);
 
-            //TODO: 만약 error처리 로직이 필요하면 try로직으로 리팩
             workLoopSync();
 
             //TODO: 필요한지확인
@@ -630,7 +730,7 @@ export const performSyncWorkOnRoot = (root) => {
 const getNextRootExpirationTimeToWorkOn = (root) => {
     //스케쥴 단계에서 ExpiredTime은 lastExpiredTime과
     //firstPendingTime을 기준으로 결정합니다.
-    //이전 우선순위가 notWork이 아니라면 lastExpiredTime을 반환합니다.
+    //이전 우선순위가 noWork이 아니라면 lastExpiredTime을 반환합니다.
     //아니라면 firstPendingTime을 반환합니다.->이는 이후 이벤트가 발생했을 때
     //다음 해야될 우선순위 관련된걸 firstPendingTime에 저장하기 때문입니다.
     const lastExpiredTime = root.lastExpiredTime;
@@ -639,15 +739,6 @@ const getNextRootExpirationTimeToWorkOn = (root) => {
     }
     return root.firstPendingTime;
 };
-
-/**
- * @description ExpirationTime을 구하는 방식에 의하면 event는 배치가 될수가 없습니다.
- * @description 그렇다면 임의적으로 event와 관련된 우선순위를 따로 묶어줄 수 있는 방법이 필요합니다
- * @description 이를 위한 변수입니다.
- * @description 생애주기가 currentWorkContext와 다름으로 다른 객체로 관리합니다.
- * @type {TExpirationTime} @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
- */
-let currentEventTime = NoWork;
 
 /**
  * @description 이 함수는 현재 시간을 계산합니다.->(현재시간을 ExpirationTime으로 변환합니다.)
@@ -734,6 +825,7 @@ const ensureRootIsScheduled = (root) => {
     if (existingCallbackNode !== null) {
         const existingCallbackPriority = root.callbackPriority;
         const existingCallbackExpirationTime = root.callbackExpirationTime;
+        //POINT X:root.calbackkNode === originalCallbackNode
         //만약 expirationTime이 동일하고 우선순위가 기존 콜백이 더 높다면 작업을 수행하지 않습니다.
         if (existingCallbackExpirationTime === expirationTime && existingCallbackPriority >= priorityLevel) {
             return;
@@ -752,6 +844,7 @@ const ensureRootIsScheduled = (root) => {
         callbackNode = scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root));
     } else {
         //TODO: scheduleCallback
+        //TODO: performConcurrentWorkOnRoot
         //비동기로 스케쥴링 되어야하는 경우, 비동기 큐에 schedule합니다.
         callbackNode = scheduleCallback(
             priorityLevel,
