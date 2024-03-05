@@ -408,10 +408,36 @@ const flushPassiveEffectsImpl = () => {
 };
 
 /**
+ * @description workLoop를 동기적으로 진행합니다.
+ * @description 동기적으로 진행하기 때문에 shouldYield가 없습니다.
+ * @description workLoop는 hot path이기 떄문에 이 해당 클로저를 가만히 놨두면 최적화를 해서 코드가 커집니다.
+ * @description 이러한 최적화를 안하기 위해서는 @noinline을 사용합니다.
+ */
+/** @noinline */
+const workLoopSync = () => {
+    while (currentWorkContext.workInProgress !== null) {
+        //TODO: performUnitOfWork
+        performUnitOfWork(currentWorkContext.workInProgress);
+    }
+};
+
+/**
+ * @description workLoop를 비동기적으로 진행합니다.
+ * @description 비동기적으로 진행하기 때문에 shouldYield가 있습니다.
+ */
+/** @noinline */
+const workLoopConcurrent = () => {
+    while (currentWorkContext.workInProgress !== null && !shouldYield()) {
+        currentWorkContext.workInProgress = performUnitOfWork(currentWorkContext.workInProgress);
+    }
+};
+
+/**
  *
  * @param {TFiberRoot} root
  * @description 해당함수는 동기 task의 집임점 함수입니다.
  * @description 동기로 work를 수행합니다.
+ * @description 이후 호출되는 ensureRootIsScheduled를 통해 나머지 작업을 다음으로 연기합니다.
  */
 export const performSyncWorkOnRoot = (root) => {
     //lastExpiredTime->timeout이 일어났을떄 마크됨
@@ -460,7 +486,7 @@ export const performSyncWorkOnRoot = (root) => {
             //TODO: 필요한지확인
             //resetContextDependencies();
             currentWorkContext.executionContext = prevExecutionContext;
-            //TODO: popDispatcher
+            //TODO: popDispatcher --context할떄
             popDispatcher(prevDispatcher);
 
             root.finishedWork = root.current.alternate;
