@@ -7,7 +7,12 @@ import {
     LegacyUnbatchedContext,
 } from "../type/TExecutionContext.js";
 import { RootIncomplete, RootCompleted } from "../type/TRootExitStatus.js";
-import { expirationTimeToMs, msToExpirationTime, computeAsyncExpiration } from "../fiber/fiberExiprationTime.js";
+import {
+    expirationTimeToMs,
+    msToExpirationTime,
+    computeAsyncExpiration,
+    inferPriorityFromExpirationTime,
+} from "../fiber/fiberExiprationTime.js";
 import { markRootUpdatedAtTime } from "../fiber/fiberRoot.js";
 import { TFiberRoot } from "../type/TFiberRoot.js";
 import { NoWork, Sync, Idle } from "../type/TExpirationTime.js";
@@ -341,6 +346,11 @@ export const computeExpirationForFiber = (currentTime, fiber) => {
     return expirationTime;
 };
 
+/**
+ * @description 예약되어 있는 passiveEffectPriorty가 noPriority가 아닌 경우 우선순위함께 실행합니다.
+ * @description 기본적으로 NormalPriority보다 큰 우선순위를 가진것도 NormalPriority로 실행됩니다.
+ * @returns {boolean}
+ */
 export const flushPassiveEffects = () => {
     if (currentPassiveEffectContext.pendingPassiveEffectsRenderPriority !== NoPriority) {
         //동기보다 우선순위가 높으면 flushPassive같은경우는 NormalPriority로 수행됩니다.
@@ -352,7 +362,12 @@ export const flushPassiveEffects = () => {
         return runWithPriority(priorityLevel, flushPassiveEffectsImpl);
     }
 };
-
+/**
+ * @description flushPassiveEffects의 구현체입니다.
+ * @description 해당함수는 모아진 passiveEffect를 모두 수행합니다.
+ * @description flush하면서 syncCallback이 쌓여있으면 수행합니다.
+ * @returns {boolean}
+ */
 const flushPassiveEffectsImpl = () => {
     if (currentPassiveEffectContext.rootWithPendingPassiveEffects === null) {
         return false;
@@ -396,6 +411,7 @@ const flushPassiveEffectsImpl = () => {
  *
  * @param {TFiberRoot} root
  * @description 해당함수는 동기 task의 집임점 함수입니다.
+ * @description 동기로 work를 수행합니다.
  */
 export const performSyncWorkOnRoot = (root) => {
     //lastExpiredTime->timeout이 일어났을떄 마크됨
@@ -490,27 +506,29 @@ const getNextRootExpirationTimeToWorkOn = (root) => {
  * @description 생애주기가 currentWorkContext와 다름으로 다른 객체로 관리합니다.
  * @type {TExpirationTime} @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
  */
-// 만료 시간은 현재 시간(시작 시간)에 더하여 계산됩니다.
-// 시간)을 더하여 계산합니다. 그러나 동일한 이벤트 내에서 두 개의 업데이트가 예약된 경우에는
-// 실제 시계가 첫 번째 호출과 두 번째 호출 사이에 진행되었더라도 시작 시간을 동시에 처리해야 합니다.
-// 첫 번째 호출과 두 번째 호출 사이에 시간이 앞당겨지더라도 시작 시간을 동시에 처리해야 합니다.
-
-// 즉, 만료 시간에 따라 업데이트가 일괄 처리되는 방식이 결정되기 때문입니다,
-// 동일한 이벤트 내에서 발생하는 동일한 우선순위의 모든 업데이트가 동일한 만료 시간을
-// 동일한 만료 시간을 받기를 원합니다.
-// 예를 들면 현재 리엑트가 idle상태일때 여러 이벤트가 idle상태에서 한번에 들어왔을 때
-// 우리는 이벤트를 일괄적으로 처리하고 싶습니다.(배치처리) 이를 위해서는 이벤트가 동일한 만료시간을 받아야합니다.
 let currentEventTime = NoWork;
+
+/**
+ * @description 이 함수는 현재 시간을 계산합니다.->(현재시간을 ExpirationTime으로 변환합니다.)
+ * @returns {TExpirationTime} expirationTime @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
+ * @description  만료 시간은 현재 시간(시작 시간)에 더하여 계산됩니다.
+ * @description  시간)을 더하여 계산합니다. 그러나 동일한 이벤트 내에서 두 개의 업데이트가 예약된 경우에는
+ * @description  실제 시계가 첫 번째 호출과 두 번째 호출 사이에 진행되었더라도 시작 시간을 동시에 처리해야 합니다.
+ * @description  첫 번째 호출과 두 번째 호출 사이에 시간이 앞당겨지더라도 시작 시간을 동시에 처리해야 합니다*
+ * @description  즉, 만료 시간에 따라 업데이트가 일괄 처리되는 방식이 결정되기 때문입니다,
+ * @description  동일한 이벤트 내에서 발생하는 동일한 우선순위의 모든 업데이트가 동일한 만료 시간을
+ * @description  동일한 만료 시간을 받기를 원합니다.
+ * @description  예를 들면 현재 리엑트가 idle상태일때 여러 이벤트가 idle상태에서 한번에 들어왔을 때
+ * @description  우리는 이벤트를 일괄적으로 처리하고 싶습니다.(배치처리) 이를 위해서는 이벤트가 동일한 currentTIme을 받아야합니다.
+ */
 export const requestCurrentTimeForUpdate = () => {
     if ((executionContext & (RenderContext | CommitContext)) !== NoContext) {
-        //이벤트가 발생한 경우
-        //이벤트가 발생한 경우에는 이벤트의 만료시간을 반환합니다.
-        //TODO:: implement now();
+        //렌더링이나 커밋인 상황인 경우 현재 시간은 now()를 기반으로 합니다.
         return msToExpirationTime(now());
     }
     //rfs상태가 아닌, 우리가 브라우저 이벤트 context에서 일어나는 경우
     if (currentEventTime !== NoWork) {
-        // 우리가 rfs Context로 오기까지 모든 이벤트에 대해서 똑같은 만료시간을 반환합니다.
+        // 우리가 rfs Context로 오기까지 모든 이벤트에 대해서 똑같은 currenTime을 반환합니다.
         return currentEventTime;
     }
     //첫번쨰 이벤트 타임을 셋팅하는 경우
@@ -538,6 +556,9 @@ const ensureRootIsScheduled = (root) => {
         // Special case: Expired work should flush synchronously.
         //정확히는 동기적으로 한번에 처리하고 싶을때 해당 lastExpiredTime을 설정함
         //markRootExpiredAtTime에 의하여 사용됨
+        //좀더 정확히는 performConcurrentWorkOnRoot에서 didTimeout이면
+        //lastExpiredTime을 설정함->타임아웃이 될때
+        //그럼이걸 동기적으로 무조건 수행하길원함
         //예) 일반적으로 처음으로 Root를 스케줄링할떄는 동기로 일어나는게 효율적
         //예)//timeout관련된 코드 타임아웃 나면 리액트에서 lastExpiredTime을 설정함
         root.callbackExpirationTime = Sync;
@@ -550,6 +571,8 @@ const ensureRootIsScheduled = (root) => {
         root.callbackNode = scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root));
         return;
     }
+    //ExpirationTime결정  lastExpiredTime이 없다면, firstPendingTime을 기준으로 결정합니다.
+    //여기선 firstPendingTime을 가져와서 어떤 expirationTime이 기다리고 있었는지를 바라봅니다.
     const expirationTime = getNextRootExpirationTimeToWorkOn(root);
     const existingCallbackNode = root.callbackNode;
     //schedule할게 없는 경우
@@ -562,9 +585,9 @@ const ensureRootIsScheduled = (root) => {
         }
         return;
     }
-
+    //currentTime을 얻어옵니다.
     const currentTime = requestCurrentTimeForUpdate();
-    //TODO: scheduler 관련 처리에서 같이 진행할예정입니다.
+    //currentTime과 expirationTime을 기반으로 우선순위를 결정합니다.
     const priorityLevel = inferPriorityFromExpirationTime(currentTime, expirationTime);
 
     //루트에는 하나의 작업만 존재해야합니다.
@@ -576,6 +599,7 @@ const ensureRootIsScheduled = (root) => {
         if (existingCallbackExpirationTime === expirationTime && existingCallbackPriority >= priorityLevel) {
             return;
         }
+        //만약우선순위가 기존것보다 높다면 하던걸 멈추고 갈아치워야함
         //TODO: cancelCallback
         //callback을 취소하고 새로운 callback을 준비합니다.
         cancelCallback(existingCallbackNode);

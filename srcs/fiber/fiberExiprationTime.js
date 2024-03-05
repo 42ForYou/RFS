@@ -1,5 +1,5 @@
-import { MAGIC_NUMBER_OFFSET } from "../type/TExpirationTime";
-
+import { MAGIC_NUMBER_OFFSET, Idle, Sync } from "../type/TExpirationTime";
+import { ImmediatePriority, IdlePriority, UserBlockingPriority, NormalPriority } from "../type/TRfsPriorityLevel.js";
 //(ms / UNIT_SIZE) | 0 == Floor(ms / UNIT_SIZE)
 //자바 스크립트는 |0->비트Or연산자-> 피연산자 32비트 정수로 변환
 //앞선 피 연산자가 32비트 정수로 변환됨 그리고 | 0을 하면 원하는 정수 나옴 -> 더 빠름
@@ -74,4 +74,35 @@ export const NORMAL_PRIORITY_BATCH_SIZE = 250;
  */
 export const computeAsyncExpiration = (currentTime) => {
     return computeExpirationBucket(currentTime, NORMAL_PRIORITY_EXPIRATION, NORMAL_PRIORITY_BATCH_SIZE);
+};
+
+//https://dev.to/deanius/the-thresholds-of-perception-in-ux-435g
+//앞선 Ux를 기반으로 ux에 대해서 150ms이하로 반응을 해야함 NormalPriority에 대해서
+export const HIGH_PRIORITY_EXPIRATION = 150;
+export const HIGH_PRIORITY_BATCH_SIZE = 100;
+
+/**
+ *
+ * @param {TExpirationTime} currentTime @see 파일경로: `srcs/type/TExpirationTime.js`
+ * @param {TExpirationTime} expirationTime @see 파일경로: `srcs/type/TExpirationTime.js`
+ * @description currentTime과 expirationTime으로 우선순위를 추론합니다.
+ * @returns {TRfsPriorityLevel}
+ */
+export const inferPriorityFromExpirationTime = (currentTime, expirationTime) => {
+    if (expirationTime === Sync) {
+        return ImmediatePriority;
+    }
+    if (expirationTime === Idle) {
+        return IdlePriority;
+    }
+    const msUntil = expirationTimeToMs(expirationTime) - expirationTimeToMs(currentTime);
+    if (msUntil <= 0) {
+        return ImmediatePriority;
+    }
+    if (msUntil <= HIGH_PRIORITY_EXPIRATION + HIGH_PRIORITY_BATCH_SIZE) {
+        return UserBlockingPriority;
+    }
+    if (msUntil <= NORMAL_PRIORITY_EXPIRATION + NORMAL_PRIORITY_BATCH_SIZE) {
+        return NormalPriority;
+    }
 };
