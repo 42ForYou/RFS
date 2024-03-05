@@ -569,7 +569,6 @@ export const performSyncWorkOnRoot = (root) => {
         //TODO: implement commitRoot
         commitRoot(root);
     } else {
-        //TODO: flushPassiveEffects
         //모아진 passiveEffect를 모두 수행합니다.
         //React의 작동순서를 보면
         //Render -> ReactUpdateDOM->cleanup LayoutEffects
@@ -596,7 +595,6 @@ export const performSyncWorkOnRoot = (root) => {
             //TODO: pushDispatcher
             const prevDispatcher = pushDispatcher(root);
 
-            //TODO: implement workLoopSync
             //TODO: 만약 error처리 로직이 필요하면 try로직으로 리팩
             workLoopSync();
 
@@ -705,8 +703,6 @@ const ensureRootIsScheduled = (root) => {
         //예) 일반적으로 처음으로 Root를 스케줄링할떄는 동기로 일어나는게 효율적
         //예)//timeout관련된 코드 타임아웃 나면 리액트에서 lastExpiredTime을 설정함
         root.callbackExpirationTime = Sync;
-
-        //TODO:  scheduler 모듈에서 priority를 명세하고 구현할 예정입니다.
         root.callbackPriority = ImmediatePriority;
 
         //TODO: scheduleSyncCallback
@@ -798,10 +794,10 @@ export const scheduleUpdateOnFiber = (fiber, expirationTime) => {
         //     performSyncWorkOnRoot(root);
         // } else {
         //C end
-        //TODO: implement ensureRootIsScheduled
         ensureRootIsScheduled(root);
         //Reconciler가 놀고있는 경우 Work를 바로 실행
         if (executionContext === NoContext) {
+            //TODO: flushSyncCallbackQueue
             flushSyncCallbackQueue();
         }
         // } C
