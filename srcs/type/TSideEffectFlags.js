@@ -71,9 +71,10 @@ export const LifecycleEffectMask = /*   */ 0b000100100100;
 // export const HostEffectMask = /*        */ 0b0001010111111;
 export const HostEffectMask = /*        */ 0b0001010111111;
 
-//Todo:아직 정확히 어떤것을 나타내는지 모르겠다
-export const Incomplete = /*            */ 0b0100000000000;
+//TODO:정확히 확인이 필요하다
+//완수가 되지 않은것을 나타낸다 throw랑 관련있는데 구현하지 않을것이다
+// export const Incomplete = /*            */ 0b0100000000000;
 
 //suspense와 관련되는 플래그로 예측된다
-//Todo:좀더 정확한 정보가 필요하다
+//TODO:좀더 정확한 정보가 필요하다
 // export const ShouldCapture = /*         */ 0b1000000000000;

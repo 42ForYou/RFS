@@ -38,6 +38,7 @@ import {
     LowPriority,
     IdlePriority,
 } from "../type/TRfsPriorityLevel.js";
+import { PerformedWork } from "../type/TSideEffectFlags.js";
 /**
  * @description WorkLoop내부에서 nested하게 업데이트가 계속 반복되는걸 관리하는 객체입니다.
  * @description moduleScope로 관리되는 객체입니다.
@@ -408,24 +409,140 @@ const flushPassiveEffectsImpl = () => {
 };
 
 /**
+ * @description leaf를 반환 받은 경우 해당 파이버의 작업을 마무리(effect를 전달하거나, htmlElement를 만들거나, 변경된 부분을 기록합니다.)
+ * @description 이후 찾을수 있다면 형제를 반환합니다. 없다면 null을 반환합니다.
+ * @param {TFiber} unitOfWork @see 파일경로: [TFiber.js](srcs/type/TFiber.js)
+ */
+const completeUnitOfWork = (unitOfWork) => {
+    currentWorkContext.workInProgress = unitOfWork;
+    do {
+        const current = currentWorkContext.workInProgress.alternate;
+        const returnFiber = currentWorkContext.workInProgress.return;
+
+        //TODO: completeWork
+        const next = completeWork(current, currentWorkContext.workInProgress, currentWorkContext.renderExpirationTime);
+        //TODO: resetChildExpirationTime
+        resetChildExpirationTime(currentWorkContext.workInProgress);
+        //이 파이버에 대해서 새로운 work를 만드는데 완수했습니다. 다음에 이어서 작업을 할 수 있도록 반환합니다.
+        if (next !== null) {
+            return next;
+        }
+        //이제 후위 순회로 수거해야될 타이밍. if(next===null)이면 leaf이므로 부모로 effect를 올려야됨
+        if (returnFiber !== null) {
+            // 하위 트리와 이 파이버의 모든 효과를 이펙트에 추가합니다.
+            // 부모 목록에 추가합니다. 하위 트리의 완료 순서는 부모 트리의
+            // 부수 효과 순서에 영향을 줍니다.
+
+            //만약 헤드가 없다면 wip의 헤드를 부모의 헤드로 설정
+            if (returnFiber.firstEffect === null) {
+                returnFiber.firstEffect = currentWorkContext.workInProgress.firstEffect;
+            }
+
+            //서브트리의 effectlist를 부모의 effectlist에 연결합니다.
+            if (currentWorkContext.workInProgress.lastEffect !== null) {
+                if (returnFiber.lastEffect !== null) {
+                    returnFiber.lastEffect.nextEffect = currentWorkContext.workInProgress.firstEffect;
+                }
+                returnFiber.lastEffect = currentWorkContext.workInProgress.lastEffect;
+            }
+
+            //TODO:해당 상황을 조금더 자세히 이해하자
+            // 만약 이 Fiber 노드에 사이드 이펙트가 존재한다면,
+            // 해당 사이드 이펙트는 자식 노드들의 사이드 이펙트가 처리된 후에 추가됩니다.
+            // 필요한 경우, 우리는 effect 리스트를 여러 번 순회하며 사이드 이펙트를 보다 조기에 처리할 수 있습니다.
+            //  그러나 우리는 우리 자신의 사이드 이펙트를 자신의 리스트에 바로 스케줄링하고자 하지 않습니다.
+            // 이유는, 자식 노드들을 재사용하는 경우에
+            // 우리는 결국 이 사이드 이펙트를 자기 자신에게 스케줄링하게 될 것이기 때문입니다
+
+            //자신도 sideeffect가 있으면 부모의 effectlist에 연결해야합니다.
+            //performedWork updateFunctionComponent에서 커스텀 컴포넌트를 호출한 후에 달아줌.
+            //커스텀 컴포넌트 호출이외에 sideEeffect가 발생한다면 자신을 effect로 간주하고 위로 올려야합니다.
+            //sideEffect가 있다라는것은 performedWork보다 크다라는것을 의미합니다.
+            const effectTag = currentWorkContext.workInProgress.effectTag;
+            if (effectTag > PerformedWork) {
+                if (returnFiber.lastEffect !== null) {
+                    returnFiber.lastEffect.nextEffect = currentWorkContext.workInProgress;
+                } else {
+                    returnFiber.firstEffect = currentWorkContext.workInProgress;
+                }
+                returnFiber.lastEffect = currentWorkContext.workInProgress;
+            }
+        }
+        //후위 순회 임으로 형제가 있으면 형제를 먼저 반환합니다.
+        const siblingFiber = currentWorkContext.workInProgress.sibling;
+        if (siblingFiber !== null) {
+            // 만약에 이 파이버에 형제가 있다면 형제를 반환합니다.
+            return siblingFiber;
+        }
+        // 형제가 없다면 부모로 올라갑니다.
+        currentWorkContext.workInProgress = returnFiber;
+    } while (currentWorkContext.workInProgress !== null);
+
+    //TODO: RootINcomplete필요한지 확인
+    if (currentWorkContext.workInProgressRootExitStatus === RootIncomplete) {
+        //만약에 현재 루트가 완료되지 않았다면 완료되었다고 표시합니다.
+        currentWorkContext.workInProgressRootExitStatus = RootCompleted;
+    }
+    return null;
+};
+/**
+ * @param {TFiber} unitOfWork  @see 파일경로: [TFiber.js](srcs/type/TFiber.js)
+ * @description workLoopSync의 order부분을 확인하시면 됩니다.
+ * @description beginwork를 수행하고 만약 leaf이면 completeUnitOfWork를 수행합니다.
+ */
+const performUnitOfWork = (unitOfWork) => {
+    const current = unitOfWork.alternate;
+
+    //TODO: beginWork
+    //beginwork를 수행해서 다음 수행할 작업을 반환합니다.
+    //beginwork에서 bailout이나, update~로 분기됩니다. 만약 next가 leaf이면 null을 반환합니다.
+    let next = beginWork(current, unitOfWork, currentWorkContext.renderExpirationTime);
+
+    //props를 이제 pendingProps를 이제 사용했고, 이제 memoizedProps로 바꿉니다.
+    unitOfWork.memoizedProps = unitOfWork.pendingProps;
+    //leaf인 경우 effect를 부모로 전달하고, 형제를 찾을 수 있으면 형제를 반환합니다. 없으면 null을 반환합니다.
+    if (next === null) {
+        next = completeUnitOfWork(unitOfWork);
+    }
+    //TODO:필요한지 확인
+    //ReactCurrentOwner.current = null;
+    return next;
+};
+
+/** @noinline */
+/**
  * @description workLoop를 동기적으로 진행합니다.
  * @description 동기적으로 진행하기 때문에 shouldYield가 없습니다.
  * @description workLoop는 hot path이기 떄문에 이 해당 클로저를 가만히 놨두면 최적화를 해서 코드가 커집니다.
  * @description 이러한 최적화를 안하기 위해서는 @noinline을 사용합니다.
+ * @description detail:해당 함수들은 단순히 loop를 돌리는데, 여기서 주의점은 workLoopConcurrent가
+ * @description  해당 작업을 다음 프레임, 다음으로 넘기는 방법은 ensureRootIsScheduled를 통해서 이뤄집니다.
+ * @description  그리고 @noinline같은 경우는 기본적으로 V8engine같은 경우는
+ * @description  ignition과 turbofan으로 이뤄져있습니다. ignition이 만든 코드가 hotPath(굉장히 많이사용되면)
+ * @description  turbofan이 메모리를 좀더 쓴 코드로 최적화하여 코드를 바꿔두게 됩니다. 여기서 noinline은 해당부분을
+ * @description  원하지 않는다는 부분입니다. turbofan에게 해당부분을 바꾸지 말라고 합니다.
+ * @description Order
+ * @description WorkLoopSync:work시작
+ * @description -*- performUnitOfWork:work시작과 마무리(effect리스트 전달)을 모두 진행합니다. 일반적으로 fiber가 리턴됩니다.(null인 경우 끝)
+ * @description -*- -*- beginWork: 해당 파이버의 작업을 시작합니다. 여기선 bailout상황과 update~~상태로 분리됩니다.
+ * @description -*- -*- -*- update~: 컴포넌트의 diff를 보고 업데이트가 되었으면 업데이트를 적용하고 만약 functionComponent와 같은 경우에 reactElement를 내뱉습니다 이후 reconciliation을 진행합니다.
+ * @description -*- -*- -*- -*- reconcileChildren: 반환 ReactElement를 기반으로 새로운 파이버를 만들어 반환합니다
+ * @description -*- -*- -*- bailoutOnAlreadyFinishedWork: 만약에 자손의 상태가 변경된 경우(자신이아니라) 자손의 workinprogress를 만들어 반환합니다.
+ * @description -*- -*- completeUnitOfWork: null(leaft)일 경우 해당 파이버의 작업을 마무리합니다. work를 마무리 및 부모로 effect를 전달합니다. 그리고 이제 형제로 넘어갑니다.
+ * @description -*- -* - -*- completework: 마운트라면 htmlelement를 만들고 업데이트라면 변경된 부분을 기록하여 work를 마무리합니다.
  */
-/** @noinline */
 const workLoopSync = () => {
     while (currentWorkContext.workInProgress !== null) {
         //TODO: performUnitOfWork
-        performUnitOfWork(currentWorkContext.workInProgress);
+        currentWorkContext.workInProgress = performUnitOfWork(currentWorkContext.workInProgress);
     }
 };
 
+/** @noinline */
 /**
  * @description workLoop를 비동기적으로 진행합니다.
  * @description 비동기적으로 진행하기 때문에 shouldYield가 있습니다.
  */
-/** @noinline */
 const workLoopConcurrent = () => {
     while (currentWorkContext.workInProgress !== null && !shouldYield()) {
         currentWorkContext.workInProgress = performUnitOfWork(currentWorkContext.workInProgress);
