@@ -20,21 +20,26 @@ import {
     shouldYield,
     requestPaint,
     now,
+    //TODO: implementFlushSyncCallbackQueue,scheduleSyncCallback
+    // flushSyncCallbackQueue,
+    // scheduleSyncCallback,
+} from "../scheduler/schedulerInterface.js";
+
+import {
     NoPriority,
     ImmediatePriority,
     UserBlockingPriority,
     NormalPriority,
     LowPriority,
     IdlePriority,
-    //TODO: implementFlushSyncCallbackQueue,scheduleSyncCallback
-    // flushSyncCallbackQueue,
-    // scheduleSyncCallback,
-} from "../scheduler/schedulerInterface.js";
+} from "../type/TRfsPriorityLevel.js";
 /**
  * @description WorkLoop내부에서 nested하게 업데이트가 계속 반복되는걸 관리하는 객체입니다.
  * @description moduleScope로 관리되는 객체입니다.
  */
 const nestedUpdate = {
+    NESTED_PASSIVE_UPDATE_LIMIT: 50,
+    nestedPassiveUpdateCount: 0,
     NESTED_UPDATE_LIMIT: 50,
     nestedUpdateCount: 0,
     /**
@@ -47,6 +52,12 @@ const nestedUpdate = {
     },
     checkForNestedUpdates: () => {
         if (nestedUpdateCount > NESTED_UPDATE_LIMIT) {
+            return true;
+        }
+        return false;
+    },
+    checkforNsetedPassiveUpdates: () => {
+        if (nestedPassiveUpdateCount > NESTED_PASSIVE_UPDATE_LIMIT) {
             return true;
         }
         return false;
@@ -103,6 +114,31 @@ export const currentWorkContext = {
 };
 
 /**
+ * @description workLoop모듈내에서 passiveEffect를 관리하는 객체입니다.
+ */
+const currentPassiveEffectContext = {
+    /**
+     * @description 햔재루트가 passiveEffect를 가지고 있는지 여부를 나타냅니다.
+     * @description TODO:좀더 자세히 언제 사용되는지 명세필요
+     */
+    rootDoesHavePassiveEffects: false,
+    /**
+     * @description passiveEffect가 등록된 root TODO: 더 자세한 명세필요
+     * @type {TFiberRoot | null} @see 파일경로: [TFiberRoot.js](srcs/type/TFiberRoot.js)
+     */
+    rootWithPendingPassiveEffects: null,
+    /**
+     * @description passiveeffect가 등록된 root의 priorityLevel
+     * @type {TRfsPriorityLevel} @see 파일경로: [TRfsPriorityLevel.js](srcs/type/TRfsPriorityLevel.js)
+     */
+    pendingPassiveEffectsRenderPriority: NoPriority,
+    /**
+     * @description passiveEffect가 등록된 root의 expirationTime
+     * @type {TExpirationTime} @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
+     */
+    pendingPassiveEffectsExpirationTime: NoWork,
+};
+/**
  * @description 현재 렌더링중인 루트에 대해서 컴포넌트가 남긴 작업이 있을떄
  * @description currentWorkContext에 처리되지 않은 다음 업데이트를 마킹합니다.
  * @param {TExpirationTime} expirationTime @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
@@ -116,7 +152,12 @@ export const markUnprocessedUpdateTime = (expirationTime) => {
 const checkForNestedUpdates = () => {
     if (nestedUpdate.checkForNestedUpdates()) {
         nestedUpdate.clear();
+        console.log("Maximum update depth exceeded. nested update shouldeDebugThis");
         throw new Error("Maximum update depth exceeded. shouldeDebugThis");
+    }
+    if (nestedUpdate.checkforNsetedPassiveUpdates()) {
+        nestedUpdate.nestedPassiveUpdateCount = 0;
+        console.error("Maximum update depth exceeded. nestedPassiveEffect");
     }
 };
 /**
@@ -299,6 +340,58 @@ export const computeExpirationForFiber = (currentTime, fiber) => {
     }
     return expirationTime;
 };
+
+export const flushPassiveEffects = () => {
+    if (currentPassiveEffectContext.pendingPassiveEffectsRenderPriority !== NoPriority) {
+        //동기보다 우선순위가 높으면 flushPassive같은경우는 NormalPriority로 수행됩니다.
+        const priorityLevel =
+            currentPassiveEffectContext.pendingPassiveEffectsRenderPriority > NormalPriority
+                ? NormalPriority
+                : currentPassiveEffectContext.pendingPassiveEffectsRenderPriority;
+        currentPassiveEffectContext.pendingPassiveEffectsRenderPriority = NoPriority;
+        return runWithPriority(priorityLevel, flushPassiveEffectsImpl);
+    }
+};
+
+const flushPassiveEffectsImpl = () => {
+    if (currentPassiveEffectContext.rootWithPendingPassiveEffects === null) {
+        return false;
+    }
+    const root = currentPassiveEffectContext.rootWithPendingPassiveEffects;
+    const expirationTime = currentPassiveEffectContext.pendingPassiveEffectsExpirationTime;
+    currentPassiveEffectContext.rootWithPendingPassiveEffects = null;
+    currentPassiveEffectContext.pendingPassiveEffectsExpirationTime = NoWork;
+
+    const prevExecutionContext = currentWorkContext.executionContext;
+    currentWorkContext.executionContext |= CommitContext;
+
+    let effect = root.current.firstEffect;
+    while (effect !== null) {
+        //TODO: commitPassiveHookEffects
+        commitPassiveHookEffects(effect);
+        const nextNextEffect = effect.nextEffect;
+        // nextEffect를 가비지콜렉팅하기 위해 null로 만듭니다.
+        effect.nextEffect = null;
+        effect = nextNextEffect;
+    }
+
+    currentWorkContext.executionContext = prevExecutionContext;
+
+    //TODO: implement flushSyncCallbackQueue
+    //commit과정에서 syncCallback이 쌓여있으면 수행합니다.
+    //Detail:
+    //commitPassiveHookEffects에 create(),destroy() 에 의해
+    //내부적으로 다시 setState가 불려서
+    //ensureRootIsScheduled이 호출되어서
+    //scheduleSyncCallback이 호출되어 sync가 생겨서 해당일을 처리해야될 수 있음
+    flushSyncCallbackQueue();
+
+    nestedUpdate.nestedPassiveUpdateCount = rootWithPendingPassiveEffects = null
+        ? 0
+        : nestedUpdate.nestedPassiveUpdateCount + 1;
+    return true;
+};
+
 /**
  *
  * @param {TFiberRoot} root
