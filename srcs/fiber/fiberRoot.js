@@ -77,3 +77,18 @@ export const markRootUpdatedAtTime = (root, expirationTime) => {
         root.firstPendingTime = expirationTime;
     }
 };
+
+/**
+ *
+ * @param {TFiberRoot} root @see 파일경로: srcs/type/TFiberRoot.js
+ * @param {TExpirationTime} expirationTime @see 파일경로: srcs/type/TExpirationTime.js
+ * @description 현재 루트의 만료시간을 설정합니다. 이는 보통 타임아웃과 관련이 있습니다.
+ */
+export const markRootExpiredAtTime = (root, expirationTime) => {
+    const lastExpiredTime = root.lastExpiredTime;
+    //여기선 만료시간의 문맥이라 expirationTime보다 lastExpiredTime이 작다면 더 최근에 일어난 것
+    //이라는 뜻이다. 그러므로 lastExpiredTime을 expirationTime으로 설정해준다.
+    if (lastExpiredTime === NoWork || lastExpiredTime > expirationTime) {
+        root.lastExpiredTime = expirationTime;
+    }
+};
