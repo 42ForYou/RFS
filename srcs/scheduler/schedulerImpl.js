@@ -17,14 +17,12 @@ import {
 } from "../type/TSchedulerPriority.js";
 
 import {
-    maxSigned31BitInt,
     IMMEDIATE_PRIORITY_TIMEOUT,
     USER_BLOCKING_PRIORITY_TIMEOUT,
     NORMAL_PRIORITY_TIMEOUT,
     LOW_PRIORITY_TIMEOUT,
     IDLE_PRIORITY_TIMEOUT,
 } from "../type/TSchedulerTimeout.js";
-import { has } from "lodash";
 
 //태스크 큐를 모아두는 공간
 const taskQueue = [];
@@ -50,6 +48,8 @@ const taskQueue = [];
 // 가 경과하면 실행되는 단일 브라우저 타이머를 예약합니다.
 
 //가장 간단하게는 setTimeOut의 호출을 줄여서 Io작업을 줄일 수 있음
+
+//지연된 작업을 수행하는데 사용되는 타이머큐
 const timerQueue = [];
 
 //해당 일을 하고 있는 task의 Id를 저장하는 변수:setTimeOut을 통해 생성된 task의 id를 저장
@@ -58,15 +58,21 @@ let taskIDCounter = 1;
 let currentTask = null;
 let currentPriorityLevel = NormalPriority;
 
+//workLoop를 수행중인지에 대한 플래그
 let isPerformingWork = false;
 
+///콜백이 등록이되어있는지, 타임아웃이 예약되어 있는지에 대한 플래그
 let isHostCallbackScheduled = false;
 let isHostTimeoutScheduled = false;
 
-//Timer를 전진시키는데, 더이상 취소가 되어있거나, 태스크 큐에 넣어야되는 상황이 안나올떄까지 반복한다.
-//가장 주된 사용처는 타이머 큐를 전진시키는데에 있고 이는 setTimeout에 의해서 여러개의 타이머를 생성시키는게 아니라
-//내부적으로 하나의 타이머를 사용해서 여러개의 타이머를 관리하는데에 있다.
-//사용에 있어서는 가장 최신 만료된 타이머를 태스크로 이동시켜 peek을 하기 위해 준비하는데 사용된다.
+/**
+ *
+ * @param {import("../type/TExpirationTime.js").TExpirationTime} currentTime
+ * @description Timer를 전진시키는데, 더이상 취소가 되어있거나, 태스크 큐에 넣어야되는 상황이 안나올떄까지 반복한다.
+ * @description 가장 주된 사용처는 타이머 큐를 전진시키는데에 있고 이는 setTimeout에 의해서 여러개의 타이머를 생성시키는게 아니라
+ * @description 내부적으로 하나의 타이머를 사용해서 여러개의 타이머를 관리하는데에 있다.
+ * @description 사용에 있어서는 가장 최신 만료된 타이머를 태스크로 이동시켜 peek을 하기 위해 준비하는데 사용된다.
+ */
 const advanceTimers = (currentTime) => {
     // Check for tasks that are no longer delayed and add them to the queue.
     //타이머 큐로부터 타이머 하나집어오고
@@ -92,8 +98,12 @@ const advanceTimers = (currentTime) => {
     }
 };
 
-//현재 시간에 대해서 타임아웃을 처리하는 함수
-//1순위 타이머가 타임아웃되었을때 호출된다.
+/**
+ *
+ * @param {import("../type/TExpirationTime.js").TExpirationTime} currentTime
+ * @description 현재 시간에 대해서 타임아웃을 처리하는 함수
+ * @description 타이머를 전진시켜 만료된 모든 작업을 태스크 큐로 넣는다.
+ */
 const handleTimeout = (currentTime) => {
     //타임아웃을 처리할 거기 떄문에 이제 타임아웃 예약플래그를 false로 바꾼다.
     isHostTimeoutScheduled = false;
@@ -112,6 +122,7 @@ const handleTimeout = (currentTime) => {
         const firstTimer = peek(timerQueue);
         //만약 잔료되지 않은작업이 존재한다면
         if (firstTimer !== null) {
+            //TODO:여기가 캔슬되면 어떻게되는지
             //타임아웃을 진행시킨다. handleTimeout은 requestHostTimeout api를 통해서 호출된다.
             //advancedTime를 진행했는데도 taskQueue가 비어 있다면
             //취소된 tiemoutTask로 인해 handleTimeout이 호출된 것이므로 다음 타임아웃을 요청한다.
@@ -121,6 +132,13 @@ const handleTimeout = (currentTime) => {
     }
 };
 
+/**
+ *
+ * @param {boolean} hasTimeRemaining
+ * @param {import("../type/TExpirationTime.js").TExpirationTime} initialTime
+ * @returns {boolean} 해당 callback이 더 일을 수행해야된다면 true를 반환한다.
+ * @description 실제 태스크큐가 작업이 일어나는 곳이다. loop를 돌면서 시분할 수행을 할 수 있고, 작업이 남을때까지 반복한다.
+ */
 const workLoop = (hasTimeRemaining, initialTime) => {
     let currentTime = initialTime;
     advanceTimers(currentTime);
@@ -169,6 +187,13 @@ const workLoop = (hasTimeRemaining, initialTime) => {
     }
 };
 
+/**
+ *
+ * @param {boolean} hasTimeRemaining
+ * @param {import("../type/TExpirationTime.js").TExpirationTime} initialTime
+ * @returns {boolean} 해당 callback이 더 일을 수행해야된다면 true를 반환한다.
+ * @description workLoop를 돌리는 함수이다.
+ */
 const flushWork = (hasTimeRemaining, initialTime) => {
     // We'll need a host callback the next time work is scheduled.
     //flushWork가 호출되었음으로 hostCallbackScheduled를 false로 바꾼다.
@@ -193,7 +218,14 @@ const flushWork = (hasTimeRemaining, initialTime) => {
 };
 
 // https://github.com/facebook/react/pull/13720
-//그냥 실행할 뿐인데 현재 스케줄러의 currentPriorityLevel을 변경하는 하면서 실행할 뿐이다.
+/**
+ *
+ * @param {import("../type/TSchedulerPriority.js").TSchedulerPriority} priorityLevel
+ * @param {lambda} eventHandler
+ * @returns {lambda()} lamda의 반환값을 반환한다.
+ * @description 해당 함수는 우선순위에 따라서 실행을 하는 함수이다. 하지만 스케쥴러의 현재 흐름을
+ * @description 잠시 인터럽트해서 시킴으로 현재 실행되고 있는 priorityLevel역시 잠시 변경된다.
+ */
 const runWithPriorityImpl = (priorityLevel, eventHandler) => {
     switch (priorityLevel) {
         case ImmediatePriority:
@@ -215,6 +247,12 @@ const runWithPriorityImpl = (priorityLevel, eventHandler) => {
     }
 };
 
+/**
+ *
+ * @param {import("../type/TSchedulerPriority.js").TSchedulerPriority} priorityLevel
+ * @returns {import("../type/TSchedulerTimeout.js").TSchedulerTimeout} 해당 우선순위에 맞는 타임아웃을 반환한다.
+ * @description 해당 함수는 우선순위에 따라서 타임아웃을 반환하는 함수이다.
+ */
 const timeoutForPriorityLevel = (priorityLevel) => {
     switch (priorityLevel) {
         case ImmediatePriority:
@@ -231,6 +269,14 @@ const timeoutForPriorityLevel = (priorityLevel) => {
     }
 };
 
+/**
+ *
+ * @param {import("../type/TSchedulerPriority.js").TSchedulerPriority} priorityLevel
+ * @param {lambda} callback
+ * @param {*} options
+ * @returns {import("../type/TSchedulerTask.js").TSchedulerTask} 새로 생성된 태스크를 반환한다.
+ * @description 해당 함수는 스케쥴러 모듈에게 새로운 태스크를 스케쥴링하도록 하는 함수이다.
+ */
 const scheduleCallbackImpl = (priorityLevel, callback, options) => {
     const currentTime = getCurrentTime();
 
@@ -304,15 +350,29 @@ const scheduleCallbackImpl = (priorityLevel, callback, options) => {
     return newTask;
 };
 
+/**
+ *
+ * @param {import("../type/TSchedulerTask.js").TSchedulerTask} task
+ * @description 해당 함수는 태스크를 취소하는 함수이다.
+ */
 const cancelCallbackImpl = (task) => {
     //task.callback 만 null로 바꿔두면 heap에는 남아 있지만 실행될떄 알아서 빠지게 된다.
     taks.callback = null;
 };
 
+/**
+ *
+ * @returns {import("../type/TSchedulerPriority.js").TSchedulerPriority}
+ * @description 현재 우선순위를 반환하는 함수이다.
+ */
 const getCurrentPriorityLevelImpl = () => {
     return currentPriorityLevel;
 };
 
+/**
+ * @description 현재 브라우저에게 양보해야될지에 대한 여부를 반환하는 함수이다.
+ * @returns {boolean}
+ */
 const shouldYieldImpl = () => {
     const currentTime = getCurrentTime();
     advanceTimers(currentTime);
