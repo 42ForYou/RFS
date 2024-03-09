@@ -97,6 +97,7 @@ export const currentWorkContext = {
     /**
      * @description 현재 WorkInProgressRoot의 ExitStatus를 나타냅니다.
      * @type {TRootExitStatus} @see 파일경로: [TRootExitStatus.js](srcs/type/TRootExitStatus.js)
+     *TODO:  구현해야되는지 확인
      */
     workInProgressRootExitStatus: RootIncomplete,
 
@@ -562,6 +563,7 @@ const workLoopConcurrent = () => {
  * @param {TFiberRoot} root @see 파일경로: [TFiberRoot.js](srcs/type/TFiberRoot.js)
  * @description 해당함수는 concurrent렌더를 마무리짓습니다. 이는 커밋을 진행합니다.
  */
+//TODO: msUntillTime in RootComplete부분 코드 뺴도 되는지 확인
 const finishConcurrentRender = (root) => {
     currentWorkContext.workInProgressRoot = null;
     //TODO: commitRoot
@@ -590,6 +592,7 @@ export const performConcurrentWorkOnRoot = (root, didTimeout) => {
         const currentTime = requestCurrentTimeForUpdate();
         markRootExpiredAtTime(root, currentTime);
         ensureRootIsScheduled(root);
+        return null;
     }
 
     //다음 할 일의 expirationTime을 얻습니다.
@@ -637,6 +640,7 @@ export const performConcurrentWorkOnRoot = (root, didTimeout) => {
         root.finishedExpirationTime = expirationTime;
         //커밋을 시작하는 코드
         finishConcurrentRender(root, finishedWork, expirationTime);
+        //TODO: 왜 earlyReturn안하고 스케쥴링을 하는지 확인
     }
 
     // 다시 비동기로 루트를 스케쥴링합니다.
