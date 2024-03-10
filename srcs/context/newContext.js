@@ -1,4 +1,5 @@
 import { MAX_SIGNED_31_BIT_INT } from "../const/CExpiractionTime";
+import { pop, push } from "../fiber/fiberStack";
 import { markWorkInProgressReceivedUpdate } from "../work/beginWork";
 import createContextItem from "./constructor/contextItem";
 import contextCore from "./core/contextCore";
