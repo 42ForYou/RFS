@@ -1,8 +1,17 @@
+import TContextItem from "./TContextItem.js";
 import { TExpirationTime } from "./TExpirationTime.js";
-//TODO: 해당 부분에 대한 명세가 필요하다
-//context와 이벤트에 대한 의존성을 나타내는 것으로 보인다
+
+/**
+ * @typedef {Object} TContextDependency
+ *
+ * @property {TExpirationTime} expirationTime
+ * @property {import("./TContextItem.js").TContextItem} context
+ * @property {Map} responders - NOTE: event에서 사용하는 것 같다.
+ */
 const TDependencies = {
     expirationTime: TExpirationTime,
-    firstContext: TContextDependency | null,
+    firstContext: TContextItem | null,
     responders: Map(ReactEventResponder, ReactEventResponderInstance | null),
 };
+
+export default TDependencies;
