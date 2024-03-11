@@ -1,8 +1,8 @@
-import { MAX_SIGNED_31_BIT_INT } from "../const/CExpiractionTime";
-import { pop, push } from "../fiber/fiberStack";
-import { markWorkInProgressReceivedUpdate } from "../work/beginWork";
-import createContextItem from "./constructor/contextItem";
-import contextCore from "./core/contextCore";
+import { MAX_SIGNED_31_BIT_INT } from "../const/CExpirationTime.js";
+import { pop, push } from "../fiber/fiberStack.js";
+import { markWorkInProgressReceivedUpdate } from "../work/beginWork.js";
+import createContextItem from "./constructor/contextItem.js";
+import contextCore from "./core/contextCore.js";
 // TODO: import { isPrimaryRenderer } from "react-dom";
 // ReactDOMHostConfig에서 isPrimaryRenderer를 가져옵니다.
 

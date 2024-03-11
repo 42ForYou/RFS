@@ -1,5 +1,5 @@
 //TODO: Implement the schedulerInterface.js
-import * as Scheduler from "./shedulerImplementation.js";
+import * as Scheduler from "./schedulerImpl.js";
 
 //이렇게 분리한 이유는 Interface와 구현 채를 분리하여, 구현체를 바꿀 수 있게 하기 위함이다.
 const {
@@ -23,7 +23,7 @@ import {
     NormalPriority,
     LowPriority,
     IdlePriority,
-} from "../type/TRfsPriorityLevel.js";
+} from "../const/CRfsPriorityLevel.js";
 
 export const shouldYield = schedulerShouldYield;
 export const requestPaint = schedulerRequestPaint;

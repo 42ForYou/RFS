@@ -3,11 +3,11 @@ import { TExpirationTime } from "./TExpirationTime.js";
 import { TFiber } from "./TFiber.js";
 
 /**
- * @typedef {Object} @type TFiberRoot
+ * @typedef {Object} TFiberRoot
  * @description 렌더를 하는 파이버의 루트를 나타내는 객체이다
  * @description 이 해당 객체는 전역적으로 사용되는 정보를 저장하는 Global 공간같은 객체이다
  */
-export const TFiberRoot = {
+const TFiberRoot = {
     tag: TRootTag, //파이버의 루트의 태그를 나타냅니다
     //ConcurrenRoot만 존재하지만 의미를 위하여 기록합니다.
 

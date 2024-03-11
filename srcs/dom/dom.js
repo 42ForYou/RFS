@@ -11,7 +11,7 @@
  * 필요할 수 있다
  */
 
-import { HostComponent, HostText, HostRoot } from "../type/TWorkTag.js";
+import { HostComponent, HostText, HostRoot } from "../const/CWorkTag.js";
 
 /**
  * @description 랜덤한 문자열 키를 생성합니다

@@ -4,10 +4,6 @@
  * @description This module contains the constants of Effect Tags used in the hooks.
  */
 
-/**
- * @typedef {number} THookEffectFlags
- */
-export const HookFlags = {};
 export const NoEffect = /*             */ 0b00000000;
 
 // Represents the phase in which the effect (not the clean-up) fires.

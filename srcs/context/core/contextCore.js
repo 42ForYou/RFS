@@ -1,4 +1,4 @@
-import { createCursor } from "../../fiber/fiberStack";
+import { createCursor } from "../../fiber/fiberStack.js";
 
 /**
  * @property {Cursor} valueCursor - fiberStack을 가리키고 있으며, 현재 context의 value를 가리킨다.

@@ -7,7 +7,7 @@
  *
  * @param {TContext} context
  * @param {number} observedBits
- * @param {import("../../type/TContextItem").TContextItem | null} next
+ * @param {import("../../../type/TContextItem").TContextItem | null} next
  */
 const contextItem = class {
     constructor(context, observedBits, next) {
@@ -21,7 +21,7 @@ const contextItem = class {
  *
  * @param {TContext} context
  * @param {number} observedBits
- * @param {import("../../type/TContextItem").TContextItem | null} next
+ * @param {import("../../../type/TContextItem").TContextItem | null} next
  */
 const createContextItem = (context, observedBits, next) => {
     return new contextItem(context, observedBits, next);

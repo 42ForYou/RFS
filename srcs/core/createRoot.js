@@ -18,12 +18,10 @@
 //todo: ReactDOMRoot.unmount
 
 import { ELEMENT_NODE, DOCUMENT_NODE, DOCUMENT_FRAGMENT_NODE } from "./const.js";
-import { ConcurrentRoot } from "../type/TRootTag.js";
+import { ConcurrentRoot } from "../const/CRootTag.js";
 import { createFiberRoot } from "../fiber/fiberRoot.js";
 //todo: dom.js
 import { markContainerAsRoot } from "../dom/dom.js";
-import { TFiberRoot } from "../type/TFiberRoot.js";
-import { TDOMRootType, DOMContainer } from "../type/TDomType.js";
 /**
  * @param {container} container-> Type은 노드 타입-> Element|Document|DocumentFragment
  * @returns {boolean} -> container가 유효한지 확인하는 함수
@@ -44,7 +42,7 @@ const isValidContainer = (container) => {
 /**
  *
  * @param {container} container -> Element|Document|DocumentFragment
- * @param {RootTag} RootTag -> Refer to const.js @type {TRootTag}
+ * @param {TRootTag} RootTag -> Refer to const.js
  * @returns {fiberRootNode} -> fiberRoot에 대해 globalScope로 역할을 하는 객체를 반환합니다.
  * @description container = fiberRoot인건데 이렇게 래핑하는 이유는, 일반적인 프론트엔드 프레임워크에서
  * spa의 짐입점을 나타내는 것을 container라고 합니다. 이 함수는 그 짐입점을 만들어주는 것을 의미합니다.
@@ -56,8 +54,8 @@ const createContainer = (container, tag) => {
 
 /**
  * @param {container} container -> Element|Document|DocumentFragment -> 파이버 루트에 대응되는 돔 노드
- * @param {tag} TRootTag -> Refer srcs/shared/type/TRootTag.js
- * @returns {root}  @type {TFiberRoot}-> fiberRoot에 대해 globalScope로 역할을 하는 객체를 반환합니다.
+ * @param {TRootTag} -> Refer srcs/shared/type/TRootTag.js
+ * @returns {import("../../type/TFiberRoot.js").TFiberRoot} fiberRoot에 대해 globalScope로 역할을 하는 객체를 반환합니다.
  */
 const createRootImpl = (container, tag) => {
     const root = createContainer(container, tag);
@@ -72,7 +70,7 @@ const ReactDOMRoot = class {
      * @param {container} 파이버의 루트노드를 할 DOM노드를 인자로 받는다
      * @description ReactDOMRoot는 전역관리 공간인 FiberRootNode를 래핑합니다
      * @description 이 래핑은 render와 unmount의 원할한 공유를 위하여 이루어집니다
-     * @returns {TDOMRootType} -> @type {TDOMRootType}
+     * @returns {TDOMRootType}
      */
     constructor(container) {
         this._internalRoot = createRootImpl(container, ConcurrentRoot);

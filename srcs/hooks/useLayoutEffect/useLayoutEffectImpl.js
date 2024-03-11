@@ -1,6 +1,6 @@
-import { Update as UpdateEffect } from "../../type/TSideEffectFlags.js";
+import { Update as UpdateEffect } from "../../const/CSideEffectFlags.js";
 
-import { MountLayout, UnmountMutation } from "../../type/THookEffectFlags.js";
+import { MountLayout, UnmountMutation } from "../../const/CHookEffectFlags.js";
 import { mountEffectImpl, updateEffectImpl } from "../useEffect/useEffectImpl.js";
 
 /**

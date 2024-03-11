@@ -192,3 +192,13 @@ const cancelHostTimeout = () => {
     clearTimeout(taskTimeoutID);
     taskTimeoutID = -1;
 };
+
+export {
+    shouldYieldToHost,
+    requestPaint,
+    requestHostCallback,
+    cancelHostCallback,
+    requestHostTimeout,
+    cancelHostTimeout,
+    getCurrentTime,
+};

@@ -30,7 +30,3 @@ jobs:
                     echo "Build failed with error code $?"
                     exit 1
                   fi
-            - name: Execute script forEach file
-              run: |
-                  chmod +x ./scripts/execJsFile.sh
-                  ./scripts/execJsFile.sh

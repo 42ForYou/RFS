@@ -1,5 +1,5 @@
-import { MAGIC_NUMBER_OFFSET, Idle, Sync } from "../type/TExpirationTime";
-import { ImmediatePriority, IdlePriority, UserBlockingPriority, NormalPriority } from "../type/TRfsPriorityLevel.js";
+import { MAGIC_NUMBER_OFFSET, Idle, Sync } from "../const/CExpirationTime.js";
+import { ImmediatePriority, IdlePriority, UserBlockingPriority, NormalPriority } from "../const/CRfsPriorityLevel.js";
 //(ms / UNIT_SIZE) | 0 == Floor(ms / UNIT_SIZE)
 //자바 스크립트는 |0->비트Or연산자-> 피연산자 32비트 정수로 변환
 //앞선 피 연산자가 32비트 정수로 변환됨 그리고 | 0을 하면 원하는 정수 나옴 -> 더 빠름
