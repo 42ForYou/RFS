@@ -1,4 +1,4 @@
-import { MAX_SIGNED_31_BIT_INT } from "../../const/CExpiractionTime.js";
+import { MAX_SIGNED_31_BIT_INT } from "../../const/CExpirationTime.js";
 import is from "../../shared/objectIs.js";
 
 /**
@@ -13,7 +13,7 @@ import is from "../../shared/objectIs.js";
  * 그렇지 않다면, useContext에서 두번째 인자로 넘긴 함수가 있다면 해당 함수를 호출합니다.
  * 만약 해당 함수가 없다면 MAX_SIGNED_31_BIT_INT를 반환합니다.
  *
- * @see CExpiractionTime.js
+ * @see CExpirationTime.js
  * @returns {number}
  */
 const calculateChangedBits = (context, newValue, oldValue) => {

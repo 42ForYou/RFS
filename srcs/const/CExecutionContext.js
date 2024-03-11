@@ -1,7 +1,7 @@
 /**
+ * @module CExecutaionContext
  * @description 현재 Rfs의 실행스택에 어디에 위치하는지를 나타낸다.
  */
-const TExecutionContext = Number;
 
 //실행을 아무것도 안하고 있음
 export const NoContext = /*                    */ 0b000000;

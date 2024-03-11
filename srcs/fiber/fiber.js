@@ -1,8 +1,8 @@
-import { HostRoot } from "../type/TWorkTag.js";
-import { NoEffect } from "../type/TSideEffectFlags.js";
-import { NoWork } from "../type/TExpirationTime.js";
-import { ConcurrentMode } from "../type/TTypeOfMode.js";
-import { ConcurrentRoot } from "../type/TRootTag.js";
+import { HostRoot } from "../const/CWorkTag.js";
+import { NoEffect } from "../const/CSideEffectFlags.js";
+import { NoWork } from "../const/CExpirationTime.js";
+import { ConcurrentMode } from "../const/CTypeOfMode.js";
+
 /**
  * 
  * @param {tag} TWorkTag 

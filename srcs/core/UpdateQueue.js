@@ -30,7 +30,7 @@ A1 - B2 - C1 - D2
 결과 상태: 'ABCD'
 업데이트가 삽입 순으로 처리되고, 우선 순위가 높은 업데이트가 선행 업데이트가 건너뛰어질 때 재기반됨으로써, 최종 결과는 우선 순위에 관계없이 결정적입니다. 중간 상태는 시스템 자원에 따라 다를 수 있지만, 최종 상태는 항상 동일합니다.
  */
-import { UpdateState } from "../type/TUpdateTag";
+import { UpdateState } from "../const/CUpdateTag.js";
 
 export class updateState {
     /**

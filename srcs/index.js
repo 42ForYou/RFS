@@ -1,3 +1,3 @@
-export { createElement, Fragment } from "./core/createElement.js";
+export { createElement } from "./core/rfsElement.js";
 
-export { useReducer, useEffect, useCallback, useRef, useState, useLayoutEffect } from "./hooks/index.js";
+export { useReducer, useEffect, useCallback, useRef, useState, useLayoutEffect, useContext } from "./hooks/index.js";

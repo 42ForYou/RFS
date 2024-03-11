@@ -4,7 +4,7 @@
  * @note 16.12.0은 EffectInstance를 사용하지 않는다. 하지만 이전에 논의하였던 대로 rust의 refCell개념을 차용해서 현 RFS에서는 사용하도록 한다.
  */
 
-import { Update as UpdateEffect, Passive as PassiveEffect } from "../../type/TSideEffectFlags.js";
+import { Update as UpdateEffect, Passive as PassiveEffect } from "../../const/CSideEffectFlags.js";
 
 import areHookDepsEqual from "../shared/areHookDepsEqual.js";
 
@@ -14,7 +14,7 @@ import hookCore from "../core/hookCore.js";
 import createEffect from "../constructor/effect.js";
 import createEffectInstance from "../constructor/EffectInstance.js";
 import createFunctionComponentUpdateQueue from "../constructor/FunctionComponentUpdateQueue.js";
-import { NoEffect as NoHookEffect, MountPassive, UnmountPassive } from "../../type/THookEffectFlags.js";
+import { NoEffect as NoHookEffect, MountPassive, UnmountPassive } from "../../const/CHookEffectFlags.js";
 
 /**
  *

@@ -3,6 +3,9 @@
  * @description 스케쥴러의 타임아웃을 정의하는 타입
  */
 
+/**
+ * @typedef {Number} TSchedulerTimeout
+ */
 const TSchedulerTimeout = Number;
 
 // Max 31 bit integer. The max integer size in V8 for 32-bit systems.

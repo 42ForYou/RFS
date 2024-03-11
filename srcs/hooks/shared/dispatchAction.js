@@ -1,4 +1,4 @@
-import { NoWork } from "../../type/TExpirationTime.js";
+import { NoWork } from "../../const/CExpirationTime.js";
 import is from "../../shared/objectIs.js";
 import createHookUpdate from "../constructor/hookUpdate.js";
 import hookCore from "../core/hookCore.js";

@@ -1,6 +1,6 @@
-import { RFS_CONTEXT_TYPE, RFS_PROVIDER_TYPE } from "../core/rfsSymbol";
-import createContextInst from "./constructor/context";
-import createProvider from "./constructor/provider";
+import { RFS_CONTEXT_TYPE, RFS_PROVIDER_TYPE } from "../core/rfsSymbol.js";
+import createContextInst from "./constructor/context.js";
+import createProvider from "./constructor/provider.js";
 
 /**
  *

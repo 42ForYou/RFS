@@ -1,12 +1,5 @@
-import {
-    NoContext,
-    BatchedContext,
-    EventContext,
-    RenderContext,
-    CommitContext,
-    LegacyUnbatchedContext,
-} from "../type/TExecutionContext.js";
-import { RootIncomplete, RootCompleted } from "../type/TRootExitStatus.js";
+import { NoContext, BatchedContext, EventContext, RenderContext, CommitContext } from "../const/CExecutionContext.js";
+import { RootIncomplete, RootCompleted } from "../const/CRootExitStatus.js";
 import {
     expirationTimeToMs,
     msToExpirationTime,
@@ -14,8 +7,7 @@ import {
     inferPriorityFromExpirationTime,
 } from "../fiber/fiberExiprationTime.js";
 import { markRootUpdatedAtTime, markRootExpiredAtTime } from "../fiber/fiberRoot.js";
-import { TFiberRoot } from "../type/TFiberRoot.js";
-import { NoWork, Sync, Idle } from "../type/TExpirationTime.js";
+import { NoWork, Sync, Idle } from "../const/CExpirationTime.js";
 import { createWorkInProgress } from "../fiber/fiber.js";
 import {
     // scheduleCallback,
@@ -37,8 +29,8 @@ import {
     NormalPriority,
     LowPriority,
     IdlePriority,
-} from "../type/TRfsPriorityLevel.js";
-import { PerformedWork } from "../type/TSideEffectFlags.js";
+} from "../const/CRfsPriorityLevel.js";
+import { PerformedWork } from "../const/CSideEffectFlags.js";
 /**
  * @description WorkLoop내부에서 nested하게 업데이트가 계속 반복되는걸 관리하는 객체입니다.
  * @description moduleScope로 관리되는 객체입니다.

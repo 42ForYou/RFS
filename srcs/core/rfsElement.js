@@ -1,4 +1,4 @@
-import RFS_ELEMENT_TYPE from "./rfSymbol.js";
+import { RFS_ELEMENT_TYPE } from "./rfsSymbol.js";
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
@@ -8,7 +8,7 @@ const hasOwnProperty = Object.prototype.hasOwnProperty;
  * @description 해당 객체를 RfsElement라고 하고 렌더를 하기위한 객체인 파이버로 변환되어 실제 사용되어진다.
  * @description ui를 정의하기 위 한 기본정보인 type(해당 ui의 타입), key(해당 ui의 고유 키값), ref(해당 ui의 참조값), props(해당 ui의 속성값)을 가지고 있다.
  * @description $$typeof는 보안을 위해서 사용되는데 이는 RfsSymbol.js에 정의되어 있다.
- * @type {import("../type/TRfsType").TRfsElement} rfsElement
+ * @type {import("../../type/TRfsType").TRfsElement} rfsElement
  */
 export const RfsElement = class {
     constructor(type, key, ref, props, symbol = RFS_ELEMENT_TYPE) {
@@ -29,7 +29,7 @@ const RESERVED_PROPS = {
  * @param {string | lambda} type
  * @param {object} config
  * @param  {...any} children
- * @returns {import("../type/TRfsType").TRfsElement|} rfsElement
+ * @returns {import("../../type/TRfsType").TRfsElement|} rfsElement
  * @description jsx문법을 통해 객체를 생성하기 위한 함수이다. 이는 ui를 정의하는 기본적인 선언적 수단을 제공한다.
  */
 export const createElement = (type, config, ...children) => {
@@ -59,9 +59,9 @@ export const createElement = (type, config, ...children) => {
 
 /**
  *
- * @param {import("../type/TRfsType").TRfsElement} element
+ * @param {import("../../type/TRfsType").TRfsElement} element
  * @param {property} key
- * @returns {import("../type/TRfsType").TRfsElement}
+ * @returns {import("../../type/TRfsType").TRfsElement}
  * @description 해당 객체의 key를 변경하기 위한 함수이다.
  */
 export const cloneAndReplaceKey = (oldElement, newKey) => {
@@ -70,10 +70,10 @@ export const cloneAndReplaceKey = (oldElement, newKey) => {
 
 /**
  *
- * @param {import("../type/TRfsType").TRfsElement} element
+ * @param {import("../../type/TRfsType").TRfsElement} element
  * @param {object} config
  * @param  {...any} children
- * @returns {import("../type/TRfsType").TRfsElement}
+ * @returns {import("../../type/TRfsType").TRfsElement}
  * @description 해당 객체를 복사하기 위한 함수이다. 만약 config에 기본으로 적혀있어야 하는 값이 없다면 element의 값을 아니면 config의 값을 사용한다.
  */
 export const cloneElement = (element, config, ...children) => {

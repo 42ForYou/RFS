@@ -1,6 +1,6 @@
-import { prepareToReadContext, propagateContextChange, pushProvider, readContext } from "../context/newContext";
-import calculateChangedBits from "../context/shared/calculateChangedBits";
-import hasContextChanged from "../context/shared/hasContextChanged";
+import { prepareToReadContext, propagateContextChange, pushProvider, readContext } from "../context/newContext.js";
+import calculateChangedBits from "../context/shared/calculateChangedBits.js";
+import hasContextChanged from "../context/shared/hasContextChanged.js";
 
 // TODO: 다른 파일로 옮기기
 let didReceiveUpdate = false;
