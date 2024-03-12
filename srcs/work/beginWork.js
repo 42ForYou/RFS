@@ -12,6 +12,43 @@ import {
     ContextProvider,
     SimpleMemoComponent,
 } from "../const/CWorkTag.js";
+import { cloneChildFibers } from "../fiber/childFiber.js";
+
+/**
+ *
+ * @param {TFiber|null} current @see 파일경로: /type/TFiber.js
+ * @param {TFiber} workInProgress @see 파일경로: /type/TFiber.js
+ * @param {TExpirationTime} renderExpirationTime @see 파일경로: /type/TExpirationTime.js
+ * @description 컴포넌트의 props나 state가 변경되지 않았을 때
+ * @description  이미 처리된 작업의 결과를 재사용할 수 있을 때
+ * @description  더 높은 우선순위의 작업이 있어서 현재 작업을 나중으로 미룰 필요가 있을 때
+ * @description 사용 되며, 이전 작업을 재사용하고(자식의 childExtime도 update필요 없을떄), 필요하다면 자식만 clone하여 사용합니다.
+ * @returns {TFiber|null} @see 파일경로: /type/TFiber.js
+ */
+const bailoutOnAlreadyFinishedWork = (current, workInProgress, renderExpirationTime) => {
+    //TODO: dependencies관련된 문맥을 이해 후 다시 코드 이해
+    if (current !== null) {
+        // Reuse previous dependencies
+        workInProgress.dependencies = current.dependencies;
+    }
+
+    //update가 뒤로 밀린 상황이라면 나중에 처리하기 위해 mark를 해준다.
+    const updateExpirationTime = workInProgress.expirationTime;
+    if (updateExpirationTime !== NoWork) {
+        markUnprocessedUpdateTime(updateExpirationTime);
+    }
+
+    const childExpirationTime = workInProgress.childExpirationTime;
+    if (childExpirationTime < renderExpirationTime) {
+        //자식들도 업데이트가 되지 않았음.
+        return null;
+    } else {
+        // 이 파이버에는 작업이 없지만 그 하위 트리에는 작업이 있습니다. 자식
+        // 파이버를 복제하고 계속합니다.
+        cloneChildFibers(current, workInProgress);
+        return workInProgress.child;
+    }
+};
 
 // TODO: 다른 파일로 옮기기
 let didReceiveUpdate = false;
@@ -138,6 +175,8 @@ export const beginWork = (current, workInProgress, renderExpirationTime) => {
             // 나중에 props가 동일하다고 판단되면 이 표시는 해제될 수 있습니다 (memo 사용 시).
             didReceiveUpdate = true;
         } else if (updateExpirationTime < renderExpirationTime) {
+            // 이 이 의미에서의 bailout은 업데이트가 없다라는 것이 아니라 우선순위
+            // 때문에 업데이트가 미뤄진다는 것을 의미합니다.
             // 이 파이버에는 pendingwork가 없습니다. Bailout 해야 합니다 비긴페이즈로 들어가지 않고
             // 이 최적화된 경로에서 아직 수행해야 할 몇 가지 작업이 남아 있습니다.
             // 이 최적화된 경로에서 대부분 스택에 작업을 푸시합니다.
