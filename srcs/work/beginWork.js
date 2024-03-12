@@ -115,6 +115,16 @@ const pushHostRootContext = (workInProgress) => {
     pushHostContainer(workInProgress, root.containerInfo);
 };
 
+/**
+ * @param {TFiber|null} current @see 파일경로: /type/TFiber.js
+ * @param {TFiber} workInProgress @see 파일경로: /type/TFiber.js
+ * @param {TExpirationTime} renderExpirationTime @see 파일경로: /type/TExpirationTime.js
+ * @returns {TFiber|null} @see 파일경로: /type/TFiber.js
+ * @description 기본적으로 update류와 bailout류의 작업을 수행합니다.
+ * @description update류의 작업은 해당 파이버의 태그에 따라서 다르게 동작합니다. 해당 파이버를 update하고 그 파이버의 자식을 반환합니다.
+ * @description bailout류의 작업은 현재 파이버는 업데이트가 안됬을떄 작동하는 작업으로 자식이 업데이트 되어있으면
+ * @description 자식을 클론떠서 wip로 만들어서 반환합니다.
+ */
 export const beginWork = (current, workInProgress, renderExpirationTime) => {
     const updateExpirationTime = workInProgress.expirationTime;
 
