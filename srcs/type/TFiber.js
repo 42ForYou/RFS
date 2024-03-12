@@ -44,6 +44,9 @@ export const TFiber = {
     ref: TRefObject | null, // 파이버의 Ref관리객체를 나타낸다
 
     //related with Props
+    //Props 일반적으로 객체의 props를 나타냄
+    //Fragment의 경우 props.children을 나타냄
+    //Text의 경우 그 자체가 데이터 -> 다른 추가적 요소가 필요 없음. -> props에 Text를 넣어주면 된다
     //일반적으로 리액트는 계속 이전에 렌더될떄 사용되었던 값과, 이제 사용될 값을 구별하는데 그를 위함이다
     pendingProps: any, //이제 새로 컴포넌트에 전달될 props를 나타낸다
     memoizedProps: any, //이전 레더링시 사용되었던 props를 나타낸다
