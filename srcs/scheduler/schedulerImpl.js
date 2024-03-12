@@ -14,7 +14,7 @@ import {
     NormalPriority,
     LowPriority,
     IdlePriority,
-} from "../type/TSchedulerPriority.js";
+} from "../const/CSchedulerPriority.js";
 
 import {
     IMMEDIATE_PRIORITY_TIMEOUT,
@@ -22,7 +22,7 @@ import {
     NORMAL_PRIORITY_TIMEOUT,
     LOW_PRIORITY_TIMEOUT,
     IDLE_PRIORITY_TIMEOUT,
-} from "../type/TSchedulerTimeout.js";
+} from "../const/CSchedulerTimeout.js";
 
 //태스크 큐를 모아두는 공간
 const taskQueue = [];
@@ -67,7 +67,7 @@ let isHostTimeoutScheduled = false;
 
 /**
  *
- * @param {import("../type/TExpirationTime.js").TExpirationTime} currentTime
+ * @param {import("../../type/TExpirationTime.js").TExpirationTime} currentTime
  * @description Timer를 전진시키는데, 더이상 취소가 되어있거나, 태스크 큐에 넣어야되는 상황이 안나올떄까지 반복한다.
  * @description 가장 주된 사용처는 타이머 큐를 전진시키는데에 있고 이는 setTimeout에 의해서 여러개의 타이머를 생성시키는게 아니라
  * @description 내부적으로 하나의 타이머를 사용해서 여러개의 타이머를 관리하는데에 있다.
@@ -100,7 +100,7 @@ const advanceTimers = (currentTime) => {
 
 /**
  *
- * @param {import("../type/TExpirationTime.js").TExpirationTime} currentTime
+ * @param {import("../../type/TExpirationTime.js").TExpirationTime} currentTime
  * @description 현재 시간에 대해서 타임아웃을 처리하는 함수
  * @description 타이머를 전진시켜 만료된 모든 작업을 태스크 큐로 넣는다.
  */
@@ -135,7 +135,7 @@ const handleTimeout = (currentTime) => {
 /**
  *
  * @param {boolean} hasTimeRemaining
- * @param {import("../type/TExpirationTime.js").TExpirationTime} initialTime
+ * @param {import("../../type/TExpirationTime.js").TExpirationTime} initialTime
  * @returns {boolean} 해당 callback이 더 일을 수행해야된다면 true를 반환한다.
  * @description 실제 태스크큐가 작업이 일어나는 곳이다. loop를 돌면서 시분할 수행을 할 수 있고, 작업이 남을때까지 반복한다.
  */
@@ -190,7 +190,7 @@ const workLoop = (hasTimeRemaining, initialTime) => {
 /**
  *
  * @param {boolean} hasTimeRemaining
- * @param {import("../type/TExpirationTime.js").TExpirationTime} initialTime
+ * @param {import("../../type/TExpirationTime.js").TExpirationTime} initialTime
  * @returns {boolean} 해당 callback이 더 일을 수행해야된다면 true를 반환한다.
  * @description workLoop를 돌리는 함수이다.
  */
@@ -220,7 +220,7 @@ const flushWork = (hasTimeRemaining, initialTime) => {
 // https://github.com/facebook/react/pull/13720
 /**
  *
- * @param {import("../type/TSchedulerPriority.js").TSchedulerPriority} priorityLevel
+ * @param {import("../../type/TSchedulerPriority.js").TSchedulerPriority} priorityLevel
  * @param {lambda} eventHandler
  * @returns {lambda()} lamda의 반환값을 반환한다.
  * @description 해당 함수는 우선순위에 따라서 실행을 하는 함수이다. 하지만 스케쥴러의 현재 흐름을
@@ -249,8 +249,8 @@ const runWithPriorityImpl = (priorityLevel, eventHandler) => {
 
 /**
  *
- * @param {import("../type/TSchedulerPriority.js").TSchedulerPriority} priorityLevel
- * @returns {import("../type/TSchedulerTimeout.js").TSchedulerTimeout} 해당 우선순위에 맞는 타임아웃을 반환한다.
+ * @param {import("../../type/TSchedulerPriority.js").TSchedulerPriority} priorityLevel
+ * @returns {import("../../type/TSchedulerTimeout.js").TSchedulerTimeout} 해당 우선순위에 맞는 타임아웃을 반환한다.
  * @description 해당 함수는 우선순위에 따라서 타임아웃을 반환하는 함수이다.
  */
 const timeoutForPriorityLevel = (priorityLevel) => {
@@ -271,10 +271,10 @@ const timeoutForPriorityLevel = (priorityLevel) => {
 
 /**
  *
- * @param {import("../type/TSchedulerPriority.js").TSchedulerPriority} priorityLevel
+ * @param {import("../../type/TSchedulerPriority.js").TSchedulerPriority} priorityLevel
  * @param {lambda} callback
  * @param {*} options
- * @returns {import("../type/TSchedulerTask.js").TSchedulerTask} 새로 생성된 태스크를 반환한다.
+ * @returns {import("../../type/TSchedulerTask.js").TSchedulerTask} 새로 생성된 태스크를 반환한다.
  * @description 해당 함수는 스케쥴러 모듈에게 새로운 태스크를 스케쥴링하도록 하는 함수이다.
  */
 const scheduleCallbackImpl = (priorityLevel, callback, options) => {
@@ -352,7 +352,7 @@ const scheduleCallbackImpl = (priorityLevel, callback, options) => {
 
 /**
  *
- * @param {import("../type/TSchedulerTask.js").TSchedulerTask} task
+ * @param {import("../../type/TSchedulerTask.js").TSchedulerTask} task
  * @description 해당 함수는 태스크를 취소하는 함수이다.
  */
 const cancelCallbackImpl = (task) => {
@@ -362,7 +362,7 @@ const cancelCallbackImpl = (task) => {
 
 /**
  *
- * @returns {import("../type/TSchedulerPriority.js").TSchedulerPriority}
+ * @returns {import("../../type/TSchedulerPriority.js").TSchedulerPriority}
  * @description 현재 우선순위를 반환하는 함수이다.
  */
 const getCurrentPriorityLevelImpl = () => {

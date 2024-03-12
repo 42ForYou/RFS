@@ -19,8 +19,8 @@ export const compare = (a, b) => {
 };
 
 /**
- * @param {import("../type/THeapType").THeapType} heap
- * @param {import("../type/THeapType").THeapNode} node
+ * @param {import("../../type/THeapType").THeapType} heap
+ * @param {import("../../type/THeapType").THeapNode} node
  * @param {number} i
  * @description minHeap에 의 기본 구조인 부모 보다 자식이 커야한다라는 조건을 만족하도록 하는 함수이다.
  */
@@ -40,8 +40,8 @@ export const siftUp = (heap, node, i) => {
 };
 
 /**
- * @param {import("../type/THeapType").THeapType} heap
- * @param {import("../type/THeapType").THeapNode} node
+ * @param {import("../../type/THeapType").THeapType} heap
+ * @param {import("../../type/THeapType").THeapNode} node
  * @param {number} i
  * @description minHeap에 의 기본 구조인 부모 보다 자식이 커야한다라는 조건을 만족하도록 하는 함수이다.
  * @description 내려가면서 현재 자신의 자리에 적합한 자식을 고르고 스왑하면서 내려가고 적합한 자리에 도달하면 종료한다.
@@ -76,8 +76,8 @@ const siftDown = (heap, node, i) => {
 };
 /**
  *
- * @param {import("../type/THeapType").THeapType} heap
- * @param {import("../type/THeapType").THeapNode} node
+ * @param {import("../../type/THeapType").THeapType} heap
+ * @param {import("../../type/THeapType").THeapNode} node
  * @description minHeap에 node를 추가하고 siftUp을 호출한다.
  */
 export const push = (heap, node) => {
@@ -87,8 +87,8 @@ export const push = (heap, node) => {
 };
 
 /**
- * @param {import("../type/THeapType").THeapType} heap
- * @returns {import("../type/THeapType").THeapNode | null} heap의 첫번째 값을 반환한다.
+ * @param {import("../../type/THeapType").THeapType} heap
+ * @returns {import("../../type/THeapType").THeapNode | null} heap의 첫번째 값을 반환한다.
  * @description minHeap의 첫번째 값을 반환한다.
  */
 export const pop = (heap) => {
@@ -107,8 +107,8 @@ export const pop = (heap) => {
     }
 };
 /**
- * @param {import("../type/THeapType").THeapType} heap
- * @returns {import("../type/THeapType").THeapNode | null} heap의 첫번째 값을 반환한다.
+ * @param {import("../../type/THeapType").THeapType} heap
+ * @returns {import("../../type/THeapType").THeapNode | null} heap의 첫번째 값을 반환한다.
  * @description minHeap의 첫번째 값을 반환한다.
  */
 export const peek = (heap) => {

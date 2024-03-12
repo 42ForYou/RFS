@@ -2,7 +2,7 @@
  * @module hookExpirationTime
  */
 
-import { NoWork } from "../../type/TExpirationTime.js";
+import { NoWork } from "../../const/CExpirationTime.js";
 
 /**
  * @constant {number} NoWork - No expiration time.

@@ -1,4 +1,4 @@
-import { NoWork } from "../../type/TExpirationTime.js";
+import { NoWork } from "../../const/CExpirationTime.js";
 import hookCore from "./hookCore.js";
 import hookExpirationTime from "./hookExpirationTime.js";
 import hookRenderPhase from "./hookRenderPhase.js";

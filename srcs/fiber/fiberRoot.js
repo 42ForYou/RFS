@@ -1,5 +1,5 @@
 import { createHostRootFiber } from "./fiber.js";
-import { NoWork } from "../type/TExpirationTime.js";
+import { NoWork } from "../const/CExpirationTime.js";
 
 /**
     @description FiberRoot는 해당 Fiber에 대해서 관리를 위한 그 스코프내의 전역관리 공간이라고 생각할 수 있습니다. 

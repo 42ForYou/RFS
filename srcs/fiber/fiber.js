@@ -1,8 +1,9 @@
-import { Fragment, FunctionComponent, HostRoot, HostText } from "../type/TWorkTag.js";
-import { NoEffect } from "../type/TSideEffectFlags.js";
-import { NoWork } from "../type/TExpirationTime.js";
-import { ConcurrentMode } from "../type/TTypeOfMode.js";
 import { RFS_FRAGMENT_TYPE, RFS_MEMO_TYPE, RFS_PROVIDER_TYPE } from "../core/rfsSymbol.js";
+import { Fragment, FunctionComponent, HostRoot, HostText, IndeterminateComponent } from "../const/CWorkTag.js";
+import { NoEffect } from "../const/CSideEffectFlags.js";
+import { NoWork } from "../const/CExpirationTime.js";
+import { ConcurrentMode } from "../const/CTypeOfMode.js";
+
 /**
  * 
  * @param {tag} TWorkTag 
@@ -141,7 +142,7 @@ export const createFiberFromText = (content, mode, expirationTime) => {
 export const createFiberFromTypeAndProps = (type, key, pendingProps, mode, expirationTime) => {
     //FunctionComponent라고 가정하고 시작 그래서 type== function인것중에
     //클래스컴포넌트인거 따로 처리하지 않음-> classcomponent구현 x
-    let fiberTag = FunctionComponent;
+    let fiberTag = IndeterminateComponent;
 
     if (typeof type === "string") {
         fiberTag = HostComponent;

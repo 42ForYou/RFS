@@ -7,8 +7,6 @@
  *이를 보고 Commit단계에서 어떠한 사이드 이펙트를 처리할지 결정하게 된다
  */
 
-export const TSideEffectFlags = Number;
-
 // 해당 파이버가 일을 안하고 있는것을 의미한다
 export const NoEffect = /*              */ 0b0000000000000;
 

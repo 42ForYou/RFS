@@ -2,6 +2,8 @@ import { TWorkTag } from "./TWorkTag.js";
 import { TExpirationTime } from "./TExpirationTime.js";
 import { TSideEffectFlags } from "./TSideEffectFlags.js";
 import { TTypeOfMode } from "./TTypeOfMode.js";
+import TDependencies from "./TDependencies.js";
+import TContext from "./TContext.js";
 
 const any = "any";
 
@@ -29,7 +31,8 @@ export const TFiber = {
     //예를 들어 고차 컴포넌트와 같은 경우는 고차 컴포넌트가 인스턴스화되면서 고차 컴포넌트 자체를 나타낼 타입과
     //고차 컴포넌트가 실제로 인자로 받아서 나타내는 타입이 다른데 이를 구분하기 위해 사용한다
     //여기서 정의 타입은 사용되는(인자로) 타입을 의미한다(정확히는 반환하는)
-    type: String | Function, // 인스턴스 타입을 의미한다. 고차함수에 이용되지 않는 경우는 elementType과 같은 값이다
+
+    type: String | Function | TContext, // 인스턴스 타입을 의미한다. 고차함수에 이용되지 않는 경우는 elementType과 같은 값이다
 
     stateNode: any, // 파이버의 상태를 나타내는 객체이다.
     //예를 들어 호스트 컴포넌트의 경우는 실제 돔 노드를 나타내어야하고
@@ -52,7 +55,6 @@ export const TFiber = {
     memoizedProps: any, //이전 레더링시 사용되었던 props를 나타낸다
 
     // Dependencies (contexts, events) for this fiber, if it has any
-    // TODO: 해당 부분에 대한 명세가 필요하다
     dependencies: TDependencies | null,
 
     updateQueue: any, // to represent queue of state updates and callbacks

@@ -5,5 +5,6 @@ import useState from "./useState/useState.js";
 import useCallback from "./useCallback/useCallback.js";
 import useRef from "./useRef/useRef.js";
 import useMemo from "./useMemo/useMemo.js";
+import useContext from "./useContext/useContext.js";
 
-export { useReducer, useEffect, useCallback, useRef, useState, useLayoutEffect, useMemo };
+export { useReducer, useEffect, useCallback, useRef, useState, useLayoutEffect, useMemo, useContext };

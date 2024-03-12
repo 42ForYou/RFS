@@ -1,4 +1,10 @@
-export const TUpdateTag = Number;
+/**
+ * @module TUpdateTag
+ */
+
+/**
+ * @typedef {number} TUpdateTag
+ */
 //TODO: 정확히 명세를 설명할 필요가 있음
 //해당 관련된 업데이트는 사실 밑에 UpdateState는 일반적으로 클래스컴포넌트의
 //SetState와 관련되 있으며 함수형 컴포넌트랑은 별로 관련이 없음

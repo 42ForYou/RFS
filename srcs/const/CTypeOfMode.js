@@ -5,7 +5,6 @@
  * TRootTag와 구별되는 것은 현재 처음 render과정에서 동기방식짐입점인지 아닌지를 구별하는게
  * TRootTag이고 TTypeOfMode는 현재 파이버가 어떠한 모드로 작동하는지를 나타낸다
  */
-export const TTypeOfMode = Number; // only for editor to recognize the type
 
 export const NoMode = 0b00;
 //suspense를 위한 것 ->  지원하지 않는다
