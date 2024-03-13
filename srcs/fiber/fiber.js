@@ -1,4 +1,5 @@
-import { HostRoot } from "../const/CWorkTag.js";
+import { RFS_FRAGMENT_TYPE, RFS_MEMO_TYPE, RFS_PROVIDER_TYPE } from "../core/rfsSymbol.js";
+import { Fragment, FunctionComponent, HostRoot, HostText, IndeterminateComponent } from "../const/CWorkTag.js";
 import { NoEffect } from "../const/CSideEffectFlags.js";
 import { NoWork } from "../const/CExpirationTime.js";
 import { ConcurrentMode } from "../const/CTypeOfMode.js";
@@ -10,7 +11,7 @@ import { ConcurrentMode } from "../const/CTypeOfMode.js";
  * @param {key} key = null | string -> conceptual identifier
  * @property {*} ->TFiber
  * @param {mode} TTypeOfMode
- * @returns {TFiber} 
+ * @returns {import ("../type/TFiber").TFiber}
  @description constructor for FiberNode
 @description 자세한 설명은 TFiber.js에 참조
  */
@@ -103,7 +104,6 @@ export const createFiberFromFragment = (elements, mode, expirationTime, key) => 
     fiber.expirationTime = expirationTime;
     return fiber;
 };
-
 /**
  *
  * @param {tag} TRootTag ->/type/TRootTag.js

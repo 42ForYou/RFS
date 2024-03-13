@@ -1,3 +1,4 @@
+import { update } from "lodash";
 import { prepareToReadContext, propagateContextChange, pushProvider, readContext } from "../context/newContext.js";
 import calculateChangedBits from "../context/shared/calculateChangedBits.js";
 import hasContextChanged from "../context/shared/hasContextChanged.js";
