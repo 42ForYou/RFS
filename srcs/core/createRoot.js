@@ -22,6 +22,7 @@ import { ConcurrentRoot } from "../const/CRootTag.js";
 import { createFiberRoot } from "../fiber/fiberRoot.js";
 //todo: dom.js
 import { markContainerAsRoot } from "../dom/dom.js";
+import { updateContainer } from "../reconciler/reconciler.js";
 /**
  * @param {container} container-> Type은 노드 타입-> Element|Document|DocumentFragment
  * @returns {boolean} -> container가 유효한지 확인하는 함수
