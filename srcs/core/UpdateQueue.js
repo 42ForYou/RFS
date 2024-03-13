@@ -31,6 +31,10 @@ A1 - B2 - C1 - D2
 업데이트가 삽입 순으로 처리되고, 우선 순위가 높은 업데이트가 선행 업데이트가 건너뛰어질 때 재기반됨으로써, 최종 결과는 우선 순위에 관계없이 결정적입니다. 중간 상태는 시스템 자원에 따라 다를 수 있지만, 최종 상태는 항상 동일합니다.
  */
 import { UpdateState } from "../const/CUpdateTag.js";
+import { NoWork } from "../const/CExpirationTime.js";
+import { markUnprocessedUpdateTime, markRenderEventTimeAndConfig } from "../work/workloop.js";
+import { Callback } from "../const/CSideEffectFlags.js";
+import { TFiber } from "../../type/TFiber.js";
 
 export class updateState {
     /**
@@ -56,14 +60,21 @@ export class updateQueueState {
         this.baseState = baseState;
         this.firstUpdate = null;
         this.lastUpdate = null;
-        this.firstCapturedUpdate = null;
-        this.lastCapturedUpdate = null;
+        //NOTE: capture붙은거는 throw관련된 update임으로 제거
+        // this.firstCapturedUpdate = null;
+        // this.lastCapturedUpdate = null;
         this.firstEffect = null;
         this.lastEffect = null;
-        this.firstCapturedEffect = null;
-        this.lastCapturedEffect = null;
+        // this.firstCapturedEffect = null;
+        // this.lastCapturedEffect = null;
     }
 }
+
+// 프로세스 업데이트 큐`를 호출할 때 초기화되는 전역 상태입니다.
+// `processUpdateQueue`를 호출한 직후에만 읽어야 합니다.
+// `checkHasForceUpdateAfterProcessing`을 통해 읽어야 합니다.
+//NOTE: 만약 forceUpdate를 구현해야되면 해당 부분을 사용해야한다.
+// const hasForceUpdate = false;
 
 /**
  *
@@ -176,4 +187,152 @@ export const enqueueUpdate = (fiber, update) => {
             alternateQueue.lastUpdate = update;
         }
     }
+};
+
+/**
+ *
+ * @param {TFiber} workInProgress
+ * @param {state} prevState
+ * @param {any} nextProps
+ * @return {any}
+ * @description 이 함수는 처리되고 있는 update로 부터 state를 가져온다.
+ */
+const getStateFromUpdate = (update, prevState, nextProps) => {
+    switch (update.tag) {
+        //NOTE: ReplaceState는 클래스 컴포넌트에서 사용하는 것으로 추측되는 데 필요하면 case추가
+        case UpdateState: {
+            const payload = update.payload;
+            let partialState;
+            if (typeof payload === "function") {
+                //여기 부분에서 일반적으로 function형태로 callback이 들어가 있고, prevState 를 가지고
+                //nextProps를 가지고 처리를 해서 새로운 state를 리턴하는 것
+                partialState = payload.call(null, prevState, nextProps);
+            } else {
+                // Partial state object
+                //lambda가아닌 object, 값이 들어가 있는 경우
+                //updateContainer의 경우 <app>이 들어가있어서 이를 부름
+                //객체로 들어가있음 그게 저장됨
+                //updateContainer같은 경우에는 이전 app의 상태가 저장되는 느낌
+                partialState = payload;
+            }
+            if (partialState === null || partialState === undefined) {
+                //update했더니 null나옴 -> prevState랑 같은거로 처리
+                return prevState;
+            }
+            //프로퍼티가 겹치는건 partialState로 덮어씌우고 없는건 prevState로 넣어줌
+            return Object.assign({}, prevState, partialState);
+        }
+    }
+    return prevState;
+};
+/**
+ *
+ * @param {import("../../type/TFiber.js").TFiber} fiber
+ * @param {import("../../type/TUpdateQueue.js").TUpdateQueueState} queue
+ * @param {any} props
+ * @param {import("../../type/TExpirationTime.js").TExpirationTime} renderExpirationTime
+ */
+export const processUpdateQueue = (workInProgress, queue, props, renderExpirationTime) => {
+    //NOTE: 이부분은 forceUpdate를 구현할때 사용하는 부분이다.
+    // hasForceUpdate = false;
+
+    //진행하기 앞서, currentUpdateQueue와의 연결떄문에 현재 wipQueue를 복제한다.
+    //TODO: ensureWorkInProgressQueueIsAClone 구현해야함
+    queue = ensureWorkInProgressQueueIsAClone(workInProgress, queue);
+
+    //updateQueue를 처리하면서 나중에 갱신을 위한 변수들이다.
+    //newBaseState는 새로운 BaseState를 의미한다.
+    //newFirstUpdate는 처리되고 남은 업데이트의 첫번째 업데이트를 가르킨다
+    //여기부터 다시 처리해야함을 의미한다.
+    //newExpirationTIme 다음 번에 시작할떄 사용되야 하는 ExpirationTime이다.
+    //건너뛴 업데이트 중에 가장 큰 우선순위를 가진 ExpirationTime이다.
+    let newBaseState = queue.baseState;
+    let newFirstUpdate = null;
+    let newExpirationTime = NoWork;
+
+    //업데이트를 순회하면서 처리한다
+    let update = queue.firstUpdate;
+    let resultState = newBaseState;
+    while (update !== null) {
+        //현 업데이트의 우선순위를 가져온다
+        const updateExpirationTime = update.expirationTime;
+        if (updateExpirationTime < renderExpirationTime) {
+            //우선순위가 충분하지 않아서 건너뛴다(해당업데이트를)
+            if (newFirstUpdate === null) {
+                //처음으로 건너뛴 업데이트기 떄문에 새로운 첫번쨰 update가 되어야한다
+                newFirstUpdate = update;
+                //처음으로 건너뛴 업데이트기 떄문에 나중에 baseState는 여기서부터 시작해야한다.
+                newBaseState = resultState;
+            }
+
+            //건너뛴 업데이트에 대해서도 다음번 수행을 위해 우선순위를 정하기 위하여
+            //건너뛴 것 중 가장 큰 우선순위를 골라내야한다
+            if (newExpirationTime < updateExpirationTime) {
+                newExpirationTime = updateExpirationTime;
+            }
+        } else {
+            //여기서 처리되는 업데이트가 업데이트 큐의 effect부분으로 들어감
+            //충분한 우선순위를 가지고 있음 처리되어야함을 의미한다.
+            //이 업데이트의 이벤트 시간을 이 렌더 pass와 관련된 것으로 표시해야한다
+            // 마지막으로 processed된 루트의 expirationTime을 설정하는 부분이다
+            markRenderEventTimeAndConfig(updateExpirationTime);
+
+            //update를 처리하고 새로운 결과를 계산한다
+            resultState = getStateFromUpdate(update, resultState, props);
+            const callback = update.callback;
+            if (callback !== null) {
+                //update의 컬백이 있으면 이는 사이드 이팩트가 있따라는걸 의미하고
+                //effectTag에 Callback이 추가된다.
+                workInProgress.effectTag |= Callback;
+
+                // 렌더링이 중단되는 동안 변경된 경우 null로 설정합니다.
+                //해당 부분을 처리해야됨으로 큐에 달아놔야 되는데 그렇게 처리할 부분은 해당 부분의
+                //뒤엣부분의 연결을 끊어야함
+                update.nextEffect = null;
+                if (queue.lastEffect === null) {
+                    queue.firstEffect = queue.lastEffect = update;
+                } else {
+                    queue.lastEffect.nextEffect = update;
+                    queue.lastEffect = update;
+                }
+            }
+        }
+        //이러이팅
+        update = update.next;
+    }
+
+    //만약 건너뛴 업데이트가 없으면
+    //queue.lastupdate null로 하는데 왜 함 ? -> 이유 : lastUpdate가 null이라면
+    //updateList가 없다라고 문맥적으로 처리함
+    //일단 적어놔야될꺼 update부분은 건너뛴건 update에 저장하고 처리된것중에 callback이 있는것들이
+    //effect로 들어감
+    if (newFirstUpdate === null) {
+        queue.lastUpdate = null;
+    }
+    if (newFirstUpdate === null) {
+        // We processed every update, without skipping. That means the new base
+        // state is the same as the result state.
+        //건너띤게 없으면 newBaseState는 resultState가 됨
+        newBaseState = resultState;
+    }
+
+    queue.baseState = newBaseState;
+
+    //처리 할만큼 처리하고 남은걸 firstupdate에 넣으면 앞선 주석과 같이
+    //b1 c2 d3 이런식으로 남아있는 형태가 됨
+    queue.firstUpdate = newFirstUpdate;
+
+    // 남은 만료 시간을 대기열에 남은 시간으로 설정합니다.
+    // 만료 시간에 영향을 미치는 다른 두 가지 요소는 fiber과 context뿐이므로 이 정도면 괜찮습니다.
+    // 만료 시간에 영향을 주는 것은 소품과 컨텍스트뿐이므로 괜찮을 것입니다. 우리는 이미
+    // 대기열 처리를 시작할 때 이미 beginphase 의 중간에 있으므로 이미
+    // 프로퍼티를 처리했습니다. 컴포넌트의 컨텍스트는
+    // shouldComponentUpdate를 지정하는 컴포넌트의 컨텍스트는 까다롭습니다.
+    // 고려해야 합니다.
+    markUnprocessedUpdateTime(newExpirationTime);
+    //건너뛴 업데이트 중에 가장 우선순위가 높은 expirationTime을 세팅함
+    //나중에 적절한 시간에 처리하기 위해서
+    workInProgress.expirationTime = newExpirationTime;
+    //memoizedState의 resultState를 넣어줌
+    workInProgress.memoizedState = resultState;
 };

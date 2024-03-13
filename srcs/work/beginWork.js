@@ -69,7 +69,7 @@ const updateHostRoot = (current, workInProgress, renderExpirationTime) => {
 
     //updateQueue를 처리한다
     //TODO: processUpdateQueue 구현
-    processUpdateQueue(workInProgress, updateQueue, nextProps, null, renderExpirationTime);
+    processUpdateQueue(workInProgress, updateQueue, nextProps, renderExpirationTime);
     //updateQueue를 처리한 후에는 memoizedState가 바뀌었을 수 있으므로 다시 가져온다.
     const nextState = workInProgress.memoizedState;
     const nextChildren = nextState.element;
@@ -136,9 +136,8 @@ const updateHostComponent = (current, workInProgress, renderExpirationTime) => {
     //hostComponent가 업데이트 되면 ref도 업데이트되기 떄문에 마킹
     markRef(current, workInProgress);
 
-    //TODO: check OffScreen 구현
+    //NOTE: check OffScreen 구현해야 되는지 확인
 
-    //TODO: reconcileChildren 구현
     reconcileChildren(current, workInProgress, nextChildren, renderExpirationTime);
     return workInProgress.child;
 };
@@ -153,7 +152,7 @@ const updateHostComponent = (current, workInProgress, renderExpirationTime) => {
  */
 const mountIndeterminateComponent = (_current, workInProgress, Component, renderExpirationTime) => {
     if (_current !== null) {
-        //TODO: 오직 susPense가 일어난 상황에서만 일어나는 로직 - 빼야되는지 확인
+        //NOTE: 오직 susPense가 일어난 상황에서만 일어나는 로직 - 빼야되는지 확인
         // An indeterminate component only mounts if it suspended inside a non-
         // concurrent tree, in an inconsistent state. We want to treat it like
         // a new mount, even though an empty version of it already committed.
@@ -166,7 +165,7 @@ const mountIndeterminateComponent = (_current, workInProgress, Component, render
 
     const props = workInProgress.pendingProps;
 
-    //TODO: 이 ReadContext는 어떤 역할을 하는지 확인
+    //context를 사용하기 전에 context의 해당 값들을 초기화 해주는 함수
     prepareToReadContext(workInProgress, renderExpirationTime);
     const value = renderWithHooks(null, workInProgress, Component, props, null, renderExpirationTime);
 
@@ -182,7 +181,6 @@ const mountIndeterminateComponent = (_current, workInProgress, Component, render
         throw new Error("not supported ClassComponent in mountIndeterminateComponent");
     } else {
         workInProgress.tag = FunctionComponent;
-        //TODO: reconcileChildren 구현
         reconcileChildren(null, workInProgress, value, renderExpirationTime);
         return workInProgress.child;
     }
@@ -513,16 +511,12 @@ export const beginWork = (current, workInProgress, renderExpirationTime) => {
         case HostComponent:
             return updateHostComponent(current, workInProgress, renderExpirationTime);
         case HostText:
-            //TODO: updateHostText 구현
             return updateHostText(current, workInProgress);
         case Fragment:
-            //TODO: updateFragment 구현
             return updateFragment(current, workInProgress, renderExpirationTime);
         case ContextProvider:
-            //TODO: updateContextProvider 문맥이해
             return updateContextProvider(current, workInProgress, renderExpirationTime);
         case SimpleMemoComponent:
-            //TODO: updateSimpleMemoComponent 구현
             return updateSimpleMemoComponent(
                 current,
                 workInProgress,
