@@ -152,6 +152,7 @@ export const createFiberFromTypeAndProps = (type, key, pendingProps, mode, expir
                 //props의 children에 보관된 자식들을 통해서 바로 생성-> overHeadx
                 return createFiberFromFragment(pendingProps.children, mode, expirationTime, key);
             default: {
+                //NOTE: consumer구현 이 필요하면 case 추가
                 if (typeof type === "object" && type !== null) {
                     switch (type.$$typeof) {
                         case RFS_PROVIDER_TYPE:
@@ -162,8 +163,8 @@ export const createFiberFromTypeAndProps = (type, key, pendingProps, mode, expir
                             break getTag;
                     }
                 }
-                throw new Error("Unknown Fiber Tag");
                 console.error("Unknown Fiber Tag - createFiberFromTypeAndProps");
+                throw new Error("Unknown Fiber Tag");
             }
         }
     }
@@ -172,6 +173,8 @@ export const createFiberFromTypeAndProps = (type, key, pendingProps, mode, expir
     fiber.elementType = type;
     fiber.type = type;
     fiber.expirationTime = expirationTime;
+
+    return fiber;
 };
 
 /**

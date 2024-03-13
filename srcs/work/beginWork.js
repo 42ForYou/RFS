@@ -15,9 +15,10 @@ import {
 import { Placement, PerformedWork } from "../const/CSideEffectFlags.js";
 import { Update as UpdateEffect, Passive as PassiveEffect } from "../const/CSideEffectFlags.js";
 import { cloneChildFibers } from "../fiber/childFiber.js";
-import { renderWithHooks } from "../hooks/core/renderWithHooks.js";
-import { push } from "../fiber/fiberStack.js";
+import renderWithHooks from "../hooks/core/renderWithHooks.js";
 import { shallowEqual } from "../shared/sharedEqual.js";
+import { markUnprocessedUpdateTime } from "./workLoop.js";
+import { pushHostContainer, pushHostContext } from "../fiber/fiberHostContext.js";
 
 /**
  *
@@ -47,7 +48,6 @@ export const reconcileChildren = (current, workInProgress, nextChildren, renderE
     }
 };
 /**
- * TODO: 해당 함수의 문맥은 processUpdateQueue를 정확히 이해해야됨
  * @param {TFiber} current
  * @param {TFiber} workInProgress
  * @param {TFiber} renderExpirationTime
@@ -55,17 +55,20 @@ export const reconcileChildren = (current, workInProgress, nextChildren, renderE
  * @description HostRootComponent를 업데이트하는 함수
  */
 const updateHostRoot = (current, workInProgress, renderExpirationTime) => {
-    //TODO: pushHostRootContext 문맥이해
+    //파이버스택에 현재 파이버루트의 컨텍스트를 넣어준다.
     pushHostRootContext(workInProgress);
     const updateQueue = workInProgress.updateQueue;
     const nextProps = workInProgress.pendingProps;
-    //TODO: memoizedState가 어떤식으로 들어가는지 확인
+
+    //updateQueue에서(processUpdateQueue)에서 기록한 state를 보관하고 있음
     const prevState = workInProgress.memoizedState;
+    //updateContainer에서 update.payload = {element}이런식으로 payload를 보관하고
+    //process되면 memoizedState가 이 updateState를 가르킬텐데-> 그렇게 되면
+    //prevState.element에는 payload의 element:element이런식으로 프로퍼티 형태로 들어가있음
     const prevChildren = prevState !== null ? prevState.element : null;
 
     //updateQueue를 처리한다
-    //TODO: processUpdateQueue 구현
-    processUpdateQueue(workInProgress, updateQueue, nextProps, null, renderExpirationTime);
+    processUpdateQueue(workInProgress, updateQueue, nextProps, renderExpirationTime);
     //updateQueue를 처리한 후에는 memoizedState가 바뀌었을 수 있으므로 다시 가져온다.
     const nextState = workInProgress.memoizedState;
     const nextChildren = nextState.element;
@@ -73,8 +76,6 @@ const updateHostRoot = (current, workInProgress, renderExpirationTime) => {
     if (nextChildren === prevChildren) {
         return bailoutOnAlreadyFinishedWork(current, workInProgress, renderExpirationTime);
     }
-    const root = workInProgress.stateNode;
-    //TODO: reconcileChildren 구현
     reconcileChildren(current, workInProgress, nextChildren, renderExpirationTime);
     return workInProgress.child;
 };
@@ -101,7 +102,7 @@ const markRef = (current, workInProgress) => {
  * @description HostComponent를 업데이트하는 함수 호스트 컴포넌트는 문자열하나만 자식으로 가지고 있을떄 특수처리합니다.
  */
 const updateHostComponent = (current, workInProgress, renderExpirationTime) => {
-    //TODO: pushHostContext 문맥이해
+    //파이버스택에 현재 hostContext를 푸시한다.
     pushHostContext(workInProgress);
 
     const type = workInProgress.type;
@@ -111,6 +112,7 @@ const updateHostComponent = (current, workInProgress, renderExpirationTime) => {
     let nextChildren = nextProps.children;
     //TODO: shouldSetTextContent 구현 DOM모듈에서
     //호스트 컴포넌트는 자식으로 문자열 하나만 가지고 있을떄 해당 문자열을 파이버로 만들지 않음.
+    //TODO: 위에 설명확인
     const isDirectTextChild = shouldSetTextContent(type, nextProps);
     if (isDirectTextChild) {
         //이것은 문자열을 파이버로 만들지 않기 위해 초기화합니다.
@@ -133,9 +135,8 @@ const updateHostComponent = (current, workInProgress, renderExpirationTime) => {
     //hostComponent가 업데이트 되면 ref도 업데이트되기 떄문에 마킹
     markRef(current, workInProgress);
 
-    //TODO: check OffScreen 구현
+    //NOTE: check OffScreen 구현해야 되는지 확인
 
-    //TODO: reconcileChildren 구현
     reconcileChildren(current, workInProgress, nextChildren, renderExpirationTime);
     return workInProgress.child;
 };
@@ -150,7 +151,7 @@ const updateHostComponent = (current, workInProgress, renderExpirationTime) => {
  */
 const mountIndeterminateComponent = (_current, workInProgress, Component, renderExpirationTime) => {
     if (_current !== null) {
-        //TODO: 오직 susPense가 일어난 상황에서만 일어나는 로직 - 빼야되는지 확인
+        //NOTE: 오직 susPense가 일어난 상황에서만 일어나는 로직 - 빼야되는지 확인
         // An indeterminate component only mounts if it suspended inside a non-
         // concurrent tree, in an inconsistent state. We want to treat it like
         // a new mount, even though an empty version of it already committed.
@@ -163,7 +164,7 @@ const mountIndeterminateComponent = (_current, workInProgress, Component, render
 
     const props = workInProgress.pendingProps;
 
-    //TODO: 이 ReadContext는 어떤 역할을 하는지 확인
+    //context를 사용하기 전에 context의 해당 값들을 초기화 해주는 함수
     prepareToReadContext(workInProgress, renderExpirationTime);
     const value = renderWithHooks(null, workInProgress, Component, props, null, renderExpirationTime);
 
@@ -179,7 +180,6 @@ const mountIndeterminateComponent = (_current, workInProgress, Component, render
         throw new Error("not supported ClassComponent in mountIndeterminateComponent");
     } else {
         workInProgress.tag = FunctionComponent;
-        //TODO: reconcileChildren 구현
         reconcileChildren(null, workInProgress, value, renderExpirationTime);
         return workInProgress.child;
     }
@@ -217,7 +217,7 @@ const updateFunctionComponent = (_current, workInProgress, Component, nextProps,
     prepareToReadContext(workInProgress, renderExpirationTime);
     const nextChildren = renderWithHooks(_current, workInProgress, Component, nextProps, null, renderExpirationTime);
 
-    //     beginWork()에서 확인한 결과 props는 변경되지 않았다.
+    // beginWork()에서 확인한 결과 props는 변경되지 않았다.
     // 하지만 업데이트가 발생한 컴포넌트이므로 호출되어야 한다.
     // 컴포넌트 호출 후에도 didReceiveUpdate는 여전히 false임을 미루어보아 컴포넌트 상태 또한 변경되지 않았다.
     // props, state 모두 변경되지 않았다면 서브 트리 또한 변경될 부분이 없으므로 Work를 여기서 끊어주게 될 경우 불필요한 작업을 하지 않아도 된다.
@@ -238,16 +238,17 @@ const updateFunctionComponent = (_current, workInProgress, Component, nextProps,
  * @param {TFiber|null} current @see 파일경로: /type/TFiber.js
  * @param {TFiber} workInProgress @see 파일경로: /type/TFiber.js
  * @param {TExpirationTime} renderExpirationTime @see 파일경로: /type/TExpirationTime.js
- * @description 컴포넌트의 props나 state가 변경되지 않았을 때
- * @description  이미 처리된 작업의 결과를 재사용할 수 있을 때
- * @description  더 높은 우선순위의 작업이 있어서 현재 작업을 나중으로 미룰 필요가 있을 때
+ * @description 1.컴포넌트의 props나 state가 변경되지 않았을 때
+ * @description     1.a이미 처리된 작업의 결과를 재사용할 수 있을 때
+ * @description         1.a.가)더 높은 우선순위의 작업이 있어서 현재 작업을 나중으로 미룰 필요가 있을 때
  * @description 사용 되며, 이전 작업을 재사용하고(자식의 childExtime도 update필요 없을떄), 필요하다면 자식만 clone하여 사용합니다.
  * @returns {TFiber|null} @see 파일경로: /type/TFiber.js
  */
 const bailoutOnAlreadyFinishedWork = (current, workInProgress, renderExpirationTime) => {
-    //TODO: dependencies관련된 문맥을 이해 후 다시 코드 이해
     if (current !== null) {
         // Reuse previous dependencies
+        //dependencies는 현재 파이버의 관련 contextList라할 수 있는데 그것을
+        //current에 있는걸 그대로 가져온다.-> context리스트도 업데이트 되지 않으니까
         workInProgress.dependencies = current.dependencies;
     }
 
@@ -269,7 +270,6 @@ const bailoutOnAlreadyFinishedWork = (current, workInProgress, renderExpirationT
     }
 };
 
-// TODO: 다른 파일로 옮기기
 let didReceiveUpdate = false;
 
 /**
@@ -311,7 +311,6 @@ const updateContextProvider = (current, workInProgress, renderExpirationTime) =>
         if (changedBits === 0) {
             // No change. Bailout early if children are the same.
             if (oldProps.children === newProps.children && !hasContextChanged()) {
-                // TODO: implement this function.
                 return bailoutOnAlreadyFinishedWork(current, workInProgress, renderExpirationTime);
             }
         } else {
@@ -325,7 +324,6 @@ const updateContextProvider = (current, workInProgress, renderExpirationTime) =>
     }
 
     const newChildren = newProps.children;
-    // TODO: implement this function.
     reconcileChildren(current, workInProgress, newChildren, renderExpirationTime);
     return workInProgress.child;
 };
@@ -356,7 +354,6 @@ const updateContextConsumer = (current, workInProgress, renderExpirationTime) =>
     // child component를 context의 값을 넣어 호출합니다.
     const newChildren = render(newValue);
 
-    // TODO: implement this function.
     // reconcileChildren을 통해 child component를 재조정합니다.
     reconcileChildren(current, workInProgress, newChildren, renderExpirationTime);
     return workInProgress.child;
@@ -394,12 +391,16 @@ const updateSimpleMemoComponent = (
     }
     return updateFunctionComponent(current, workInProgress, Component, nextProps, renderExpirationTime);
 };
-//TODO: 명세랑 정확한 동작 정의
+
+/**
+ *
+ * @param {TFiber} workInProgress
+ * @description - pushHostRootContext는 현재의 호스트 root 컨텍스트를 스택에 푸시합니다.
+ */
 const pushHostRootContext = (workInProgress) => {
     //FiberRoot
     const root = workInProgress.stateNode;
-    //TODO:: fiberStack이랑 연계되어야될듯
-    //TODO: pushHostContainer 구현
+    //현재 루트를 가지고 파이버 스택에 RootInstanceContext(관련된것 모두)푸시
     pushHostContainer(workInProgress, root.containerInfo);
 };
 
@@ -445,7 +446,7 @@ export const beginWork = (current, workInProgress, renderExpirationTime) => {
         const oldProps = current.memoizedProps;
         const newProps = workInProgress.pendingProps;
 
-        //TODO: hasLegacyContextChanged고려 아마 구버전 16.3v이전의 context를 고려하는 것으로 보임
+        //NOTE: hasLegacyContextChanged고려 아마 구버전 16.3v이전의 context를 고려하는 것으로 보임
         if (oldProps !== newProps) {
             // props가 있다면, 해당 파이버가 작업을 수행했다고 표시합니다.
             // 나중에 props가 동일하다고 판단되면 이 표시는 해제될 수 있습니다 (memo 사용 시).
@@ -455,27 +456,24 @@ export const beginWork = (current, workInProgress, renderExpirationTime) => {
             // 때문에 업데이트가 미뤄진다는 것을 의미합니다.
             // 이 파이버에는 pendingwork가 없습니다. Bailout 해야 합니다 비긴페이즈로 들어가지 않고
             // 이 최적화된 경로에서 아직 수행해야 할 몇 가지 작업이 남아 있습니다.
+
             // 이 최적화된 경로에서 대부분 스택에 작업을 푸시합니다.
-            // TODO: 스택에 작업을 푸시하는게 무슨 의미인지 개발 컨텍스트 이해
+            //bailout을 하기 전에 파이버 스택에 context자체는 넣어야 그걸
+            //참조하는 로직을 수행할수 있다.
             didReceiveUpdate = false;
             switch (workInProgress.tag) {
                 case HostRoot:
-                    //TODO: pushHostRootContext 문맥이해
                     pushHostRootContext(workInProgress);
                     break;
                 case HostComponent:
-                    //TODO: pushContext부분 문맥이해
-                    //TODO: pushHostContext 구현
                     pushHostContext(workInProgress);
-                    //TODO: offScreen구현해야되는지 확실히 check
+                    //NOTE: offScreen구현해야되는지 확실히 check
                     break;
                 case ContextProvider:
-                    //TODO: 해당 문맥이해하기
                     const newValue = workInProgress.memoizedProps.value;
                     pushProvider(workInProgress, newValue);
                     break;
             }
-            //TODO: bailoutOnAlreadyFinishedWork 구현
             return bailoutOnAlreadyFinishedWork(current, workInProgress, renderExpirationTime);
         } else {
             // 이 파이버에 대한 업데이트가 예약되었지만 새 props이 없습니다.
@@ -494,35 +492,28 @@ export const beginWork = (current, workInProgress, renderExpirationTime) => {
     // 초기화 해준다.
     workInProgress.expirationTime = NoWork;
 
+    //NOTE: 여기서 만약 consumer가 필요하면 case 추가
     switch (workInProgress.tag) {
         case IndeterminateComponent:
-            //TODO: mountIndeterminateComponent 구현
             //mount가 되는 상황 로직부분
             return mountIndeterminateComponent(current, workInProgress, workInProgress.type, renderExpirationTime);
         case FunctionComponent: {
             const Component = workInProgress.type;
             const resolvedProps = workInProgress.pendingProps;
-            //TODO: updateFunctionComponent 구현
-            //TODO: unresolvedProps를 통해서 resolveDefulat해야 되는지 확인 -> 왠만하면 lazy관련된거라 필요 없을것같음
+            //NOTE: unresolvedProps를 통해서 resolveDefulat해야 되는지 확인 -> 왠만하면 lazy관련된거라 필요 없을것같음
             return updateFunctionComponent(current, workInProgress, Component, resolvedProps, renderExpirationTime);
         }
         case HostRoot:
-            //TODO: updateHostRoot 구현
             return updateHostRoot(current, workInProgress, renderExpirationTime);
         case HostComponent:
-            //TODO: updateHostComponent 구현
             return updateHostComponent(current, workInProgress, renderExpirationTime);
         case HostText:
-            //TODO: updateHostText 구현
             return updateHostText(current, workInProgress);
         case Fragment:
-            //TODO: updateFragment 구현
             return updateFragment(current, workInProgress, renderExpirationTime);
         case ContextProvider:
-            //TODO: updateContextProvider 구현
             return updateContextProvider(current, workInProgress, renderExpirationTime);
         case SimpleMemoComponent:
-            //TODO: updateSimpleMemoComponent 구현
             return updateSimpleMemoComponent(
                 current,
                 workInProgress,

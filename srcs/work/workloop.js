@@ -158,6 +158,18 @@ export const markUnprocessedUpdateTime = (expirationTime) => {
     }
 };
 
+/**
+ *
+ * @param {TExpirationTime} expirationTime @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
+ * @description 마지막으로 processed된 루트의 ExpirationTime을 설정함
+ * @description 커밋 ->finishRender와 관련있음 TODO: 좀더 정확히 이해가 필요함
+ */
+export const markRenderEventTimeAndConfig = (expirationTime) => {
+    if (expirationTime < currentWorkContext.workInProgressRootLatestProcessedExpirationTime && expirationTime > Idle) {
+        currentWorkContext.workInProgressRootLatestProcessedExpirationTime = expirationTime;
+    }
+};
+
 const checkForNestedUpdates = () => {
     if (nestedUpdate.checkForNestedUpdates()) {
         nestedUpdate.clear();

@@ -47,17 +47,27 @@ export const TUpdateState = {
     nextEffect: TUpdateState | null,
 };
 
+/**
+ * @description 본 리액트에서는 원래 클래스 컴포넌트(forceUpdateAPI, Replace), throw관리
+ * @description 를 이걸 통해서 진행하고 거의 classComponent를 위한것으로 볼 수 있지만
+ * @description hostRoot를 이걸 통해서 사용하기도하고 안에 로직을 이해했음으로 이것으로 진행
+ * @description 먼저 update는 일단 processUpdatequeue에 의해 처리 된 만큼 처리되고 이제
+ * @description 남은 부분을 firstUpdate에 의해서 갱신된다 . 이는 보통 skip된 부분 부터 가르키게 된다.
+ * @description processUpdateQueue가 진행하면서 effect가 생기면 callback들을 다라두게 되고
+ * @description effectTag = callback을 키게 되는데 이와 관련된 부분이 firstEffect, lastEffect이다.
+ */
 export const TUpdateQueueState = {
     baseState: any,
     firstUpdate: TUpdateState | null,
     lastUpdate: TUpdateState | null,
 
-    firstCapturedUpdate: TUpdateState | null,
-    lastCapturedUpdate: TUpdateState | null,
+    //NOTE: capture붙은거는 throw관련된 update임으로 제거
+    // firstCapturedUpdate: TUpdateState | null,
+    // lastCapturedUpdate: TUpdateState | null,
 
     firstEffect: TUpdateState | null,
     lastEffect: TUpdateState | null,
 
-    firstCapturedEffect: TUpdateState | null,
-    lastCapturedEffect: TUpdateState | null,
+    // firstCapturedEffect: TUpdateState | null,
+    // lastCapturedEffect: TUpdateState | null,
 };

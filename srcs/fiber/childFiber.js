@@ -7,6 +7,10 @@ import { createWorkInProgress } from "../fiber/fiber.js";
  * @description 현재의 workInProgress의 child를 복사합니다.
  */
 export const cloneChildFibers = (current, workInProgress) => {
+    if (current === null) {
+        console.error("current가 null입니다. in cloneChildFibers");
+        throw new Error("current가 null입니다.");
+    }
     //자식이 없는 경우 -> early return
     if (workInProgress.child === null) {
         return;
