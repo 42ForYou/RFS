@@ -5,7 +5,7 @@
  */
 
 import { enqueueUpdate, createUpdate } from "../core/UpdateQueue.js";
-import { scheduleWork } from "../work/workloop.js";
+import { scheduleWork } from "../work/workLoop.js";
 /**
  *
  * @param {TRfsNodeList} element @see 파일경로: [TRfsType.js](srcs/type/TRfsType.js)

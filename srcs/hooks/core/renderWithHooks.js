@@ -39,7 +39,7 @@ const finishRenderingHooks = (hookCore, hookExpirationTime) => {
  * @param {TFiber} workInProgress
  * @param {Function} Component
  * @param {any} props
- * @param {ref | context} refOrContext
+ * @param {ref | context} refOrContext NOTE:: 레거시컨텍스트 api에서 사용하는 방식에 context넣기 방식->우리는 사용하진 않음
  * @param {ExpirationTime} nextRenderExpirationTime
  * @returns {any} children
  */
