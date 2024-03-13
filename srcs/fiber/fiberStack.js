@@ -6,6 +6,11 @@
  * valueStack은 최신 이전값을 가지고 있습니다.
  */
 
+//*NOTE: 파이버 스택은 valueCursor만 보관하는 데 사용되지 않습니다.
+//valueCursor의외에도 RootInstanceCursor, HostContextcursor, Fibercursor가
+//존재합니다. 이는 자바스크립트의 call stack과 유사하게 동작합니다.
+//valueCursor이외의 자세한 설명은 FiberhostContext.js를 참조하십시오
+//관련 멘탈 모델은 notion의 추가할 예정입니다. TODO: notion에 추가할 예정입니다.
 /**
  * @property {Array<any>} valueStack
  * @property {number} index

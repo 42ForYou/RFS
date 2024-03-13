@@ -16,9 +16,9 @@ import { Placement, PerformedWork } from "../const/CSideEffectFlags.js";
 import { Update as UpdateEffect, Passive as PassiveEffect } from "../const/CSideEffectFlags.js";
 import { cloneChildFibers } from "../fiber/childFiber.js";
 import renderWithHooks from "../hooks/core/renderWithHooks.js";
-import { push } from "../fiber/fiberStack.js";
 import { shallowEqual } from "../shared/sharedEqual.js";
 import { markUnprocessedUpdateTime } from "./workLoop.js";
+import { pushHostContainer, pushHostContext } from "../fiber/fiberHostContext.js";
 
 /**
  *
@@ -48,7 +48,6 @@ export const reconcileChildren = (current, workInProgress, nextChildren, renderE
     }
 };
 /**
- * TODO: 해당 함수의 문맥은 processUpdateQueue를 정확히 이해해야됨
  * @param {TFiber} current
  * @param {TFiber} workInProgress
  * @param {TFiber} renderExpirationTime
@@ -56,11 +55,12 @@ export const reconcileChildren = (current, workInProgress, nextChildren, renderE
  * @description HostRootComponent를 업데이트하는 함수
  */
 const updateHostRoot = (current, workInProgress, renderExpirationTime) => {
-    //TODO: pushHostRootContext 문맥이해
+    //파이버스택에 현재 파이버루트의 컨텍스트를 넣어준다.
     pushHostRootContext(workInProgress);
     const updateQueue = workInProgress.updateQueue;
     const nextProps = workInProgress.pendingProps;
-    //TODO: memoizedState가 어떤식으로 들어가는지 확인
+
+    //updateQueue에서(processUpdateQueue)에서 기록한 state를 보관하고 있음
     const prevState = workInProgress.memoizedState;
     //updateContainer에서 update.payload = {element}이런식으로 payload를 보관하고
     //process되면 memoizedState가 이 updateState를 가르킬텐데-> 그렇게 되면
@@ -68,7 +68,6 @@ const updateHostRoot = (current, workInProgress, renderExpirationTime) => {
     const prevChildren = prevState !== null ? prevState.element : null;
 
     //updateQueue를 처리한다
-    //TODO: processUpdateQueue 구현
     processUpdateQueue(workInProgress, updateQueue, nextProps, renderExpirationTime);
     //updateQueue를 처리한 후에는 memoizedState가 바뀌었을 수 있으므로 다시 가져온다.
     const nextState = workInProgress.memoizedState;
@@ -103,7 +102,7 @@ const markRef = (current, workInProgress) => {
  * @description HostComponent를 업데이트하는 함수 호스트 컴포넌트는 문자열하나만 자식으로 가지고 있을떄 특수처리합니다.
  */
 const updateHostComponent = (current, workInProgress, renderExpirationTime) => {
-    //TODO: pushHostContext 문맥이해
+    //파이버스택에 현재 hostContext를 푸시한다.
     pushHostContext(workInProgress);
 
     const type = workInProgress.type;
@@ -246,9 +245,10 @@ const updateFunctionComponent = (_current, workInProgress, Component, nextProps,
  * @returns {TFiber|null} @see 파일경로: /type/TFiber.js
  */
 const bailoutOnAlreadyFinishedWork = (current, workInProgress, renderExpirationTime) => {
-    //TODO: dependencies관련된 문맥을 이해 후 다시 코드 이해
     if (current !== null) {
         // Reuse previous dependencies
+        //dependencies는 현재 파이버의 관련 contextList라할 수 있는데 그것을
+        //current에 있는걸 그대로 가져온다.-> context리스트도 업데이트 되지 않으니까
         workInProgress.dependencies = current.dependencies;
     }
 
@@ -270,7 +270,6 @@ const bailoutOnAlreadyFinishedWork = (current, workInProgress, renderExpirationT
     }
 };
 
-// TODO: 다른 파일로 옮기기
 let didReceiveUpdate = false;
 
 /**
@@ -312,7 +311,6 @@ const updateContextProvider = (current, workInProgress, renderExpirationTime) =>
         if (changedBits === 0) {
             // No change. Bailout early if children are the same.
             if (oldProps.children === newProps.children && !hasContextChanged()) {
-                // TODO: implement this function.
                 return bailoutOnAlreadyFinishedWork(current, workInProgress, renderExpirationTime);
             }
         } else {
@@ -326,7 +324,6 @@ const updateContextProvider = (current, workInProgress, renderExpirationTime) =>
     }
 
     const newChildren = newProps.children;
-    // TODO: implement this function.
     reconcileChildren(current, workInProgress, newChildren, renderExpirationTime);
     return workInProgress.child;
 };
@@ -357,7 +354,6 @@ const updateContextConsumer = (current, workInProgress, renderExpirationTime) =>
     // child component를 context의 값을 넣어 호출합니다.
     const newChildren = render(newValue);
 
-    // TODO: implement this function.
     // reconcileChildren을 통해 child component를 재조정합니다.
     reconcileChildren(current, workInProgress, newChildren, renderExpirationTime);
     return workInProgress.child;
@@ -395,12 +391,16 @@ const updateSimpleMemoComponent = (
     }
     return updateFunctionComponent(current, workInProgress, Component, nextProps, renderExpirationTime);
 };
-//TODO: 명세랑 정확한 동작 정의
+
+/**
+ *
+ * @param {TFiber} workInProgress
+ * @description - pushHostRootContext는 현재의 호스트 root 컨텍스트를 스택에 푸시합니다.
+ */
 const pushHostRootContext = (workInProgress) => {
     //FiberRoot
     const root = workInProgress.stateNode;
-    //TODO:: fiberStack이랑 연계되어야될듯
-    //TODO: pushHostContainer 구현
+    //현재 루트를 가지고 파이버 스택에 RootInstanceContext(관련된것 모두)푸시
     pushHostContainer(workInProgress, root.containerInfo);
 };
 
@@ -446,7 +446,7 @@ export const beginWork = (current, workInProgress, renderExpirationTime) => {
         const oldProps = current.memoizedProps;
         const newProps = workInProgress.pendingProps;
 
-        //TODO: hasLegacyContextChanged고려 아마 구버전 16.3v이전의 context를 고려하는 것으로 보임
+        //NOTE: hasLegacyContextChanged고려 아마 구버전 16.3v이전의 context를 고려하는 것으로 보임
         if (oldProps !== newProps) {
             // props가 있다면, 해당 파이버가 작업을 수행했다고 표시합니다.
             // 나중에 props가 동일하다고 판단되면 이 표시는 해제될 수 있습니다 (memo 사용 시).
@@ -456,27 +456,24 @@ export const beginWork = (current, workInProgress, renderExpirationTime) => {
             // 때문에 업데이트가 미뤄진다는 것을 의미합니다.
             // 이 파이버에는 pendingwork가 없습니다. Bailout 해야 합니다 비긴페이즈로 들어가지 않고
             // 이 최적화된 경로에서 아직 수행해야 할 몇 가지 작업이 남아 있습니다.
+
             // 이 최적화된 경로에서 대부분 스택에 작업을 푸시합니다.
-            // TODO: 스택에 작업을 푸시하는게 무슨 의미인지 개발 컨텍스트 이해
+            //bailout을 하기 전에 파이버 스택에 context자체는 넣어야 그걸
+            //참조하는 로직을 수행할수 있다.
             didReceiveUpdate = false;
             switch (workInProgress.tag) {
                 case HostRoot:
-                    //TODO: pushHostRootContext 문맥이해
                     pushHostRootContext(workInProgress);
                     break;
                 case HostComponent:
-                    //TODO: pushContext부분 문맥이해
-                    //TODO: pushHostContext 구현
                     pushHostContext(workInProgress);
-                    //TODO: offScreen구현해야되는지 확실히 check
+                    //NOTE: offScreen구현해야되는지 확실히 check
                     break;
                 case ContextProvider:
-                    //TODO: 해당 문맥이해하기
                     const newValue = workInProgress.memoizedProps.value;
                     pushProvider(workInProgress, newValue);
                     break;
             }
-            //TODO: bailoutOnAlreadyFinishedWork 구현
             return bailoutOnAlreadyFinishedWork(current, workInProgress, renderExpirationTime);
         } else {
             // 이 파이버에 대한 업데이트가 예약되었지만 새 props이 없습니다.

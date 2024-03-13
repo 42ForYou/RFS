@@ -21,4 +21,8 @@ const TContext = {
     Consumer: TConsumer,
 };
 
+/**
+ * @description context가 없을떄 사용하는 타입을 정의합니다.
+ */
+const TNoContextT = {};
 export default TContext;
