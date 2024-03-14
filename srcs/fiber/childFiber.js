@@ -2,6 +2,8 @@ import { isArray } from "../shared/isArray.js";
 import { RFS_ELEMENT_TYPE, RFS_FRAGMENT_TYPE } from "../core/rfsSymbol.js";
 import { createWorkInProgress } from "../fiber/fiber.js";
 import { getIteratorFn } from "../core/rfsSymbol.js";
+import { TFiber } from "../../type/TFiber.js";
+import { createFiberFromElement, createFiberFromFragment, createFiberFromText } from "../fiber/fiber.js";
 //Reconcile
 //하나의 트리를 가지고 다른 트리로 변환하기 위한 최소한의 연산 수를 구하는 알고리즘 문제를 풀기 위한 일반적인 해결책들이 있습니다.
 // 하지만 이러한 최첨단의 알고리즘도 n개의 엘리먼트가 있는 트리에 대해 O(n3)의 복잡도를 가집니다.
@@ -22,7 +24,156 @@ import { getIteratorFn } from "../core/rfsSymbol.js";
  * @description 재조정을 하면서 해당 파이버에 대한 사이드 이펙트도 정의해야 되기 떄문에 일반적인 구조가 reconcile을 통해
  * @description 파이버를 끄집어 낸후 외부의 place~~의 헬퍼함수와 같이 사이드 이펙트를 가해주는 함수와 함께 작동합니다.
  */
+//NOTE: update하는 상황은 newFiber.alternate 가 있는 상황이고
+//NOTE: 새로 배치하는 상황은 일반적으로 newFiber.alternate가 null인 상황인데 이는 type이 다르거나, key가 그 위치에 새로운 파이버를 배치하는 상황입니다.
 const ChildReconciler = (shouldTrackSideEffects) => {
+    /**
+     *
+     * @param {TFiber} returnFiber
+     * @param {TFiber} childToDelete
+     * @description 해당 파이버에 대한 자식을 삭제하는 함수이다.
+     * @description 여기서 삭제란 사이드 이펙트를 남겨두는 것을 의미한다. 이는 여기서 실제
+     * @description 삭제가 일어나는 것을 의미하지 않는다.
+     */
+    const deleteChild = (returnFiber, childToDelete) => {
+        if (!shouldTrackSideEffects) {
+            return;
+        }
+        //삭제도 여기서 진행하는것이 아니라 사이드 이펙트에서 처리됨으로
+        //현재 리턴파이버에 사이드 이펙트 형식으로 넣어줘야 됨
+        //그리고 현재 파이버는 effectTag에 Deletion을 달아서 삭제해야 되는 sideEffect임을 알게함
+        //이 삭제는 completephase가 될때 까지 추가 되지 않음
+        //삭제를 returnFIber의 sideEffect에 넣어줘야 됨
+        const last = returnFiber.lastEffect;
+        if (last !== null) {
+            last.nextEffect = childToDelete;
+            returnFiber.lastEffect = childToDelete;
+        } else {
+            returnFiber.firstEffect = returnFiber.lastEffect = childToDelete;
+        }
+        childToDelete.nextEffect = null;
+        childToDelete.effectTag = Deletion;
+    };
+
+    /**
+     *
+     * @param {TFiber} returnFiber
+     * @param {TFiber|null} currentFirstChild
+     * @description currentFirstChild부터 child의 형제를 돌면서 마지막 형제까지 삭제하는 함수이다.
+     */
+    const deleteRemainingChildren = (returnFiber, currentFirstChild) => {
+        if (!shouldTrackSideEffects) {
+            return null;
+        }
+        let childToDelete = currentFirstChild;
+        while (childToDelete !== null) {
+            deleteChild(returnFiber, childToDelete);
+            childToDelete = childToDelete.sibling;
+        }
+        return null;
+    };
+
+    /**
+     *
+     * @param {TFiber} fiber
+     * @param {any} pendingProps
+     * @param {TExpirationTime} expirationTime
+     * @returns {TFiber}
+     * @description 해당 파이버를 재사용할 수 있도록 하는 함수이다. 재사용을 하기 위해서 기본의 형제와의 연결을 모두 끊어준다.
+     */
+    const useFiber = (fiber, pendingProps, expirationTime) => {
+        //wip를 먼저 만들고
+        const clone = createWorkInProgress(fiber, pendingProps, expirationTime);
+        //기존의 clone의 형제와의 연결을 모두 끊어준다.
+        clone.index = 0;
+        clone.sibling = null;
+        return clone;
+    };
+    /**
+     *
+     * @param {TFiber} newFiber
+     * @description 단순히 파이버를 배치했음을 사이드 이펙트에 가해주는 함수다
+     * @description 이렇게 해줘야 뒤에서 사이드이펙트를 처리하면서 해당 파이버에 대한 domNode를 삽입가능하다.
+     */
+    const placeSingleChild = (newFiber) => {
+        //단순히 single child 케이스를 처리하는 케이스에는 단순히
+        //sideEffect에 placeMent(배치를함)을 켜주면 된다.
+
+        //shouldTrackSideEffects-> update상황 즉 current가 있는 상황
+        //useFiber를 통해서 재사용하게 끔하면 createWorkInProgress를 통해 있는것을
+        //재사용하게 되는데 이 재사용이 됬다라는 의미는 alternate를 가지는 것을 의미한다.
+        //update하는 상황이고 재사용하는 상황이 아니면 새로운 파이버를 배치하는 상황이다.->sideEffect에 Placement를 켜준다.
+        if (shouldTrackSideEffects && newFiber.alternate === null) {
+            newFiber.effectTag = "Placement";
+        }
+    };
+
+    /**
+     *
+     * @param {TFiber} returnFiber
+     * @param {TFiber | null} currentFirstChild
+     * @param {import('../../type/TRfsType.js').TRfsElement} element
+     * @param {import('../../type/TExpirationTime.js').TExpirationTime} expirationTime
+     * @returns {TFiber} fiber
+     * @description 해당 파이버에 대해서 단하나의 element로 재조정 해주는 함수이다.
+     * @description 결론적으로 이 함수는 currentChild가 여러개 있을건데
+     * @description 그걸 다 없애면서, newChild를 넣어줘야 되는 함수이다.
+     * @description 그런데 만약 현재 차일드 중에 key도 같고, 타입도 같은게 있으면
+     * @description 재사용한다. 재사용하는 경우에는 alternate가 존재한다.
+     */
+    const reconcileSingleElement = (returnFiber, currentFirstChild, element, expirationTime) => {
+        const key = element.key;
+        let child = currentFirstChild;
+
+        //목표: 모든 자식들을 삭제하되, key도 같고, 타입도 같은것이 있으면
+        //재사용하고, 나머지 뒤에 부분을 다 삭제한다.
+        while (child !== null) {
+            if (child.key === key) {
+                if (child.tag === Fragment ? element.type === RFS_FRAGMENT_TYPE : child.elementType === element.type) {
+                    //현 파이버 이후의 파이버들을 다 삭제한다.
+                    deleteRemainingChildren(returnFiber, child.sibling);
+                    const existing = useFiber(
+                        child,
+                        element.type === RFS_FRAGMENT_TYPE ? element.props.children : element.props,
+                        expirationTime
+                    );
+                    existing.ref = elemnt.ref;
+                    existing.return = returnFiber;
+                    return existing;
+                } else {
+                    //아니면 현재 child랑 키는 같으나 타입이 바뀐것임으로
+                    //모든 child를 삭제하고 순회의 바깥 과정에서
+                    //알맞는 파이버를 생성한다.
+                    deleteRemainingChildren(returnFiber, child);
+                    break;
+                }
+            } else {
+                //현재 파이버를 제거하고 이후의 파이버를 순회한다.
+                deleteChild(returnFiber, child);
+            }
+            child = child.sibling;
+        }
+
+        //파이버가 다 삭제 됬음으로 새로운 파이버를 생성한다.
+        //RfsElement아니면 RfsFragment이다.
+        if (element.type === RFS_FRAGMENT_TYPE) {
+            const created = createFiberFromFragment(
+                //NOTE: fragment는 rfs내부적으로는 array로 묶어주는 것을 의미함으로
+                //NOTE: props도 children array로 들어가게 되는데, 이를 위해 element.props.children을 넣어준다.
+                element.props.children,
+                returnFiber.mode,
+                expirationTime,
+                element.key
+            );
+            created.return = returnFiber;
+            return created;
+        } else {
+            const created = createFiberFromElement(element, returnFiber.mode, expirationTime);
+            created.ref = element.ref;
+            created.return = returnFiber;
+            return created;
+        }
+    };
     /**
      *
      * @param {import('../../type/TFiber.js').TFiber} returnFiber
@@ -62,8 +213,6 @@ const ChildReconciler = (shouldTrackSideEffects) => {
             switch (newChild.$$typeof) {
                 case RFS_ELEMENT_TYPE: {
                     //새로운 fiber을 재조정시킨 파이버를 singleChild로 배치합니다.
-                    //TODO: placeSingleChild구현
-                    //TODO: reconcileSingleElement구현
                     return placeSingleChild(
                         reconcileSingleElement(returnFiber, currentFirstChild, newChild, expirationTime)
                     );
@@ -75,7 +224,6 @@ const ChildReconciler = (shouldTrackSideEffects) => {
         if (typeof newChild === "string" || typeof newChild === "number") {
             //새로운 텍스트 노드를 재조정시킨 파이버를 singleChild로 배치합니다.
             //NOTE: ""+ newChild는 newChild를 문자열로 변환합니다.
-            //TODO: placeSingleChild구현
             //TODO: reconcileSingleTextNode구현
             return placeSingleChild(
                 reconcileSingleTextNode(returnFiber, currentFirstChild, "" + newChild, expirationTime)
@@ -84,11 +232,13 @@ const ChildReconciler = (shouldTrackSideEffects) => {
 
         //newChild가 배열일때
         if (isArray(newChild)) {
+            //TODO: reconcileChildrenArray구현
             return reconcileChildrenArray(returnFiber, currentFirstChild, newChild, expirationTime);
         }
 
         //newChild가 iterable일때
         if (getIteratorFn(newChild)) {
+            //TODO: reconcileChildrenIterator구현
             return reconcileChildrenIterator(returnFiber, currentFirstChild, newChild, expirationTime);
         }
 
