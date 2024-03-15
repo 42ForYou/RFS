@@ -11,7 +11,7 @@ import { ConcurrentMode } from "../const/CTypeOfMode.js";
  * @param {key} key = null | string -> conceptual identifier
  * @property {*} ->TFiber
  * @param {mode} TTypeOfMode
- * @returns {import ("../type/TFiber").TFiber}
+ * @returns {import ("../../type/TFiber").TFiber}
  @description constructor for FiberNode
 @description 자세한 설명은 TFiber.js에 참조
  */
