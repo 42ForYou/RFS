@@ -627,6 +627,117 @@ const ChildReconciler = (shouldTrackSideEffects) => {
     /**
      *
      * @param {TFiber} returnFiber
+     * @param {TFiber|null} currentFirstChild
+     * @param {Iterable<any>} newChildrenIterable
+     * @param {TExpirationTime} expirationTime
+     * @description 이 함수는 reconcileChildrenArray의 이터러블 버전 함수입니다.
+     * @description 해당 로직을 더 자세히 이해하려면 reconcileChildrenArray를 보면 됩니다.
+     * @description 해당 로직을 단순히 Iterable에서 수행할 뿐입니다.
+     */
+    const reconcileChildrenIterator = (returnFiber, currentFirstChild, newChildrenIterable, expirationTime) => {
+        //이터러블을 배열로 만들어서 reconcileChildrenArray를 호출합니다.
+
+        const iteratorFn = getIteratorFn(newChildrenIterable);
+        if (typeof iteratorFn !== "function") {
+            console.error("An object is not an iterable. In reconcileChildrenIterator");
+            throw new Error("An object is not an iterable. In reconcileChildrenIterator");
+        }
+
+        const newChilden = iteratorFn.call(newChildrenIterable);
+        if (newChilden === null) {
+            console.error("an iterable object provided no iterator. In reconcileChildrenIterator");
+            throw new Error("an iterable object provided no iterator. In reconcileChildrenIterator");
+        }
+
+        let resultFirstChild = null;
+        let previousNewFiber = null;
+
+        let oldFiber = currentFirstChild;
+        let lastPlacedIndex = 0;
+        let newIdx = 0;
+        let nextOldFiber = null;
+
+        let step = newChilden.next();
+        for (; oldFiber !== null && !step.done; newIdx++, step = newChilden.next()) {
+            if (oldFiber.index > newIdx) {
+                nextOldFiber = oldFiber;
+                oldFiber = null;
+            } else {
+                nextOldFiber = oldFiber.sibling;
+            }
+            const newFiber = updateSlot(returnFiber, oldFiber, step.value, expirationTime);
+            if (newFiber === null) {
+                if (oldFiber === null) {
+                    oldFiber = nextOldFiber;
+                }
+                break;
+            }
+            if (shouldTrackSideEffects) {
+                if (oldFiber && newFiber.alternate === null) {
+                    deleteChild(returnFiber, oldFiber);
+                }
+            }
+            lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
+            if (previousNewFiber === null) {
+                resultFirstChild = newFiber;
+            } else {
+                previousNewFiber.sibling = newFiber;
+            }
+            previousNewFiber = newFiber;
+            oldFiber = nextOldFiber;
+        }
+
+        if (step.done) {
+            deleteRemainingChildren(returnFiber, oldFiber);
+            return resultFirstChild;
+        }
+
+        if (oldFiber === null) {
+            for (; !step.done; newIdx++, step = newChilden.next()) {
+                const newFiber = createChild(returnFiber, step.value, expirationTime);
+                if (newFiber === null) {
+                    continue;
+                }
+                lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
+                if (previousNewFiber === null) {
+                    resultFirstChild = newFiber;
+                } else {
+                    previousNewFiber.sibling = newFiber;
+                }
+                previousNewFiber = newFiber;
+            }
+            return resultFirstChild;
+        }
+
+        const existingChildren = mapRemainingChildren(returnFiber, oldFiber);
+
+        for (; !step.done; newIdx++, step = newChilden.next()) {
+            const newFiber = updateFromMap(existingChildren, returnFiber, newIdx, step.value, expirationTime);
+            if (newFiber !== null) {
+                if (shouldTrackSideEffects) {
+                    if (newFiber.alternate !== null) {
+                        existingChildren.delete(newFiber.key === null ? newIdx : newFiber.key);
+                    }
+                }
+                lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
+                if (previousNewFiber === null) {
+                    resultFirstChild = newFiber;
+                } else {
+                    previousNewFiber.sibling = newFiber;
+                }
+                previousNewFiber = newFiber;
+            }
+        }
+
+        if (shouldTrackSideEffects) {
+            existingChildren.forEach((child) => deleteChild(returnFiber, child));
+        }
+
+        return resultFirstChild;
+    };
+    /**
+     *
+     * @param {TFiber} returnFiber
      * @param {TFiber | null} currentFirstChild
      * @param {import('../../type/TRfsType.js').TRfsElement} element
      * @param {import('../../type/TExpirationTime.js').TExpirationTime} expirationTime
