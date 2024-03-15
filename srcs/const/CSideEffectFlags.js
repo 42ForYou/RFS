@@ -16,13 +16,13 @@ export const PerformedWork = /*         */ 0b0000000000001;
 //파이버는 Fiber.js에서 언급한것처럼 덕타이핑 방식으로 파이버 그자체가 될수도, 사이드 이펙트가 될 수 있는데
 //사이드 이펙트로 작동될때 사용되는 플래그이다
 
-//해당 파이버의 이동을 나타낸다
+//해당 파이버의 배치를 나타낸다. 이는 해당 파이버가 새로 그 자리에 배치되었음을 나타낸다
 export const Placement = /*             */ 0b0000000000010;
 
 //해당 파이버의 업데이트를 나타낸다
 export const Update = /*                */ 0b0000000000100;
 
-//해당 파이버의 이동과 업데이트를 나타낸다->Or연산으로 사용된다
+//해당 파이버의 배치과 업데이트를 나타낸다->Or연산으로 사용된다
 export const PlacementAndUpdate = /*    */ 0b0000000000110;
 
 //해당 파이버의 삭제를 나타낸다
@@ -31,7 +31,7 @@ export const Deletion = /*              */ 0b0000000001000;
 //컨텐트를 리셋해야하는것을 나타낸다
 export const ContentReset = /*          */ 0b0000000010000;
 
-//Todo:아직 정확히 어떤것을 나타내는지 모르겠다
+//callback-> updaete가 되었을떄 sideEffect로 나중에 처리해야되는데, 그것을 나타낸다
 export const Callback = /*              */ 0b0000000100000;
 
 //Suspense에 사용되는 플래그이다.(정확하진 않음 )
