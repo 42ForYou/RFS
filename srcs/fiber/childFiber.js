@@ -922,3 +922,6 @@ export const cloneChildFibers = (current, workInProgress) => {
     //마지막 자식의 sibling을 null로 만들어줍니다.
     newChild.sibling = null;
 };
+
+export const reconcileChildFibers = ChildReconciler(true);
+export const mountChildFibers = ChildReconciler(false);

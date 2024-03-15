@@ -14,7 +14,7 @@ import {
 } from "../const/CWorkTag.js";
 import { Placement, PerformedWork } from "../const/CSideEffectFlags.js";
 import { Update as UpdateEffect, Passive as PassiveEffect } from "../const/CSideEffectFlags.js";
-import { cloneChildFibers } from "../fiber/childFiber.js";
+import { cloneChildFibers, reconcileChildFibers, mountChildFibers } from "../fiber/childFiber.js";
 import renderWithHooks from "../hooks/core/renderWithHooks.js";
 import { shallowEqual } from "../shared/sharedEqual.js";
 import { markUnprocessedUpdateTime } from "./workLoop.js";
