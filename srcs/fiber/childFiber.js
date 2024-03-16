@@ -858,7 +858,7 @@ const ChildReconciler = (shouldTrackSideEffects) => {
 
         //newChild가 배열일때
         if (isArray(newChild)) {
-            //TODO: reconcileChildrenArray구현
+            //TODO: reconcileChildrenArray구현a
             return reconcileChildrenArray(returnFiber, currentFirstChild, newChild, expirationTime);
         }
 

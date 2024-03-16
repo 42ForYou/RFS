@@ -1,4 +1,3 @@
-import { update } from "lodash";
 import { prepareToReadContext, propagateContextChange, pushProvider, readContext } from "../context/newContext.js";
 import calculateChangedBits from "../context/shared/calculateChangedBits.js";
 import hasContextChanged from "../context/shared/hasContextChanged.js";
@@ -17,8 +16,9 @@ import { Update as UpdateEffect, Passive as PassiveEffect } from "../const/CSide
 import { cloneChildFibers, reconcileChildFibers, mountChildFibers } from "../fiber/childFiber.js";
 import renderWithHooks from "../hooks/core/renderWithHooks.js";
 import { shallowEqual } from "../shared/sharedEqual.js";
-import { markUnprocessedUpdateTime } from "./workLoop.js";
+import { markUnprocessedUpdateTime } from "./workloop.js";
 import { pushHostContainer, pushHostContext } from "../fiber/fiberHostContext.js";
+import { processUpdateQueue } from "../core/UpdateQueue.js";
 
 /**
  *

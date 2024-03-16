@@ -5,7 +5,7 @@
  */
 
 import { enqueueUpdate, createUpdate } from "../core/UpdateQueue.js";
-import { scheduleWork } from "../work/workLoop.js";
+import { scheduleWork, requestCurrentTimeForUpdate, computeExpirationForFiber } from "../work/workloop.js";
 /**
  *
  * @param {TRfsNodeList} element @see 파일경로: [TRfsType.js](srcs/type/TRfsType.js)
@@ -24,7 +24,7 @@ import { scheduleWork } from "../work/workLoop.js";
 //*-*ReactDOMRoot.render(<App/>)
 //*-**-*updateContainer(<App/>, root, null, null)
 
-//TODO: parentComponent의 경우 Portal과 서버사이드 렌더링을 위한 것으로 보임.
+//NOTE: parentComponent의 경우 Portal과 서버사이드 렌더링을 위한 것으로 보임.
 //TODO: 만약 해당 인자가 정말 그것 두가지만을 위한 것이라면 삭제 예정.
 export const updateContainer = (
     element,
@@ -34,15 +34,10 @@ export const updateContainer = (
 ) => {
     //fiberRoot.current를 통해 현재 FiberRoot의 파이버를 가져옵니다.
     const current = container.current;
-    //TODO: implement requestCurrentTimeForUpdate
     //현재 리액트에서의 시간을 가져옵니다. 이는 뒤에서 우선순위를 정할때 사용되는 ExpirationTime을 계산할때 사용됩니다.
     const currentTime = requestCurrentTimeForUpdate();
-    //TODO: 구현 안해도 되는지 확인 필요
-    // const suspenseConfig = requestCurrentSuspenseConfig();
-    //TODO: computeExpirationForFiber 구현 필요
     //앞선 currentTime을 기반으로 해당 파이버의 우선순위와 관련된 정보인 ExpirationTime을 계산합니다.
     const expirationTime = computeExpirationForFiber(currentTime, current);
-
     //TODO: 정확히 여기가 어떤 문맥을 가지는 지 정의 필요->아마 구현 안해도 될것으로보임
     //예측 :: 부모 컴포넌트의 문맥을 가져오는 것으로 보임
     // const context = getContextForSubtree(parentComponent);

@@ -21,6 +21,7 @@ import {
     // flushSyncCallbackQueue,
     // scheduleSyncCallback,
 } from "../scheduler/schedulerInterface.js";
+import { beginWork } from "../work/beginWork.js";
 
 import {
     NoPriority,
@@ -153,8 +154,8 @@ let currentEventTime = NoWork;
  * @param {TExpirationTime} expirationTime @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
  */
 export const markUnprocessedUpdateTime = (expirationTime) => {
-    if (expirationTime > workInProgressRootNextUnprocessedUpdateTime) {
-        workInProgressRootNextUnprocessedUpdateTime = expirationTime;
+    if (expirationTime > currentWorkContext.workInProgressRootNextUnprocessedUpdateTime) {
+        currentWorkContext.workInProgressRootNextUnprocessedUpdateTime = expirationTime;
     }
 };
 
@@ -435,6 +436,7 @@ const completeUnitOfWork = (unitOfWork) => {
         const returnFiber = currentWorkContext.workInProgress.return;
 
         //TODO: completeWork
+        //호스트 환경과 관련된 부분의 대한 일을 처리합니다.
         const next = completeWork(current, currentWorkContext.workInProgress, currentWorkContext.renderExpirationTime);
         //TODO: resetChildExpirationTime
         resetChildExpirationTime(currentWorkContext.workInProgress);
@@ -507,7 +509,6 @@ const completeUnitOfWork = (unitOfWork) => {
 const performUnitOfWork = (unitOfWork) => {
     const current = unitOfWork.alternate;
 
-    //TODO: beginWork
     //beginwork를 수행해서 다음 수행할 작업을 반환합니다.
     //beginwork에서 bailout이나, update~로 분기됩니다. 만약 next가 leaf이면 null을 반환합니다.
     let next = beginWork(current, unitOfWork, currentWorkContext.renderExpirationTime);

@@ -15,6 +15,7 @@ const {
     NormalPriorityImpl: schedulerNormalPriority,
     LowPriorityImpl: schedulerLowPriority,
     IdlePriorityImpl: schedulerIdlePriority,
+    getCurrentPriorityLevelImpl: schedulerGetCurrentPriorityLevel,
 } = Scheduler;
 
 import {
