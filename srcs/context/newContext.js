@@ -24,12 +24,10 @@ const pushProvider = (providerFiber, nextValue) => {
         push(contextCore.valueCursor, context._currentValue, providerFiber);
 
         context._currentValue = nextValue;
-        context._currentRenderer = contextCore.rendererSigil;
     } else {
         push(contextCore.valueCursor, context._currentValue2, providerFiber);
 
         context._currentValue2 = nextValue;
-        context._currentRenderer2 = contextCore.rendererSigil;
     }
 };
 
