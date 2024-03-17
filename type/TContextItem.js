@@ -10,5 +10,3 @@ const TContextItem = {
     observedBits: 0,
     next: null,
 };
-
-export default TContextItem;

@@ -117,11 +117,18 @@ const ChildReconciler = (shouldTrackSideEffects) => {
      * @description 기본적으로 index를 바꾸는 행위를 하며, placeMentTag(사이드 이팩트를 가함)을 할지 안할지를 정한다
      * @description 여기서 배치란 list구조 내에서의 배치를 의미한다(fiber가 list구조 임을 기억하자)
      * @description 실제 리스트내에서 배치가 바뀌는 친구만 placementTag를 붙인다(sideEffect)
-     * @description 예를 들어 1->2->3 ==> 2->3->1과 같은 경우 자신이 가르키고 있는 next포인터가 바뀌는 친구만 배치가 바뀌었다고 취급한다.
-     * @description 해당 경우는 1만 바뀌었음으로 1에 대해서만 placementTag를 붙인다.
-     * @description 최악의 케이스로는 1->2->3 ==> 3->1->2로 이동시키는 경우이다. 1번 뺴고 모두 오른쪽화살표가 바꼈음으로 2개를 이동시켜야된다.
-     * @description 해당 배치가 바뀐친구들만 sideEffect를 가하는 방식은 lastPlacedIndex를 통해 이루어진다.
+     * @description 이 리스트 구조내에서 자리를 바꿈에 있어서 해당 알고리즘은 가장 많은 방향이 같은 그룹(연속된)을 남겨서 적게 이동을 시키길 원한다.
+     * @description 그것에 대한 해답으로, newChild배열의 처음을 기준으로 가장 길게 진행 방향으로 방향이 같은 그룹은 이동을 하지 않아도 된다
+     * @description 라고 보고 나머지 그룹을 이동시킨다.
+     * @description 예 1) 1->2->3->4->5 ==> 3->4->5->1->2로 바뀌는 경우인 새 첫자식인 3으로 부터 (3,4,5)가 방향이 일치함으로 이동을
+     * @description 하지 않아도 된다라고 보고 1,2를 새로 배치시킨다.
+     * @description 예 2) 1->2->3->4->5 ==> 3->5->4->1->2로 바뀌는 경우 (3,5)까지가 방향이 같은 그룹으로 보고 (3,5)를 이동시키지 않고
+     * @description (4,1,2)를 이동시킨다.
+     * @description 해당 알고리즘은 특성상 반전에 취약하다
+     * @description 예 3) 1->2->3->4->5 ==> 5->4->3->2->1로 바뀌는 경우 (5로)부터 방향이 같은 그룹이 하나도 없음으로 5만 이동을 시키지 않고
+     * @description 나머지를 이동시킨다. ==> 이는 반전과 같은 구조보다는 방향을 일치 시키는 구조가 좀 더 많이 일어난다라고 가정한 것이다.
      */
+    //TODO: 배치 설명 가장 list내에서 인접한 그룹을 많이 남겨서 적게 이동한다라는 식으로 설명바꾸기
     const placeChild = (newFiber, lastPlacedIndex, newIndex) => {
         newFiber.index = newIndex;
         if (!shouldTrackSideEffects) {
@@ -545,6 +552,7 @@ const ChildReconciler = (shouldTrackSideEffects) => {
             //그리고 마지막으로 배치가 바뀌지 않은 파이버의 인덱스를 가르키는 변수를 업데이트해야됨
             //NOTE: place-배치란 list에서의 배치를 의미함-> 이것은 array에서 index를 바꾸는 것이
             //NOTE:아닌 인접한것을 기준을 의미함 (fiber 자체가 list구조이므로)
+            //NOTE: placeChild의 알고리즘은 placeChild를 참고하면 됨
             lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
 
             //딱 한번만 resultFirstFiber를 세팅해야됨
@@ -764,7 +772,7 @@ const ChildReconciler = (shouldTrackSideEffects) => {
                         element.type === RFS_FRAGMENT_TYPE ? element.props.children : element.props,
                         expirationTime
                     );
-                    existing.ref = elemnt.ref;
+                    existing.ref = element.ref;
                     existing.return = returnFiber;
                     return existing;
                 } else {
@@ -858,13 +866,11 @@ const ChildReconciler = (shouldTrackSideEffects) => {
 
         //newChild가 배열일때
         if (isArray(newChild)) {
-            //TODO: reconcileChildrenArray구현a
             return reconcileChildrenArray(returnFiber, currentFirstChild, newChild, expirationTime);
         }
 
         //newChild가 iterable일때
         if (getIteratorFn(newChild)) {
-            //TODO: reconcileChildrenIterator구현
             return reconcileChildrenIterator(returnFiber, currentFirstChild, newChild, expirationTime);
         }
 

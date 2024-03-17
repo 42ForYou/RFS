@@ -1,7 +1,3 @@
-import { TRootTag } from "./TRootTag.js";
-import { TExpirationTime } from "./TExpirationTime.js";
-import { TFiber } from "./TFiber.js";
-
 /**
  * @typedef {Object} TFiberRoot
  * @description 렌더를 하는 파이버의 루트를 나타내는 객체이다
