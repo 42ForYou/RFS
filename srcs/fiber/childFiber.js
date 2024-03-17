@@ -1,8 +1,7 @@
-import { isArray } from "../shared/isArray.js";
+import isArray from "../shared/isArray.js";
 import { RFS_ELEMENT_TYPE, RFS_FRAGMENT_TYPE } from "../core/rfsSymbol.js";
 import { createWorkInProgress } from "../fiber/fiber.js";
 import { getIteratorFn } from "../core/rfsSymbol.js";
-import { TFiber } from "../../type/TFiber.js";
 import { createFiberFromElement, createFiberFromFragment, createFiberFromText } from "../fiber/fiber.js";
 //Reconcile
 //하나의 트리를 가지고 다른 트리로 변환하기 위한 최소한의 연산 수를 구하는 알고리즘 문제를 풀기 위한 일반적인 해결책들이 있습니다.

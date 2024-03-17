@@ -1,10 +1,3 @@
-import { TWorkTag } from "./TWorkTag.js";
-import { TExpirationTime } from "./TExpirationTime.js";
-import { TSideEffectFlags } from "./TSideEffectFlags.js";
-import { TTypeOfMode } from "./TTypeOfMode.js";
-import TDependencies from "./TDependencies.js";
-import TContext from "./TContext.js";
-
 const any = "any";
 
 const TRefObject = {

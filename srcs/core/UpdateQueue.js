@@ -34,7 +34,6 @@ import { UpdateState } from "../const/CUpdateTag.js";
 import { NoWork } from "../const/CExpirationTime.js";
 import { markUnprocessedUpdateTime, markRenderEventTimeAndConfig } from "../work/workloop.js";
 import { Callback } from "../const/CSideEffectFlags.js";
-import { TFiber } from "../../type/TFiber.js";
 
 export class updateState {
     /**
