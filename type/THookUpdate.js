@@ -7,7 +7,6 @@
  */
 const ThookUpdate = {
     expirationTime: 0,
-    suspenseConfig: null,
     action: null,
     eagerReducer: null,
     eagerState: null,

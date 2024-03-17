@@ -224,7 +224,6 @@ const prepareToReadContext = (workInProgress, renderExpirationTime) => {
 /**
  *
  * @param {Tcontext} context
- * @param {number} observedBits
  *
  * @description - readContext의 목표는 context 값을 읽는 것입니다.
  * 이 함수에서 context의 값을 읽습니다.

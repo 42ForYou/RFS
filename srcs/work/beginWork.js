@@ -346,7 +346,7 @@ const updateContextConsumer = (current, workInProgress, renderExpirationTime) =>
     prepareToReadContext(workInProgress, renderExpirationTime);
 
     // readContext를 통해 context 값을 가져옵니다.
-    const newValue = readContext(context, newProps.unstable_observedBits);
+    const newValue = readContext(context);
 
     // child component를 context의 값을 넣어 호출합니다.
     const newChildren = render(newValue);
