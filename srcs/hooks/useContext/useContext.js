@@ -11,8 +11,8 @@ import hookCore from "../core/hookCore.js";
  * @param {TContext} context
  * @param {number | undefined} observedBits
  */
-const useContext = (context, observedBits) => {
-    return hookCore.RfsCurrentDispatcher.current.useContext(context, observedBits);
+const useContext = (context) => {
+    return hookCore.RfsCurrentDispatcher.current.useContext(context);
 };
 
 export default useContext;

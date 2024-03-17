@@ -1,10 +1,9 @@
-import { MAX_SIGNED_31_BIT_INT } from "../const/CExpirationTime.js";
 import { pop, push } from "../fiber/fiberStack.js";
 import { markWorkInProgressReceivedUpdate } from "../work/beginWork.js";
 import createContextItem from "./constructor/contextItem.js";
 import contextCore from "./core/contextCore.js";
 // TODO: import { isPrimaryRenderer } from "react-dom";
-// ReactDOMHostConfig에서 isPrimaryRenderer를 가져옵니다.
+// RFS의 ReactDOMHostConfig에서 isPrimaryRenderer를 가져옵니다.
 
 /**
  *
@@ -102,7 +101,7 @@ const scheduleWorkOnParentPath = (parent, renderExpirationTime) => {
  * // 이때 변경되었다는 것을 알리는 용도로 해당 fiber의 expirationTime을 변경합니다.
  * @returns
  */
-const propagateContextChange = (workInProgress, context, changedBits, renderExpirationTime) => {
+const propagateContextChange = (workInProgress, context, renderExpirationTime) => {
     let fiber = workInProgress.child;
     if (fiber !== null) {
         // Set the return pointer of the child to the work-in-progress fiber.
@@ -122,13 +121,8 @@ const propagateContextChange = (workInProgress, context, changedBits, renderExpi
                 // Check if the context matches.
                 // 현재 fiber의 context list중에서 현재 변경된 context와 일치하는 context가 있는지 확인합니다.
                 // 만약에 일치하면서 변경되었다면 해당 fiber를 re-render해야합니다.
-                if (dependency.context === context && (dependency.observedBits & changedBits) !== 0) {
+                if (dependency.context === context) {
                     // Match! Schedule an update on this fiber.
-
-                    if (fiber.tag === ClassComponent) {
-                        // NOTE: we don't implement ClassComponent.
-                        // 저희는 함수형 컴포넌트만 사용하기 때문에 해당 부분은 구현하지 않습니다.
-                    }
 
                     // fiber를 re-render하기 때문에 해당 fiber의 expirationTime을 변경합니다.
                     if (fiber.expirationTime < renderExpirationTime) {
@@ -161,12 +155,10 @@ const propagateContextChange = (workInProgress, context, changedBits, renderExpi
         } else if (fiber.tag === ContextProvider) {
             // Don't scan deeper if this is a matching provider
             nextFiber = fiber.type === workInProgress.type ? null : fiber.child;
-        } else if (fiber.tag === DehydreatedFragment) {
-            // NOTE: we don't implement DehydreatedFragment.
-            // it's server components
         } else {
             nextFiber = fiber.child;
         }
+        // NOTE: we don't implement DehydreatedFragment.
 
         // nextFier가 null이라는 것은 더이상 child가 없다는 것.
         // 그러면 sibling을 확인하고 그마저도 존재하지 않는다면 parent로 올라갑니다.
@@ -210,7 +202,7 @@ const propagateContextChange = (workInProgress, context, changedBits, renderExpi
 const prepareToReadContext = (workInProgress, renderExpirationTime) => {
     contextCore.currentlyRenderingFiber = workInProgress;
     contextCore.lastContextDependency = null;
-    contextCore.lastContextWithAllBitsObserved = null;
+    contextCore.lastFullyObservedContext = null;
 
     // component는 여러개의 context를 사용할 수 있습니다.
     // dependencies는 해당 fiber에서 사용되는 컨텍스트의 리스트입니다.
@@ -240,21 +232,11 @@ const prepareToReadContext = (workInProgress, renderExpirationTime) => {
  * 이 함수에서 context의 값을 읽습니다.
  * @returns
  */
-const readContext = (context, observedBits) => {
-    if (contextCore.lastContextWithAllBitsObserved === context) {
+const readContext = (context) => {
+    if (contextCore.lastFullyObservedContext === context) {
         // Nothing to do. We already observe everything in this context.
-    } else if (observedBits === false || observedBits === 0) {
-        // Do not observe any updates.
     } else {
-        let resolvedObservedBits;
-        if (typeof observedBits !== "number" || observedBits === MAX_SIGNED_31_BIT_INT) {
-            contextCore.lastContextWithAllBitsObserved = context;
-            resolvedObservedBits = MAX_SIGNED_31_BIT_INT;
-        } else {
-            resolvedObservedBits = observedBits;
-        }
-
-        const contextItem = createContextItem(context, resolvedObservedBits, null);
+        const contextItem = createContextItem(context, null);
 
         if (contextCore.lastContextDependency === null) {
             // this is the first dependency for this component. Create a new list.

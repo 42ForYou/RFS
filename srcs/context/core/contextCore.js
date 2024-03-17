@@ -7,12 +7,12 @@ import { createCursor } from "../../fiber/fiberStack.js";
  * 개발 모드에서 warning을 출력하기 위해 사용된다.
  * @property {Fiber | null} currentlyRenderingFiber - 현재 렌더링 중인 fiber를 가리킨다.
  * @property {TContextItem | null} lastContextDependency - 마지막으로 의존성을 가진 contextItem를 가리킨다.
- * @property {TContext | null} lastContextWithAllBitsObserved - 마지막으로 모든 bit를 관찰한 context를 가리킨다.
+ * @property {TContext | null} lastFullyObservedContext - 마지막으로 완전히 관찰된 context를 가리킨다.
  */
 export default {
     valueCursor: createCursor(null),
     rendererSigil: undefined,
     currentlyRenderingFiber: null,
     lastContextDependency: null,
-    lastContextWithAllBitsObserved: null,
+    lastFullyObservedContext: null,
 };

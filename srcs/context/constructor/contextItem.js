@@ -6,13 +6,11 @@
 /**
  *
  * @param {TContext} context
- * @param {number} observedBits
  * @param {import("../../../type/TContextItem").TContextItem | null} next
  */
 const contextItem = class {
-    constructor(context, observedBits, next) {
+    constructor(context, next) {
         this.context = context;
-        this.observedBits = observedBits;
         this.next = next;
     }
 };
@@ -20,11 +18,10 @@ const contextItem = class {
 /**
  *
  * @param {TContext} context
- * @param {number} observedBits
- * @param {import("../../../type/TContextItem").TContextItem | null} next
+ * @param {number, * @param {import("../../../type/TContextItem").TContextItem | null}} next
  */
-const createContextItem = (context, observedBits, next) => {
-    return new contextItem(context, observedBits, next);
+const createContextItem = (context, next) => {
+    return new contextItem(context, next);
 };
 
 export default createContextItem;

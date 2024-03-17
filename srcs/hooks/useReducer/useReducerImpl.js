@@ -10,6 +10,8 @@ import { mountWorkInProgressHook, updateWorkInProgressHook } from "../core/workI
 import { createHookUpdateQueue } from "../constructor/index.js";
 import hookExpirationTime from "../core/hookExpirationTime.js";
 import dispatchAction from "../shared/dispatchAction.js";
+import { markWorkInProgressReceivedUpdate } from "../../work/beginWork.js";
+import { markRenderEventTimeAndConfig, markUnprocessedUpdateTime } from "../../work/workloop.js";
 
 /**
  * @param {THookObject} hook
@@ -55,9 +57,6 @@ const updateReducerImpl = (hook, reducer) => {
                 } while (update !== null);
 
                 if (is(newState, hook.memoizedState) === false) {
-                    // TODO: Implement this function.
-                    // 함수 구현이 간단하긴 하지만 beginWork의 module scope를 참조해야 하기 때문에
-                    // 이후 추가 구현을 위해 주석처리 하였습니다
                     markWorkInProgressReceivedUpdate();
                 }
 
@@ -115,13 +114,11 @@ const updateReducerImpl = (hook, reducer) => {
 
                 if (updateExpirationTime > hookExpirationTime.remainingExpirationTime) {
                     hookExpirationTime.remainingExpirationTime = updateExpirationTime;
-                    // TODO: Implement this function.
                     markUnprocessedUpdateTime(hookExpirationTime.remainingExpirationTime);
                 }
             } else {
                 // This update does have sufficient priority.
-                // TODO: implement this function.
-                markRenderEventTimeAndConfig(updateExpirationTime, update.suspenseConfig);
+                markRenderEventTimeAndConfig(updateExpirationTime);
 
                 if (update.eagerReducer === reducer) {
                     newState = update.eagerState;
@@ -140,7 +137,6 @@ const updateReducerImpl = (hook, reducer) => {
         }
 
         if (!is(newState, hook.memoizedState)) {
-            // TODO: Implement this function.
             markWorkInProgressReceivedUpdate();
         }
 

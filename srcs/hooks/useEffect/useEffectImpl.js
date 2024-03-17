@@ -91,7 +91,6 @@ export const updateEffectImpl = (fiberFlags, hookFlags, create, deps) => {
             //가정4. 지우지 못하는 이유는 circularlist
             //가정4. (모름) 가르키는 곳을 바꿔서 거기부터 처리한다.
             pushEffect(NoHookEffect, create, inst, nextDeps);
-            // NOTE: 16.12.0에서는 새롭게 생성된 effect를 사용하지 않는데, 이건 reconciler쪽을 봐야할 것 같다.
             return;
         }
     }
