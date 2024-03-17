@@ -15,7 +15,7 @@ import createProvider from "./constructor/provider.js";
  */
 const createContext = (defaultValue) => {
     // context Object를 생성합니다.
-    const context = createContextInst(RFS_CONTEXT_TYPE, defaultValue, defaultValue, 0, null, null);
+    const context = createContextInst(RFS_CONTEXT_TYPE, defaultValue, defaultValue, null, null);
 
     // Provider 객체 생성.
     const provider = createProvider(RFS_PROVIDER_TYPE, context);

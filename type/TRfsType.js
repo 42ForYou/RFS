@@ -30,7 +30,6 @@ const TRfsContext = {
     Provider: TRfsProviderType,
     _currentValue: T,
     _currentValue2: T,
-    _threadCount: Number,
     _currentRenderer: Object | null,
 };
 const TRfsProvider = {
