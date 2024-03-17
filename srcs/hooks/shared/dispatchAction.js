@@ -1,9 +1,10 @@
 import { NoWork } from "../../const/CExpirationTime.js";
 import is from "../../shared/objectIs.js";
+import { computeExpirationForFiber, requestCurrentTimeForUpdate, scheduleWork } from "../../work/workloop.js";
 import createHookUpdate from "../constructor/hookUpdate.js";
 import hookCore from "../core/hookCore.js";
 import hookExpirationTime from "../core/hookExpirationTime.js";
-import hookRenderPhase from "../core/hookRenderPhase.js";
+import hookRenderPhase, { RE_RENDER_LIMIT } from "../core/hookRenderPhase.js";
 import enqueueRenderPhaseUpdate from "./enqueueRenderPhaseUpdate.js";
 
 /**
@@ -26,6 +27,10 @@ import enqueueRenderPhaseUpdate from "./enqueueRenderPhaseUpdate.js";
  */
 
 const dispatchAction = (fiber, queue, action) => {
+    if (hookRenderPhase.numberOfReRenders < RE_RENDER_LIMIT) {
+        throw new Error("Too many re-renders. React limits the number of renders to prevent an infinite loop.");
+    }
+
     const alternate = fiber.alternate;
 
     // TODO: isRenderPhaseUpdate 함수로 Refactor
@@ -64,14 +69,9 @@ const dispatchAction = (fiber, queue, action) => {
         }
     } else {
         // this is an idle status update
-
-        // TODO: Implement this function. requestCurrentTimeForUpdate
         const currentTime = requestCurrentTimeForUpdate();
-        // TODO: Implement this function. requestCurrentSuspenseConfig 사용하지 않을 수 있음
-        const suspenseConfig = requestCurrentSuspenseConfig();
-        // TODO: Implement this function. computeExpirationForFiber
         // hookupdate에서 suspenseConfig를 사용하고 있는데 이후 updateReducer의 markRenderEventTimeAndConfig에서만 사용된다
-        const expirationTime = computeExpirationForFiber(currentTime, fiber, suspenseConfig);
+        const expirationTime = computeExpirationForFiber(currentTime, fiber);
 
         const update = createHookUpdate(expirationTime, suspenseConfig, action, null, null, null);
         enqueueRenderPhaseUpdate(queue, update);
@@ -94,7 +94,7 @@ const dispatchAction = (fiber, queue, action) => {
             // The queue is currently empty, which means we can eagerly compute the
             // next state before entering the render phase. If the new state is the
             // same as the current state, we may be able to bail out entirely.
-            //NOTE:여기서의 Bailout은 scheduleWork를 호출하지 않는다는 것인듯.
+            //NOTE: 여기서의 Bailout은 scheduleWork를 호출하지 않는다는 것인듯.
             const lastRenderedReducer = queue.lastRenderedReducer;
             if (lastRenderedReducer !== null) {
                 try {
@@ -113,7 +113,6 @@ const dispatchAction = (fiber, queue, action) => {
                 }
             }
         }
-        // TODO: Implement this function. scheduleWork
         scheduleWork(fiber, expirationTime);
     }
 };

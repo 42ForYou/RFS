@@ -1,4 +1,4 @@
-import is from "objectIs.js";
+import is from "./objectIs.js";
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
