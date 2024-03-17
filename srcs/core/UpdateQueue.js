@@ -40,6 +40,7 @@ export class updateState {
     /**
      *
      * @see {TUpdateState} updateState @see :파일경로 srcs/type/TUpdateQueue.js
+     * @type {import("../../type/TUpdateQueue.js").TUpdateState} updateState
      */
     constructor(expirationTime) {
         this.expirationTime = expirationTime;
@@ -225,6 +226,27 @@ const getStateFromUpdate = (update, prevState, nextProps) => {
     }
     return prevState;
 };
+
+/**
+ *
+ * @param {TFiber} workInProgress
+ * @param {import("../../type/TUpdateQueue.js").TUpdateQueueState} queue
+ * @returns {import("../../type/TUpdateQueue.js").TUpdateQueueState}
+ * @description alternate가 존재 하는데 alternate의 queue와 wipQueue가 같다면
+ * @description 큐를 복제하여 새로운 큐를 만들어준다. sharingSturucture를 processing할떄는 연결을 끊어야하기 때문이다.
+ */
+const ensureWorkInProgressQueueIsAClone = (workInProgress, queue) => {
+    const current = workInProgress.alternate;
+    if (current !== null) {
+        //이미 alternate가 있다면
+        if (queue === current.updateQueue) {
+            //이미 같은 큐를 가지고 있다면
+            //큐를 복제하여 새로운 큐를 만들어준다.
+            queue = workInProgress.updateQueue = cloneUpdateQueue(queue);
+        }
+    }
+    return queue;
+};
 /**
  *
  * @param {import("../../type/TFiber.js").TFiber} fiber
@@ -237,7 +259,6 @@ export const processUpdateQueue = (workInProgress, queue, props, renderExpiratio
     // hasForceUpdate = false;
 
     //진행하기 앞서, currentUpdateQueue와의 연결떄문에 현재 wipQueue를 복제한다.
-    //TODO: ensureWorkInProgressQueueIsAClone 구현해야함
     queue = ensureWorkInProgressQueueIsAClone(workInProgress, queue);
 
     //updateQueue를 처리하면서 나중에 갱신을 위한 변수들이다.

@@ -36,7 +36,7 @@ A1 - B2 - C1 - D2
  */
 import { TExpirationTime } from "./TExpirationTime";
 import { TUpdateTag } from "./TUpdateTag";
-export const TUpdateState = {
+const TUpdateState = {
     expirationTime: TExpirationTime,
     // supspenseConfig: null, 해당 부분은 구현을 안할 확률 이 높음
     tag: TUpdateTag,
@@ -56,7 +56,7 @@ export const TUpdateState = {
  * @description processUpdateQueue가 진행하면서 effect가 생기면 callback들을 다라두게 되고
  * @description effectTag = callback을 키게 되는데 이와 관련된 부분이 firstEffect, lastEffect이다.
  */
-export const TUpdateQueueState = {
+const TUpdateQueueState = {
     baseState: any,
     firstUpdate: TUpdateState | null,
     lastUpdate: TUpdateState | null,

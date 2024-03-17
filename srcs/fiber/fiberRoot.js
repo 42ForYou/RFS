@@ -22,7 +22,9 @@ const FiberRootNode = class {
         //Todo: TimeoutHandle의 정확한 명세가 필요합니다.
         this.timeoutHandle = null;
         this.context = null;
-        this.pendingContext = null;
+        //NOTE: disableLegacyContext와 그리고 getContextForSubtree관련있는데 이건 서브트리에서 받아와서
+        //NOTE: 렌더하는거랑 관련있는듯 => 구현 x
+        // this.pendingContext = null;
         this.callbackNode = null;
         this.callbackPriority = null;
         this.callbackExpirationTime = NoWork;

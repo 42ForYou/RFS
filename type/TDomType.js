@@ -1,10 +1,7 @@
-import { RfsNodeList } from "./TRfsType";
-import { TFiberRoot } from "./TFiberRoot";
-
 /**
  * @typedef {Element & {_rfsRootContainer: TDOMRootType}} DOMContainer
  */
-export const DOMContainer =
+const DOMContainer =
     Element &
         {
             _rfsRootContainer: TDOMRootType,
@@ -17,7 +14,7 @@ export const DOMContainer =
 /**
  * @typedef {Object} TDOMRootType
  */
-export const TDOMRootType = {
+const TDOMRootType = {
     /**
      * @param {RfsNodeList} @type {RfsNodeList} -> ReactNodeList
      */

@@ -7,5 +7,3 @@ const TProvider = {
     $$typeof: Symbol,
     _context: TContext,
 };
-
-export default TProvider;

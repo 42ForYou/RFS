@@ -30,7 +30,7 @@ const updateReducerImpl = (hook, reducer) => {
     const queue = hook.queue;
     queue.lastRenderedReducer = reducer;
 
-    // render-phase update (1번째 분기)
+    // render-phase update (1번째 분기) NOTE: render phase update === component안에서 dispatch를 호출했을 때
     if (hookRenderPhase.numberOfReRenders > 0) {
         // render-phase update
         // This is a re-render. Apply the new reduer phase updates to the previous

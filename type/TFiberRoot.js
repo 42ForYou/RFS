@@ -1,7 +1,3 @@
-import { TRootTag } from "./TRootTag.js";
-import { TExpirationTime } from "./TExpirationTime.js";
-import { TFiber } from "./TFiber.js";
-
 /**
  * @typedef {Object} TFiberRoot
  * @description 렌더를 하는 파이버의 루트를 나타내는 객체이다
@@ -33,8 +29,10 @@ const TFiberRoot = {
 
     //가장 Top Cop Context입니다 현재 렌더에 사용되고있는
     context: Object | null,
-    //바뀔거지만 아직 확정되진 않은 context value-> 나중에 context랑 교환
-    pendingContext: Object | null,
+
+    //NOTE: disableLegacyContext와 그리고 getContextForSubtree관련있는데 이건 서브트리에서 받아와서
+    //NOTE: 렌더하는거랑 관련있는듯 => 구현 x
+    // pendingContext: Object | null,
 
     //Scheduling에 사용 되는 callBackNode
     //Todo: 정확한 설명 필요

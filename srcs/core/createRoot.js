@@ -83,7 +83,7 @@ const ReactDOMRoot = class {
      */
     render(children) {
         const root = this._internalRoot;
-        updateContainer(children, root, null, null);
+        updateContainer(children, root, null);
     }
 };
 /**

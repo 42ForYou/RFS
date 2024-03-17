@@ -59,8 +59,16 @@ const renderWithHooks = (current, workInProgress, Component, props, refOrContext
     let children = Component(props, refOrContext);
 
     // render phase시에 update가 발생했다면 해당 Component를 다시 렌더링합니다.
+    // NOTE: renderphaseUpdate란 예를들어
+    // NOTE: function component ({props}) {
+    // NOTE:     const [state, setState] = useState(0);
+    // NOTE:     setState(1);
+    // NOTE:     setState(2);
+    // NOTE:     return <div>{state}</div>
+    // NOTE:  이런꼴일떄 컴포넌트 코드 안에 setState코드가 있어서 dispatchAction이 여기선 두번 불릴떄 일어나는 상황이다.
     if (hookRenderPhase.didScheduleRenderPhaseUpdate) {
         do {
+            //NOTE: (daegulee)->여기서 만약에 무한으로 돌면 Throw던지는게 좋지 않을까요?? 예를 들어 40번정도면 에러로그를 찌
             hookRenderPhase.didScheduleRenderPhaseUpdate = false;
             hookRenderPhase.numberOfReRenders += 1;
 

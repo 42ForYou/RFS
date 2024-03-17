@@ -13,5 +13,3 @@ const TDependencies = {
     firstContext: TContextItem | null,
     responders: Map(ReactEventResponder, ReactEventResponderInstance | null),
 };
-
-export default TDependencies;
