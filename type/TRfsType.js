@@ -28,10 +28,8 @@ const TRfsContext = {
     $$typeof: Symbol | Number,
     Consumer: TRfsContext,
     Provider: TRfsProviderType,
-    // _calculateChangedBits: ((a: T, b: T) => Number) | null,
     _currentValue: T,
     _currentValue2: T,
-    _threadCount: Number,
     _currentRenderer: Object | null,
 };
 const TRfsProvider = {

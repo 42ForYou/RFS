@@ -1,5 +1,4 @@
 import { prepareToReadContext, propagateContextChange, pushProvider, readContext } from "../context/newContext.js";
-import calculateChangedBits from "../context/shared/calculateChangedBits.js";
 import hasContextChanged from "../context/shared/hasContextChanged.js";
 import {
     IndeterminateComponent,
@@ -19,6 +18,8 @@ import { shallowEqual } from "../shared/sharedEqual.js";
 import { markUnprocessedUpdateTime } from "./workloop.js";
 import { pushHostContainer, pushHostContext } from "../fiber/fiberHostContext.js";
 import { processUpdateQueue } from "../core/UpdateQueue.js";
+
+import is from "../shared/objectIs.js";
 
 /**
  *
@@ -306,9 +307,7 @@ const updateContextProvider = (current, workInProgress, renderExpirationTime) =>
     if (oldProps !== null) {
         const oldValue = oldProps.value;
 
-        // calculateChangedBits를 통해 이전 값과 새로운 값이 변하였는지 계산합니다.
-        const changedBits = calculateChangedBits(context, newValue, oldValue);
-        if (changedBits === 0) {
+        if (is(oldValue, newValue)) {
             // No change. Bailout early if children are the same.
             if (oldProps.children === newProps.children && !hasContextChanged()) {
                 return bailoutOnAlreadyFinishedWork(current, workInProgress, renderExpirationTime);
@@ -316,10 +315,9 @@ const updateContextProvider = (current, workInProgress, renderExpirationTime) =>
         } else {
             // The context value changed. Search for matching consumers and schedule
             // them to update.
-            // changedBits가 0이 아니라면, context가 변했다는 것을 의미합니다.
             // Provider의 값이 변경되었기 때문에 해당 Provider의 값을 사용하는 Consumer를 찾아서
             // re-render를 해야합니다.
-            propagateContextChange(workInProgress, context, changedBits, renderExpirationTime);
+            propagateContextChange(workInProgress, context, renderExpirationTime);
         }
     }
 
@@ -349,7 +347,7 @@ const updateContextConsumer = (current, workInProgress, renderExpirationTime) =>
     prepareToReadContext(workInProgress, renderExpirationTime);
 
     // readContext를 통해 context 값을 가져옵니다.
-    const newValue = readContext(context, newProps.unstable_observedBits);
+    const newValue = readContext(context);
 
     // child component를 context의 값을 넣어 호출합니다.
     const newChildren = render(newValue);
