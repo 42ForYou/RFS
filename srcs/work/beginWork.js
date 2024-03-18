@@ -18,6 +18,7 @@ import { shallowEqual } from "../shared/sharedEqual.js";
 import { markUnprocessedUpdateTime } from "./workloop.js";
 import { pushHostContainer, pushHostContext } from "../fiber/fiberHostContext.js";
 import { processUpdateQueue } from "../core/UpdateQueue.js";
+
 import is from "../shared/objectIs.js";
 
 /**

@@ -94,6 +94,7 @@ const dispatchAction = (fiber, queue, action) => {
             // The queue is currently empty, which means we can eagerly compute the
             // next state before entering the render phase. If the new state is the
             // same as the current state, we may be able to bail out entirely.
+
             //NOTE: 여기서의 Bailout은 scheduleWork를 호출하지 않는다는 것인듯.
             const lastRenderedReducer = queue.lastRenderedReducer;
             if (lastRenderedReducer !== null) {

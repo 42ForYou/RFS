@@ -1,7 +1,8 @@
 /**
  * @typedef {Element & {_rfsRootContainer: TDOMRootType}} DOMContainer
  */
-const DOMContainer =
+const TDOMContainer =
+
     Element &
         {
             _rfsRootContainer: TDOMRootType,
