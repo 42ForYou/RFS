@@ -6,7 +6,7 @@ import {
     computeAsyncExpiration,
     inferPriorityFromExpirationTime,
 } from "../fiber/fiberExiprationTime.js";
-import { markRootUpdatedAtTime, markRootExpiredAtTime } from "../fiber/fiberRoot.js";
+import { markRootUpdatedAtTime, markRootExpiredAtTime, markRootFinishedAtTime } from "../fiber/fiberRoot.js";
 import { NoWork, Sync, Idle } from "../const/CExpirationTime.js";
 import { createWorkInProgress } from "../fiber/fiber.js";
 import {
@@ -136,6 +136,12 @@ const currentPassiveEffectContext = {
      * @type {TExpirationTime} @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
      */
     pendingPassiveEffectsExpirationTime: NoWork,
+
+    /**
+     * @description 현재 workLoop에서 다음에 다룰 effect를 나타냅니다.
+     @ type {TFiber | null} @see 파일경로: [TFiber.js](srcs/type/TFiber.js) 
+    */
+    nextEffect: null,
 };
 
 /**
@@ -565,6 +571,236 @@ const workLoopConcurrent = () => {
 
 /**
  *
+ * @param {TFiber} fiber
+ * @returns {TExpirationTime}
+ * @description 해당함수는 파이버의 만료시간을 반환합니다.해당 만료시간은 자식과 현재 파이버의 만료시간을 비교하여
+ * @description 더 우선순위가 높은 것을 반환합니다.
+ */
+const getRemainingExpirationTime = (fiber) => {
+    const updateExpirationTime = fiber.expirationTime;
+    const childExpirationTime = fiber.childExpirationTime;
+    return updateExpirationTime > childExpirationTime ? updateExpirationTime : childExpirationTime;
+};
+
+/**
+ * @param {TFiberRoot} root @see 파일경로: [TFiberRoot.js](srcs/type/TFiberRoot.js)
+ * @param {TRfsPriorityLevel} renderPriorityLevel @see 파일경로: [TRfsPriorityLevel.js](srcs/type/TRfsPriorityLevel.js)
+ * @description 해당함수는 root를 커밋합니다.
+ */
+const commitRootImpl = (root, renderPriorityLevel) => {
+    //NOTE: 밀어둔 passiveEffect가 아직 처리가 안되있으면 처리합니다.
+    do {
+        // flush synchronous work at the end, to avoid factoring hazards like this.
+        // 이게 implicit하게는 rootWithPendingPassiveEffects가 flushPassiveEffects가 끝나면 무조건
+        // null이 되여야되지만
+        //flushSyncUPdateQueue에 의해 commitRoot나 이런게 다시 호출되면
+        //rootWithPendingPassiveEffects가 다시 생길 수 있다.
+        //이걸 다시 처리하기 위해서 do while문을 사용하는 것이다.
+        //NOTE:만약 passiveEffect를 스케줄링을 통해 다음 tick으로 미뤘는데 다음
+        //NOTE:commitRootImpl까지도 처리가 안되어 있다면 그걸 처리하고 다시 진행한다.
+        flushPassiveEffects();
+    } while (currentWorkContext.rootWithPendingPassiveEffects !== null);
+
+    if (currentWorkContext.executionContext & ((RenderContext | CommitContext) !== NoContext)) {
+        console.error("Should not already be working. in commitRootImpl.");
+        throw new Error("Should not already be working. in commitRootImpl.");
+    }
+
+    //커밋할 파이버와 ExpirationTime을 가져옵니다.
+    const finishedWork = root.finishedWork;
+    const expirationTime = root.finishedExpirationTime;
+
+    //할일이 없으면 early return
+    if (finishedWork === null) {
+        return null;
+    }
+
+    //진행할 커밋관련 데이터를 초기화 합니다.
+    root.finishedWork = null;
+    root.finishedExpirationTime = NoWork;
+    if (finishedWork === root.current) {
+        console.error(
+            "Cannot commit the same tree as before. This is probably a bug related to the return field. in commitRootImpl."
+        );
+        throw new Error(
+            "Cannot commit the same tree as before. This is probably a bug related to the return field. in commitRootImpl."
+        );
+    }
+
+    //commitRoot는 continuation을 리턴할 일이 없음 (continuation은 performConcurrentWorkOnRoot에서 계속 수행되기 위해 사용됨으로)
+    //이것은 항상 동기적으로 수행됩니다. 그러므로 새로운 콜백을 클리어합니다.
+    root.callbackNode = null;
+    root.callbackExpirationTime = NoWork;
+    root.callbackPriority = NoPriority;
+
+    // 남아잇는 ExpirationTime을 가져오고, 대기 작업(pendingTime)을 RemaingExpirationTime으로 설정합니다.
+    const remainingExpirationTimeBeforeCommit = getRemainingExpirationTime(finishedWork);
+    markRootFinishedAtTime(root, expirationTime, remainingExpirationTimeBeforeCommit);
+
+    if (root === currentWorkContext.workInProgressRoot) {
+        //현재 렌더링중인 루트가 커밋할 루트라면
+        //현재 렌더링중인 루트를 초기화합니다.
+        currentWorkContext.workInProgressRoot = null;
+        currentWorkContext.workInProgress = null;
+        currentWorkContext.renderExpirationTime = NoWork;
+    } else {
+        // 이것은 우리가 마지막으로 작업한 루트와 지금 커밋하는 루트가
+        // 지금 커밋하는 루트와 다르다는 것을 나타냅니다.
+        //NOTE: rfs에서는 일어날 수 없는 일로 추측됨. ->multiRoot를 지원하지 않음
+        console.error("Cannot commit a root that is not working on. in commitRootImpl.");
+        throw new Error("Cannot commit a root that is not working on. in commitRootImpl.");
+    }
+
+    //NOTE: 기본적으로 본인의 sideEffectList는 자기자신을 포함시키지 않는데 이제 commit을 처리하는 과정에서는
+    //NOTE: 이를 포함시켜야합니다.
+    let firstEffect;
+    if (finishedWork.effectTag > PerformedWork) {
+        //파이버 구조는 기본적으로 자기 자신은 sideEffectlist에 포함시키지 않기 떄문에
+        //만약 루트가 effect를 가지고 있다라면 해당 effect를 sideEffectlist에 포함시킵니다.
+        //기본적으로 가장 마지막에 수행되는 것이다.
+        if (finishedWork.lastEffect !== null) {
+            finishedWork.lastEffect.nextEffect = finishedWork;
+            firstEffect = finishedWork.firstEffect;
+        } else {
+            firstEffect = finishedWork;
+        }
+    } else {
+        //만약 루트가 effect를 가지고 있지 않다면
+        //firstEffect는 단순히 sideEffectlist의 firstEffect가 됩니다.
+        firstEffect = finishedWork.firstEffect;
+    }
+
+    //NOTE: effect 처리
+    if (firstEffect !== null) {
+        const prevExecutionContext = currentWorkContext.executionContext;
+        currentWorkContext.executionContext |= CommitContext;
+
+        // 커밋 단계는 여러 하위 단계로 나뉩니다. 각 단계마다 별도의 pass를 수행합니다.
+        //NOTE: 앞선 말은 firstEffect를 계속 각 단계에 맞춰서 처음부터 끝까지 그 단계로 적용한후
+        //NOTE: 다음단계를 다시 처음부터 끝까지 적용하는 것을 의미합니다.
+        // 각 단계에 대한 효과 목록의 모든 mutation effect가 모든
+        // 모든 layoutEffect이전에 수행되어야 합니다.
+
+        // 첫 번째 단계는 "mutationBefore" 단계입니다. 이 단계에서는 mutation 직전 호스트 트리의
+        // 호스트 트리의 상태를 읽는 데 사용되는 모든 effect를 수행합니다. 예를 들어 passiveEffect를
+        // 스케줄링하는것이 여기에 해당됩니다.
+
+        //해당 단계를 진행하기전에 commit을 준비합니다.
+        //이벤트 활성화 상태를 비활성화 하고 selection관련 정보를 저장합니다.
+        //이는 이벤트 활성화를 막어 커밋단계에서의 사이드 이펙트를 막고, selection상태를 돔업데이트 이후에
+        //복원하는데 사용하기 위함입니다.
+        //TODO: prepareForCommit ==>dom모듈
+        prepareForCommit(root.containerInfo);
+
+        //이제 처리할 nextEffect를 firstEffect로 설정합니다.
+        currentPassiveEffectContext.nextEffect = firstEffect;
+        try {
+            //TODO: commitBeforeMutationEffects
+            commitBeforeMutationEffects();
+        } catch (error) {
+            console.error("commitBeforeMutationEffects in CommitRootImpl, 관련 훅을 디버깅", error);
+            throw error;
+        }
+
+        //2번쨰 페이즈 mutation단계입니다. 이 단계에서는 mutation effect를 수행합니다.
+        try {
+            commitMutationEffects(root, renderPriorityLevel);
+        } catch (error) {
+            console.error("commitMutationEffects in CommitRootImpl, 관련 dom요소를 디버깅", error);
+            throw error;
+        }
+        //commit을 위해 멈춰두었던 이벤트활성화와 백업해둔 selection상태를 복원합니다.
+        //TODO: resetAfterCommit ==>dom모듈
+        resetAfterCommit(root.containerInfo);
+
+        // 이제 wipTree가 currentTree가 되어야 합니다. 이것은 항상 mutation phase이후에 일어나야합니다.
+        //왜냐하면 componentWillUnmount를 하는 중에는 previous tree가 current여야 되기 떄문이고
+        //layoutphase전에 일어나야합니다. 이는 finishwork가 componentDidMount에서
+        //current여야 하기떄문입니다.
+        root.current = finishedWork;
+
+        //3번쨰 phase는 layoutphase입니다. host tree가 바뀌고 나서 불려야 되는 sideeffect가 있는 곳입니다.
+        //layoutEffect와 class Component lifecycles이 여기서 일어남
+        cuurentPassiveEffectContext.nextEffect = firstEffect;
+        try {
+            //TODO: commitLayoutEffects구현
+            commitLayoutEffects(root, expirationTime);
+        } catch (error) {
+            console.error("commitLayoutEffects in CommitRootImpl, 관련 훅(layoutEffect)을 디버깅", error);
+            throw error;
+        }
+
+        //effect관련 phase가 끝났음으로 effect를 초기화합니다.
+        currentPassiveEffectContext.nextEffect = null;
+
+        //작업이 끝났음으로 스케줄러에게 paint를 하라고 요청합니다.
+        requestPaint();
+        currentWorkContext.executionContext = prevExecutionContext;
+    } else {
+        //effect가 없는 상황입니다.
+        //단순히 wiptree를 currentTree로 바꿉니다.
+        root.current = finishedWork;
+    }
+
+    const rootDidHavePassiveEffects = currentPassiveEffectContext.rootDoesHavePassiveEffects;
+
+    //만약 passiveEffect가 남아있다면 root의 참조를 가지고 있어야 됩니다. 나중에 처리해야되기 떄문에
+    //하지만 passiveEffect가 더 처리 됬다면 gc를 통해 effect부분을 다 참조를 해제합니다.
+    if (rootDidHavePassiveEffects) {
+        //나중에 passiveEffect를 처리하기 위한 모든 정보들을 잡아둡니다.
+        currentPassiveEffectContext.rootDoesHavePassiveEffects = false;
+        currentPassiveEffectContext.rootWithPendingPassiveEffects = root;
+        currentPassiveEffectContext.pendingPassiveEffectsExpirationTime = expirationTime;
+        currentPassiveEffectContext.pendingPassiveEffectsRenderPriority = renderPriorityLevel;
+    } else {
+        //해당 이펙트를 다 처리했기 떄문에 gc가 메모리를 해제할 수 있도록 null로 만듭니다.
+        nextEffect = firstEffect;
+        while (nextEffect !== null) {
+            const nextNextEffect = nextEffect.nextEffect;
+            nextEffect.nextEffect = null;
+            nextEffect = nextNextEffect;
+        }
+    }
+
+    const remainingExpirationTime = root.firstPendingTime;
+
+    //만약 남은 expirationTime이 sync라면(즉시 수행) 바로 nested하게 업데이트 됨으로
+    //nestedUpdateCount를 증가시킵니다.
+    if (remainingExpirationTime === Sync) {
+        if (root === nestedUpdate.rootWithNestedUpdates) {
+            nestedUpdate.nestedUpdateCount++;
+        } else {
+            nestedUpdate.nestedUpdateCount = 0;
+            nestedUpdate.rootWithNestedUpdates = root;
+        }
+    } else {
+        nestedUpdate.nestedUpdateCount = 0;
+    }
+
+    //항상 commitRoot이후에 추가 작업이 있는지 확인하기 위하여 ensureRootIsScheduled을 호출합니다.
+    ensureRootIsScheduled(root);
+
+    //NOTE: Legacyunbatched 처리해야되면 추가해야 될 로직 여기 에 있음
+
+    //만약 layoutWork가 스케쥴  되어 있으면 flush한다
+    //NOTE: commit도중에 발생한 모든 동기적인 작업을 처리하도록 보장하는 것이다.
+    //TODO: flushSyncCallbackQueue 구현
+    flushSyncCallbackQueue();
+    return null;
+};
+
+/**
+ *
+ * @param {TFiberRoot} root @see 파일경로: [TFiberRoot.js](srcs/type/TFiberRoot.js)
+ * @description 스케쥴러에게 즉시 commitRoot를 요청합니다.
+ */
+const commitRoot = (root) => {
+    const renderPriorityLevel = getCurrentPriorityLevel();
+    runWithPriority(ImmediatePriority, commitRootImpl.bind(null, root, renderPriorityLevel));
+};
+
+/**
+ *
  * @param {TFiberRoot} root @see 파일경로: [TFiberRoot.js](srcs/type/TFiberRoot.js)
  * @description 해당함수는 concurrent렌더를 마무리짓습니다. 이는 커밋을 진행합니다.
  */
@@ -609,7 +845,7 @@ export const performConcurrentWorkOnRoot = (root, didTimeout) => {
     //기존 callbackNode를 저장합니다.
     const originalCallbackNode = root.callbackNode;
 
-    //sideEffect를 flush합니다.
+    //passive sideEffect를 flush합니다.
     flushPassiveEffects();
 
     //만약 루트가 현재 렌더링중인 루트가 아니거나, 새로 배정된 expirationTime(우선순위)가

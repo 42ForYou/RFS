@@ -47,6 +47,6 @@ const TFiberRoot = {
      * @description 해당 파이버 루트내에서 가장 빨리 처리되어야할 우선순위(expirationTime)을 설정합니다.
      */
     firstPendingTime: TExpirationTime,
-
+    //Root가 가장 마지막으로 만료된 시간
     lastExpiredTime: TExpirationTime,
 };
