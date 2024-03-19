@@ -27,6 +27,7 @@ import {
     commitPlacement,
     commitDetachRef,
     commitResetTextContent,
+    commitWork,
 } from "../work/commitWork.js";
 import { completeWork } from "../work/completeWork.js";
 import {
@@ -634,15 +635,13 @@ const commitMutationEffects = (root, renderPriorityLevel) => {
 
                 //update
                 const current = effect.alternate;
-                //Mutation관련 update를 처리합니다.
-                //TODO: implement commitWork
+                //dom관련된 update커밋을 처리합니다.
                 commitWork(current, effect);
                 break;
             }
             case Update: {
                 const current = effect.alternate;
-                //Mutation관련 update를 처리합니다.
-                //TODO: implement commitWork
+                //dom관련된 update커밋을 처리합니다.
                 commitWork(current, effect);
                 break;
             }

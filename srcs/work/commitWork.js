@@ -1,5 +1,5 @@
 import { NoEffect, Passive } from "../const/CSideEffectFlags.js";
-import { FunctionComponent, SimpleMemoComponent } from "../const/CWorkTag.js";
+import { FunctionComponent, HostComponent, HostText, SimpleMemoComponent } from "../const/CWorkTag.js";
 import { NoHookEffect, UnmountPassive, MountPassive } from "../const/CHookEffectTag.js";
 
 /**
@@ -270,6 +270,78 @@ export const commitPlacement = (finishedWork) => {
         node = node.sibling;
     }
 };
+
+/**
+ *
+ * @param {TFiber | null} current
+ * @param {TFiber} finishedWork
+ * @description 해당 함수는 dom(host)Instance가 update가 된것에 대해서 커밋하는게 주된 역할이다.
+ * @description 주의 할 케이스로는 commitHookEffectList(UnmountMutation,...)을 호출하는 부분인데
+ * @description 이는 UnmountMutation이 layoutEffect와 관련있고, 기본적으로 dom과 관련된 일이기 떄문이다.
+ * @description host,dom과 관련된 연산을 커밋한다라고 보면 된다.
+ */
+export const commitWork = (current, finishedWork) => {
+    switch (finishedWork.tag) {
+        case FunctionComponent:
+        case SimpleMemoComponent: {
+            // NOTE: We currently never use MountMutation, but useLayout uses
+            // UnmountMutation.
+            // NOTE: layoutEffect도 dom과 관련된 연산이기 떄문에 여기서 처리한다.
+            commitHookEffectList(UnmountMutation, MountMutation, finishedWork);
+            return;
+        }
+        case HostComponent: {
+            //domInstance를 가져온다
+            const instance = finishedWork.stateNode;
+            if (instance !== null) {
+                //새로 커밋할 props를 가져온다.
+                const newProps = finishedWork.memoizedProps;
+                //props를 비교해야되는데 이전 것이 없으면 새로운 것을 사용한다.
+                const oldProps = current !== null ? current.memoizedProps : newProps;
+
+                //updateHostComponent에서 HostComponent에 넣었던 updatePayload를 가져온다.
+                const updatePayload = finishedWork.updateQueue;
+                //여기서 소비할것임으로 null로 만들어준다.
+                finishedWork.updateQueue = null;
+                if (updatePayload !== null) {
+                    //update를 커밋한다.
+                    //TODO: implement commitUpdate =>dom모듈
+                    commitUpdate(instance, updatePayload, type, oldProps, newProps, finishedWork);
+                }
+            }
+            return;
+        }
+        case HostText: {
+            if (finishedWork.stateNode === null) {
+                console.error(
+                    "This should have a text node initialized. This error is likely caused by a bug in rfs. in commitWork"
+                );
+                throw new Error(
+                    "This should have a text node initialized. This error is likely caused by a bug in rfs. in commitWork"
+                );
+            }
+            //HostTextDomInstance를 가져온다.
+            const textInstance = finishedWork.stateNode;
+            //해당 새로 교체할 string을 가져온다.
+            const newText = finishedWork.memoizedProps;
+
+            //기존 텍스트를 가져온다.
+            const oldText = current !== null ? current.memoizedProps : newText;
+            //TextUpdate를 커밋한다.
+            //TODO: implement commitTextUpdate =>dom모듈
+            commitTextUpdate(textInstance, oldText, newText);
+            return;
+        }
+        case HostRoot: {
+            return;
+        }
+        default: {
+            console.error(`This unit of work tag : ${finishedWork.tag} is not supported in commitWork`);
+            throw new Error(`This unit of work tag : ${finishedWork.tag} is not supported in commitWork`);
+        }
+    }
+};
+
 /**
  *
  * @param {TFiber} current
