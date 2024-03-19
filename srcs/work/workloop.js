@@ -22,6 +22,7 @@ import {
     // scheduleSyncCallback,
 } from "../scheduler/schedulerInterface.js";
 import { beginWork } from "../work/beginWork.js";
+import { commitPassiveHookEffects } from "../work/commitWork.js";
 
 import {
     NoPriority,
@@ -405,7 +406,7 @@ const flushPassiveEffectsImpl = () => {
 
     let effect = root.current.firstEffect;
     while (effect !== null) {
-        //TODO: commitPassiveHookEffects
+        //현 effect = fiber(sideEffect)에 updateQueue에 있는 PassiveHookEffectList를 커밋합니다.
         commitPassiveHookEffects(effect);
         const nextNextEffect = effect.nextEffect;
         // nextEffect를 가비지콜렉팅하기 위해 null로 만듭니다.
