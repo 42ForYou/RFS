@@ -22,8 +22,13 @@ import {
     // scheduleSyncCallback,
 } from "../scheduler/schedulerInterface.js";
 import { beginWork } from "../work/beginWork.js";
-import { commitPassiveHookEffects } from "../work/commitWork.js";
-
+import {
+    commitPassiveHookEffects,
+    commitPlacement,
+    commitDetachRef,
+    commitResetTextContent,
+} from "../work/commitWork.js";
+import { completeWork } from "../work/completeWork.js";
 import {
     NoPriority,
     ImmediatePriority,
@@ -442,7 +447,6 @@ const completeUnitOfWork = (unitOfWork) => {
         const current = currentWorkContext.workInProgress.alternate;
         const returnFiber = currentWorkContext.workInProgress.return;
 
-        //TODO: completeWork
         //호스트 환경과 관련된 부분의 대한 일을 처리합니다.
         const next = completeWork(current, currentWorkContext.workInProgress, currentWorkContext.renderExpirationTime);
         //TODO: resetChildExpirationTime
@@ -584,6 +588,99 @@ const getRemainingExpirationTime = (fiber) => {
 };
 
 /**
+ *
+ * @param {TFiberRoot} root
+ * @param {TExpirationTime} renderExpirationTime
+ * @description 해당 함수는 sideEffect 그 중에서도 dominstance와 관련된 sideEffect를 처리합니다.
+ */
+const commitMutationEffects = (root, renderPriorityLevel) => {
+    while (currentPassiveEffectContext.nextEffect !== null) {
+        const effect = currentPassiveEffectContext.nextEffect;
+        const effectTag = effect.effectTag;
+
+        //Text가 리셋되어야 되는 sideEffect를 처리합니다.
+        if ((effectTag & ContentReset) !== NoEffect) {
+            commitResetTextContent(effect);
+        }
+
+        //Ref관련된 정보를 갱신해야되는 sideEffect를 처리합니다.
+        if ((effectTag & Ref) !== NoEffect) {
+            const current = effect.alternate;
+            //만약 현재 파이버가 null이 아니라면 detachRef를 호출합니다.
+            if (current !== null) {
+                commitDetachRef(effect);
+            }
+        }
+        // 다음 스위치 문은 placement,update,deletion과만 관련있음.
+        // 가능한 모든 비트맵 값에 대해 대소문자를 추가할 필요가 없도록 하려면
+        // 비트맵 값에 대해 대소문자를 추가할 필요가 없도록, 효과 태그에서 보조 효과를 제거하고
+        // 해당 값을 만을 사용하도록 함.
+        const primaryEffectTag = effectTag & (Placement | Update | Deletion);
+        switch (primaryEffectTag) {
+            case Placement: {
+                //placement
+                commitPlacement(effect);
+                // 효과 태그에서 "placement"를 지워서 이것이
+                // 삽입된 것을 알 수 있도록, componentDidMount와 같은 라이프사이클이 호출되기 전에 말입니다.
+                effect.effectTag &= ~Placement;
+                break;
+            }
+            case PlacementAndUpdate: {
+                //placement
+                commitPlacement(effect);
+                // 효과 태그에서 "placement"를 지워서 이것이
+                // 삽입된 것을 알 수 있도록, componentDidMount와 같은 라이프사이클이 호출되기 전에 말입니다.
+                effect.effectTag &= ~Placement;
+
+                //update
+                const current = effect.alternate;
+                //Mutation관련 update를 처리합니다.
+                //TODO: implement commitWork
+                commitWork(current, effect);
+                break;
+            }
+            case Update: {
+                const current = effect.alternate;
+                //Mutation관련 update를 처리합니다.
+                //TODO: implement commitWork
+                commitWork(current, effect);
+                break;
+            }
+            case Deletion: {
+                //TODO: implement commitDeletion
+                commitDeletion(root, effect, renderPriorityLevel);
+                break;
+            }
+        }
+        currentPassiveEffectContext.nextEffect = effect.nextEffect;
+    }
+};
+
+/**
+ * @description 해당 함수는 MutationEffects가 일어나기 전에 처리되어야할 commitEffect를 처리합니다.
+ * @description passivehookEffect를 다음 tick으로 미루기 위해 스케줄링을 합니다.
+ * @description 만약 다음 커밋까지 처리가 되지 않으면 commitRootImpl에 do while문에서 처리합니다.
+ */
+const commitBeforeMutationEffects = () => {
+    while (currentPassiveEffectContext.nextEffect !== null) {
+        const effect = currentPassiveEffectContext.nextEffect;
+        const effectTag = effect.effectTag;
+        if ((effectTag & Passive) !== NoEffect) {
+            // NOTE: passiveEffect를 현 tick에서 처리하지 않고 다음 tick에서 처리하기 위해
+            // NOTE: scheduleing으로 미루는 것이다.
+            if (!currentPassiveEffectContext.rootDoesHavePassiveEffects) {
+                currentPassiveEffectContext.rootDoesHavePassiveEffects = true;
+                scheduleCallback(NormalPriority, () => {
+                    flushPassiveEffects();
+                    return null;
+                });
+            }
+        }
+        currentPassiveEffectContext.nextEffect = effect.nextEffect;
+    }
+};
+
+/**
  * @param {TFiberRoot} root @see 파일경로: [TFiberRoot.js](srcs/type/TFiberRoot.js)
  * @param {TRfsPriorityLevel} renderPriorityLevel @see 파일경로: [TRfsPriorityLevel.js](srcs/type/TRfsPriorityLevel.js)
  * @description 해당함수는 root를 커밋합니다.
@@ -696,7 +793,7 @@ const commitRootImpl = (root, renderPriorityLevel) => {
         //이제 처리할 nextEffect를 firstEffect로 설정합니다.
         currentPassiveEffectContext.nextEffect = firstEffect;
         try {
-            //TODO: commitBeforeMutationEffects
+            //첫번쨰 phase인 mutationBefore단계입니다. 이 단계에서는 passiveEffect들을 스케줄링합니다.
             commitBeforeMutationEffects();
         } catch (error) {
             console.error("commitBeforeMutationEffects in CommitRootImpl, 관련 훅을 디버깅", error);

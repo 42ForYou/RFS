@@ -25,6 +25,7 @@ const PerformedWork = /*         */ 0b0000000000001;
 const Placement = /*             */ 0b0000000000010;
 
 //해당 파이버의 업데이트를 나타낸다
+//예): dom해당 요소의 update, useEffect와 같은 업데이트
 const Update = /*                */ 0b0000000000100;
 
 //해당 파이버의 배치과 업데이트를 나타낸다->Or연산으로 사용된다
