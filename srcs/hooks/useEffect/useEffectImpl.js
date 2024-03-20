@@ -18,7 +18,7 @@ import { NoEffect as NoHookEffect, MountPassive, UnmountPassive } from "../../co
 
 /**
  *
- * @param {TFiberTag} tag
+ * @param {THookEffectFlags} tag
  * @param {Function} create
  * @param {Function} inst
  * @param {Array} deps
@@ -51,7 +51,7 @@ const pushEffect = (tag, create, inst, deps) => {
 
 /**
  *
- * @param {import("../../fiber/type").TEffectFlags} fiberFlags
+ * @param {import("../../type/TSideEffectFlags.js").TSideEffectFlags} fiberFlags
  * @param {import("../types/THookEffectFlags").THookEffectFlags} hookFlags
  * @param {Function} create
  * @param {Function} deps
@@ -90,6 +90,11 @@ export const updateEffectImpl = (fiberFlags, hookFlags, create, deps) => {
             //가정 3. 그것을 위하여 기존에 있는거에서 flag만 처리하지않는다를 붙여서 복사해서 붙여넣는다
             //가정4. 지우지 못하는 이유는 circularlist
             //가정4. (모름) 가르키는 곳을 바꿔서 거기부터 처리한다.
+            //NOTE: 일단 해당 effect가 아무 effect를 일으키지 않았다라는 effect를 밀어둔다
+            //NOTE: 아무 effect도 하지 않는것이라는 update를 구지 밀어 두는 이유는
+            //NOTE: 컴포넌트가 unmount될떄 destory를 호출해야되는데, 그것의 참조를 위해서이다.
+            //NOTE: 기본적으로 업데이트큐에 있는걸 소비하는 식으로 하는데, component가 unmount될떄
+            //NOTE: 클린업을 하려면 그것만을 위한 update가 존재해야되는데, 그것을 위해서이다.
             pushEffect(NoHookEffect, create, inst, nextDeps);
             return;
         }
@@ -112,7 +117,7 @@ export const updateEffect = (create, deps) => {
 
 /**
  *
- * @param {import("../../fiber/type").TEffectFlags} fiberFlags
+ * @param {import("../../type/TSideEffectFlags.js").TSideEffectFlags} fiberFlags
  * @param {import("../types/THookEffectFlags").THookEffectFlags} hookFlags
  * @param {Function} create
  * @param {Function} deps
@@ -136,5 +141,11 @@ export const mountEffectImpl = (fiberFlags, hookFlags, create, deps) => {
  * @see mountEffectImpl
  */
 export const mountEffect = (create, deps) => {
+    //NOTE: UpdateEffect | PassiveEffect 기본적으로 useEffect에 의해서 생겨지는 Effect
+    //NOTE: 는 passiveEffect로 이건 내부적으로 생성되면서 뒤로 한 틱 뒤로 스케줄링되고 다음 틱에 해당이 안처리 되어 있으면(커밋단계)
+    //NOTE: 그걸 처리하도록 하게 되는데. 일반적으로 update가 일어났고, passive하게 처리됨으로 이런식으로 달아짐
+
+    //NOTE: 기본적으로 밀떄 내가 mount시키고 싶은 effect랑 unmount시키고 싶은 effect를 같이 지정해서 넘겨주는데
+    //NOTE: useEffect같은거는 passiveEffect임으로 둘다 passive로 mount,unmount를 지정해주는것이다.
     mountEffectImpl(UpdateEffect | PassiveEffect, UnmountPassive | MountPassive, create, deps);
 };

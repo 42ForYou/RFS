@@ -18,6 +18,9 @@ import { mountEffectImpl, updateEffectImpl } from "../useEffect/useEffectImpl.js
  * @returns
  */
 export const mountLayoutEffect = (create, deps) => {
+    //NOTE: passiveEffect가 아님으로 sideEffectTag에 UpdateEffect만을 추가하고
+    //NOTE: 해당 작업은 mutation이 unmount될떄 unmount되어야 함으로 UnmountMutation을 추가합니다.
+    //NOTE: mount는 mountLayout입니다.
     return mountEffectImpl(UpdateEffect, UnmountMutation | MountLayout, create, deps);
 };
 
@@ -31,5 +34,8 @@ export const mountLayoutEffect = (create, deps) => {
  * @returns
  */
 export const updateLayoutEffect = (create, deps) => {
+    //NOTE: passiveEffect가 아님으로 sideEffectTag에 UpdateEffect만을 추가하고
+    //NOTE: 해당 작업은 mutation이 unmount될떄 unmount되어야 함으로 UnmountMutation을 추가합니다.
+    //NOTE: mount는 mountLayout입니다.
     return updateEffectImpl(UpdateEffect, UnmountMutation | MountLayout, create, deps);
 };

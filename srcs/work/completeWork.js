@@ -267,9 +267,6 @@ export const completeWork = (current, workInProgress, renderExpirationTime) => {
             popProvider(workInProgress);
             break;
         }
-        case MemoComponent: {
-            break;
-        }
         default: {
             console.error(`Not implemented tag :${workInProgress.tag} In completeWork`);
             throw new Error("Not implemented");

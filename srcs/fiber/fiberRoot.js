@@ -94,3 +94,21 @@ export const markRootExpiredAtTime = (root, expirationTime) => {
         root.lastExpiredTime = expirationTime;
     }
 };
+
+/**
+ *
+ * @param {TFiberRoot} root
+ * @param {TExpirationTime} finishedExpirationTime
+ * @param {TExpirationTime} remainingExpirationTime
+ * @description firstPendingTime을 RemainingExpirationTime으로 설정하고
+ * @description만약 finishedExpirationTime이 root.finishedExpirationTime우선순위가 높다면
+ * @description finishedExpirationTime보다 lastExpiredTime이 더 크면 여기선 만료시간 문맥임으로
+ * @description 잘 수행된것임으로 lastExpiredTime을 NoWork로 설정해준다.
+ */
+export const markRootFinishedAtTime = (root, finishedExpirationTime, remainingExpirationTime) => {
+    root.firstPendingTime = remainingExpirationTime;
+
+    if (finishedExpirationTime <= root.lastExpiredTime) {
+        root.lastExpiredTime = NoWork;
+    }
+};
