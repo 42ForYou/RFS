@@ -389,3 +389,242 @@ export const commitDetachRef = (current) => {
         currentRef.current = null;
     }
 };
+
+const detachRef = (current) => {
+    const ref = current.ref;
+    if (ref !== null) {
+        if (typeof ref === "function") {
+            ref(null);
+        } else {
+            ref.current = null;
+        }
+    }
+};
+
+/**
+ *
+ * @param {TFiberRoot} finishedRoot
+ * @param {TFiber} root
+ * @param {TRfsPriortyLevel} renderPriorityLevel
+ */
+const commitNestedUnmounts = (finishedRoot, root, renderPriorityLevel) => {
+    // 제거된 호스트 노드 안에 있는 동안에는 내부 노드에서
+    // 제거되었으므로 내부 노드에서 removeChild를 호출하고 싶지 않습니다.
+    // 호출하고 싶지 않습니다. 또한 이 호스트 노드가 제거되기 전에 모든 컴포넌트에서 // componentWillUnmount를 호출하고 싶습니다.
+    // 컴포넌트에서 컴포넌트 언마운트를 호출하고 싶습니다. 따라서
+    // 호스트 노드 안에 있는 동안 내부 루프를 수행합니다.
+    let node = root;
+    //내부구조는 자식이 있으면 내려가고, 없으면 형제를 찾아서 내려가는 방식으로 동작한다.
+    //그리고 내부적으로 모든 자식을 unmount했고 마지막 형제라면 한 레벨 위로 올라가서 행위를 반복한다.
+    while (true) {
+        commitUnmount(finishedRoot, node, renderPriorityLevel);
+        if (node.child !== null) {
+            node.child.return = node;
+            node = node.child;
+            continue;
+        }
+        if (node === root) {
+            return;
+        }
+        while (node.sibling === null) {
+            if (node.return === null || node.return === root) {
+                return;
+            }
+            node = node.return;
+        }
+        node.sibling.return = node.return;
+        node = node.sibling;
+    }
+};
+
+/**
+ *
+ * @param {TFiberRoot} finishedRoot
+ * @param {TFiber} current
+ * @param {TRfsPriortyLevel} renderPriorityLevel
+ * @description 현 한 레벨과 관련된 모든 didWillUnmount와 관련된것들을 실행합니다.
+ */
+const commitUnmount = (finishedRoot, current, renderPriorityLevel) => {
+    switch (current.tag) {
+        case FunctionComponent:
+        case SimpleMemoComponent: {
+            //기본적으로 functionComponent는 hookEffectList를 unmount시켜야 합니다.
+            const updateQueue = current.updateQueue;
+            if (updateQueue !== null) {
+                const lastEffect = updateQueue.lastEffect;
+                if (lastEffect !== null) {
+                    const firstEffect = lastEffect.next;
+
+                    const priorityLevel = renderPriorityLevel > NormalPriority ? NormalPriority : renderPriorityLevel;
+                    runWithPriority(priorityLevel, () => {
+                        let effect = firstEffect;
+                        do {
+                            const destroy = effect.destroy;
+                            if (destroy !== undefined) {
+                                destroy();
+                            }
+                            effect = effect.next;
+                        } while (effect !== firstEffect);
+                    });
+                }
+            }
+            break;
+        }
+        case HostComponent: {
+            detachRef(current);
+            return;
+        }
+    }
+};
+
+/**
+ *
+ * @param {TFiberRoot} finishedRoot
+ * @param {TFiber} current
+ * @param {TRfsPriortyLevel} renderPriorityLevel
+ * @description 현재 host부모가 될 수 있는 파이버를 찾고
+ * @description 가능한 host부모 기준 한 레벨아래의 자식들을 다 찾아서
+ * @description 삭제를 진행하는 함수이다. 해당 부분에서 삭제를 하기 전에 didWillUnmount와 관련된것들을(Cleanup)을
+ * @description 다 실행하고 삭제한다. 여기서 만약 host라면 재귀적으로 관련된 서브트리를 다 unmount하고
+ * @description 아니라면 현 레벨만 unmount하고 자식으로 내려간다.
+ */
+const unmountHostComponents = (finishedRoot, current, renderPriorityLevel) => {
+    // 삭제된 최상위 파이버만 있지만 그 파이버의
+    // 자식들을 재귀하여 모든 터미널 노드를 찾아야 합니다.
+    const node = current;
+
+    //NOTE: 포탈과 관련되서 포탈과 관련된 parent를 찾았으면 vaild하지 않으니까 돌려둘라고
+    //NOTE: 있는것같긴함
+    let currentParentIsValid = false;
+
+    //현재 parent와 관련된 변수
+    let currentParent;
+    let currentParentIsContainer;
+    while (true) {
+        //만약 현재 currentParent를 찾지 못했다면 parent를 찾아야한다.
+        //여기서 parent란 한 레벨 위의 host부모를 찾는것이다.
+        if (!currentParentIsValid) {
+            let parent = node.return;
+            //parent를 찾는 label
+            //host 기준 parent를 찾는다. 부모가 가능한 host가 될떄까지 한 레벨 위로 올라간다.
+            findParent: while (true) {
+                if (parent === null) {
+                    console.error(
+                        "Expected to find a host parent. This error is likely caused by a bug in rfs. in unmountHostComponents"
+                    );
+                    throw new Error(
+                        "Expected to find a host parent. This error is likely caused by a bug in rfs. in unmountHostComponents"
+                    );
+                }
+                const parentStateNode = parent.stateNode;
+                switch (parent.tag) {
+                    case HostComponent:
+                        currentParent = parentStateNode;
+                        currentParentIsContainer = false;
+                        //가능한 부모를 찾았으면 현재 findParent를 빠져나간다.
+                        break findParent;
+                    case HostRoot:
+                        currentParent = parentStateNode.containerInfo;
+                        currentParentIsContainer = true;
+                        //가능한 부모를 찾았으면 현재 findParent를 빠져나간다.
+                        break findParent;
+                }
+                //부모가 host가 아니면 한 레벨 위로 올라간다.
+                parent = parent.return;
+            }
+            currentParentIsValid = true;
+        }
+
+        //NOTE: 현재 노드 자체가 host관련 파이버여서 바로 삭제할 수 있는 상황이라면
+        if (node.tag === HostComponent || node.tag === HostText) {
+            //NOTE: 예를 들면 cleanUp과 같은, component가 unmount가 될떄 실행되어야 하는데
+            //NOTE: didWillUnmount와 관련된것들을 재귀적으로 모든 서브트리에 대해서 다 실행
+            //TODO: implement commitNestedUnmounts
+            commitNestedUnmounts(finishedRoot, node, renderPriorityLevel);
+
+            //재귀적으로 didWillUnmount와 관련된것들을 실행하고 난뒤는 이제 안전하게 트리에 삭제 가능하다.
+            if (currentParentIsContainer) {
+                //TODO: implement removeChildFromContainer =>dom모듈
+                removeChildFromContainer(currentParent, node.stateNode);
+            } else {
+                //TODO: implement removeChild =>dom모듈
+                removeChild(currentParent, node.stateNode);
+            }
+        } else {
+            //NOTE: host가 아니라면 현 레벨에 대해서만 didWillUnmount와 관련된것들을 실행하고
+            //NOTE: 한 레벨 아래로 내려간다. hostComponent를 찾기 위해서
+            //TODO: implement commitUnmount
+            commitUnmount(finishedRoot, node, renderPriorityLevel);
+            if (node.child !== null) {
+                //NOTE: 자식이 있다면 내려간다.
+                node.child.return = node;
+                node = node.child;
+                continue;
+            }
+        }
+        //여기에 오는 경우는 현재 host관련 파이버 였어서 서브 트리를 삭제를 다 진행했거나
+        //한 레벨에 대해서만 삭제를 했는데, 자식이 없어서 내려가지 못하였을떄다
+
+        //그 상황에서 현재 node가 current와 같다면 끝난것이다.
+        if (node === current) {
+            return;
+        }
+
+        //여기에 오는 경우는 현재 host관련 파이버 였어서 서브 트리를 삭제를 다 진행했거나
+        //한 레벨에 대해서만 삭제를 했는데, 자식이 없어서 내려가지 못하였을떄다
+        //그 상황에서는 지금 현재 node가 마지막 형제라면 마지막 형제가 아닐떄 까지 부모로 올라가야 한다.
+        //만약 root에 도달하거나 current와 같다면 끝난것이다.
+        while (node.sibling === null) {
+            if (node.return === null || node.return === current) {
+                return;
+            }
+            node = node.return;
+        }
+        //마지막 형제가 아니고 종료조건이 아닌 경우 형제로 이동하여 한 레벨아래의 가장 가까운 host자식을 찾는
+        //과정을 반복한다.
+        node.sibling.return = node.return;
+        node = node.sibling;
+    }
+};
+
+/**
+ *
+ * @param {TFiber} current
+ * @description gc(가비지콜렉터)를 작동시키기 위해 현재 파이버와 관련된 참조를 다 끊어준다.
+ * @description 이상적으로는 부모의 대체의 자식 포인터를 지워야하지만, 어느 부모가 현재 부모인지 확실히 알 수 없으므로
+ * @description 부모인지 알 수 없으므로 이 자식의 하위 트리를 GC를하는 것으로 만족한다.
+ */
+const detachFiber = (current) => {
+    const alternate = current.alternate;
+    // 반환 포인터를 잘라 트리에서 연결을 끊습니다. 이상적으로는
+    // 부모 대체의 자식 포인터를 지워야 합니다.
+    // 하지만 어느 부모가 현재 부모인지 확실히 알 수 없으므로
+    // 부모인지 알 수 없으므로 이 자식의 하위 트리를 GC:인하는 것으로 만족하겠습니다. 이 자식
+    // 자체가 다음 번에 부모가 업데이트될 때 GC:ed됩니다.
+    current.return = null;
+    current.child = null;
+    current.memoizedState = null;
+    current.updateQueue = null;
+    current.dependencies = null;
+    current.alternate = null;
+    current.firstEffect = null;
+    current.lastEffect = null;
+    current.pendingProps = null;
+    current.memoizedProps = null;
+    if (alternate !== null) {
+        detachFiber(alternate);
+    }
+};
+/**
+ *
+ * @param {TFiberRoot} finishedRoot
+ * @param {TFiber} current
+ * @param {TRfsPriortyLevel} renderPriorityLevel
+ */
+export const commitDeletion = (finishedRoot, current, renderPriorityLevel) => {
+    // 부모에서 모든 호스트 노드를 재귀적으로 삭제합니다.
+    // 참조를 분리하고 전체 서브트리에서 componentWillUnmount()를 호출합니다.(예)cleanup)
+    unmountHostComponents(finishedRoot, current, renderPriorityLevel);
+    //GC(가비지콜렉터)를 가동시키기 위해 현재 파이버와 관련된 참조를 다 끊어준다.
+    detachFiber(current);
+};

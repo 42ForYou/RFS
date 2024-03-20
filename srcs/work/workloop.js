@@ -28,6 +28,7 @@ import {
     commitDetachRef,
     commitResetTextContent,
     commitWork,
+    commitDeletion,
 } from "../work/commitWork.js";
 import { completeWork } from "../work/completeWork.js";
 import {
@@ -646,7 +647,6 @@ const commitMutationEffects = (root, renderPriorityLevel) => {
                 break;
             }
             case Deletion: {
-                //TODO: implement commitDeletion
                 commitDeletion(root, effect, renderPriorityLevel);
                 break;
             }
