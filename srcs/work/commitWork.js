@@ -77,6 +77,31 @@ export const commitPassiveHookEffects = (finishedWork) => {
 
 /**
  *
+ * @param {TFiber} finishedWork
+ * @description 해당 함수는 해당 파이버의 ref를 attach하는 함수이다.(커밋)
+ */
+export const commitAttachRef = (finishedWork) => {
+    const ref = finishedWork.ref;
+    if (ref !== null) {
+        const instance = finishedWork.stateNode;
+        let instanceToUse;
+        switch (finishedWork.tag) {
+            case HostComponent:
+                //TODO: implement getPublicInstance =>dom모듈
+                instanceToUse = getPublicInstance(instance);
+                break;
+            default:
+                instanceToUse = instance;
+        }
+        if (typeof ref === "function") {
+            ref(instanceToUse);
+        } else {
+            ref.current = instanceToUse;
+        }
+    }
+};
+/**
+ *
  * @param {TFiber} fiber
  * @returns {boolean}
  * @description 해당 파이버가 host부모가 될 수 있는지를 판단하는 함수이다.
@@ -477,6 +502,60 @@ const commitUnmount = (finishedRoot, current, renderPriorityLevel) => {
     }
 };
 
+/**
+ *
+ * @param {TFiberRoot} finishedRoot
+ * @param {TFiber|null} current
+ * @param {TFiber} finishedWork
+ * @param {TExpirationTime} commitedExpirationTime
+ * @description 해당 함수는 커밋할때 커밋할 lifeCycle을 커밋하는 함수이다.
+ * @description TODO: layout문맥은 해결 되었는데 host문맥은 좀 더 dom모듈을 이해하고 해결해야한다.
+ */
+export const commitLifeCycles = (finishedRoot, current, finishedWork, commitedExpirationTime) => {
+    switch (finishedWork.tag) {
+        case FunctionComponent:
+        case SimpleMemoComponent: {
+            commitHookEffectList(UnmountLayout, MountLayout, finishedWork);
+            break;
+        }
+        case HostRoot: {
+            //TODO: 해당 문맥 dom모듈에서 정확히 이해하고 해결
+            const updateQueue = finishedWork.updateQueue;
+            if (updateQueue !== null) {
+                let instance = null;
+                if (finishedWork.child !== null) {
+                    switch (finishedWork.child.tag) {
+                        case HostComponent:
+                            //TODO: implement getPublicInstance =>dom모듈
+                            instance = getPublicInstance(finishedWork.child.stateNode);
+                            break;
+                    }
+                }
+                //TODO: implement commitUpdateQueue =>dom모듈
+                commitUpdateQueue(finishedWork, updateQueue, instance, commitedExpirationTime);
+            }
+            return;
+        }
+        case HostComponent: {
+            const instance = finishedWork.stateNode;
+            if (current === null && finishedWork.effectTag & Update) {
+                const type = finishedWork.type;
+                const props = finishedWork.memoizedProps;
+                //TODO: implement commitMount =>dom모듈
+                commitMount(instance, type, props, finishedWork);
+            }
+            return;
+        }
+        case HostText: {
+            //lifeCycle과 관련이 없음
+            return;
+        }
+        default: {
+            console.error(`This unit of work tag : ${finishedWork.tag} is not supported in commitLifeCycles`);
+            throw new Error(`This unit of work tag : ${finishedWork.tag} is not supported in commitLifeCycles`);
+        }
+    }
+};
 /**
  *
  * @param {TFiberRoot} finishedRoot

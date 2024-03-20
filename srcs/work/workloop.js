@@ -29,6 +29,7 @@ import {
     commitResetTextContent,
     commitWork,
     commitDeletion,
+    commitLifeCycles as commitLayoutEffectOnFiber,
 } from "../work/commitWork.js";
 import { completeWork } from "../work/completeWork.js";
 import {
@@ -592,6 +593,35 @@ const getRemainingExpirationTime = (fiber) => {
 /**
  *
  * @param {TFiberRoot} root
+ * @param {TExpirationTime} committedExpirationTime
+ * @description 해당 함수는 레이아웃 효과를 커밋합니다.
+ * @description 자세히는 현 effectFiber 하나하나 layouteffect를 커밋하고(commitLifeCycle's alias)를 호출합니다.
+ * @description Ref와 관련된 attach를 커밋합니다.
+ */
+const commitLayoutEffects = (root, committedExpirationTime) => {
+    while (currentPassiveEffectContext.nextEffect !== null) {
+        const effect = currentPassiveEffectContext.nextEffect;
+        const effectTag = effect.effectTag;
+
+        //layOutEffect를 커밋합니다.
+        if ((effectTag & (Update | Callback)) !== NoEffect) {
+            //commitLifeCycle의 alias를 호출합니다.
+            const current = effect.alternate;
+            commitLayoutEffectOnFiber(root, current, effect, committedExpirationTime);
+        }
+
+        //ref를 attach해주는 sideEffect를 처리합니다.
+        if ((effectTag & Ref) !== NoEffect) {
+            //Ref와 관련된 attach를 커밋합니다.
+            commitAttachRef(effect);
+        }
+        currentPassiveEffectContext.nextEffect = effect.nextEffect;
+    }
+};
+
+/**
+ *
+ * @param {TFiberRoot} root
  * @param {TExpirationTime} renderExpirationTime
  * @description 해당 함수는 sideEffect 그 중에서도 dominstance와 관련된 sideEffect를 처리합니다.
  */
@@ -904,7 +934,6 @@ const commitRoot = (root) => {
 //TODO: msUntillTime in RootComplete부분 코드 뺴도 되는지 확인
 const finishConcurrentRender = (root) => {
     currentWorkContext.workInProgressRoot = null;
-    //TODO: commitRoot
     commitRoot(root);
     //TODO: 해당부분이 만약 rootExitStatus 가 필요하다면 리팩토링해야된다
 };
