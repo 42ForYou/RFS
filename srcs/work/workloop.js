@@ -30,6 +30,7 @@ import {
     commitWork,
     commitDeletion,
     commitLifeCycles as commitLayoutEffectOnFiber,
+    commitAttachRef,
 } from "../work/commitWork.js";
 import { completeWork } from "../work/completeWork.js";
 import {
@@ -830,6 +831,7 @@ const commitRootImpl = (root, renderPriorityLevel) => {
         }
 
         //2번쨰 페이즈 mutation단계입니다. 이 단계에서는 mutation effect를 수행합니다.
+        currentPassiveEffectContext.nextEffect = firstEffect;
         try {
             commitMutationEffects(root, renderPriorityLevel);
         } catch (error) {
@@ -850,7 +852,6 @@ const commitRootImpl = (root, renderPriorityLevel) => {
         //layoutEffect와 class Component lifecycles이 여기서 일어남
         cuurentPassiveEffectContext.nextEffect = firstEffect;
         try {
-            //TODO: commitLayoutEffects구현
             commitLayoutEffects(root, expirationTime);
         } catch (error) {
             console.error("commitLayoutEffects in CommitRootImpl, 관련 훅(layoutEffect)을 디버깅", error);

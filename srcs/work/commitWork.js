@@ -1,4 +1,4 @@
-import { NoEffect, Passive } from "../const/CSideEffectFlags.js";
+import { NoEffect, Passive, Placement } from "../const/CSideEffectFlags.js";
 import { FunctionComponent, HostComponent, HostText, SimpleMemoComponent } from "../const/CWorkTag.js";
 import { NoHookEffect, UnmountPassive, MountPassive } from "../const/CHookEffectTag.js";
 
@@ -189,7 +189,7 @@ const getHostSibling = (fiber) => {
         }
 
         //NOTE: check find) 로직--> 이 친구가 before이 될 수 있는지(before이 되려면 placement가 아니여야 한다)
-        if (!(node.effectTag & ContentReset)) {
+        if (!(node.effectTag & Placement)) {
             //찾았음
             return node.stateNode;
         }
