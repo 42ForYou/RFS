@@ -70,10 +70,9 @@ const dispatchAction = (fiber, queue, action) => {
     } else {
         // this is an idle status update
         const currentTime = requestCurrentTimeForUpdate();
-        // hookupdate에서 suspenseConfig를 사용하고 있는데 이후 updateReducer의 markRenderEventTimeAndConfig에서만 사용된다
         const expirationTime = computeExpirationForFiber(currentTime, fiber);
 
-        const update = createHookUpdate(expirationTime, suspenseConfig, action, null, null, null);
+        const update = createHookUpdate(expirationTime, action, null, null, null);
         enqueueRenderPhaseUpdate(queue, update);
 
         // TODO: refactor this statement, isNoWorkOnBothFiber
