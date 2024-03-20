@@ -2,16 +2,16 @@
  *
  * @param {import("../../fiber/type").TEffectTags} effectTag
  * @param {Function} create
- * @param {import("../types/THookEffectFlags").THookEffectFlags} inst
+ * @param {Function} destroy
  * @param {Array} deps
  * @param {TEffect} next
  * @see TEffectInstance
  */
 const effect = class {
-    constructor(effectTag, create, inst, deps, next) {
+    constructor(effectTag, create, destroy, deps, next) {
         this.effectTag = effectTag;
         this.create = create;
-        this.inst = inst;
+        this.destroy = destroy;
         this.deps = deps;
         this.next = next;
     }
@@ -21,14 +21,14 @@ const effect = class {
  *
  * @param {import("../../fiber/type").TEffectTags} effectTag
  * @param {Function} create
- * @param {import("../types/THookEffectFlags").THookEffectFlags}
+ * @param {Function} destroy
  * @param {Array} deps
  * @param {TEffect} next
  * @returns {TEffect}
  * @see TEffectInstance
  */
-const createEffect = (effectTag, create, inst, deps, next) => {
-    return new effect(effectTag, create, inst, deps, next);
+const createEffect = (effectTag, create, destroy, deps, next) => {
+    return new effect(effectTag, create, destroy, deps, next);
 };
 
 export default createEffect;

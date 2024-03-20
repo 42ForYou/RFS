@@ -12,7 +12,6 @@ import { mountWorkInProgressHook, updateWorkInProgressHook } from "../core/workI
 import hookCore from "../core/hookCore.js";
 
 import createEffect from "../constructor/effect.js";
-import createEffectInstance from "../constructor/EffectInstance.js";
 import createFunctionComponentUpdateQueue from "../constructor/FunctionComponentUpdateQueue.js";
 import { NoEffect as NoHookEffect, MountPassive, UnmountPassive } from "../../const/CHookEffectFlags.js";
 
@@ -20,15 +19,15 @@ import { NoEffect as NoHookEffect, MountPassive, UnmountPassive } from "../../co
  *
  * @param {THookEffectFlags} tag
  * @param {Function} create
- * @param {Function} inst
+ * @param {Function} destroy
  * @param {Array} deps
  * @description - This function push an effect on fiber updateQueue.
  * fiber의 updateQueue에 effect를 push합니다. 만약 updateQueue가 존재하지 않는다면 새로운 updateQueue를 생성합니다.
  * @see createFunctionComponentUpdateQueue
  * @returns
  */
-const pushEffect = (tag, create, inst, deps) => {
-    const effect = createEffect(tag, create, inst, deps, null);
+const pushEffect = (tag, create, destroy, deps) => {
+    const effect = createEffect(tag, create, destroy, deps, null);
 
     if (hookCore.componentUpdateQueue === null) {
         hookCore.componentUpdateQueue = createFunctionComponentUpdateQueue(null);
@@ -67,12 +66,12 @@ const pushEffect = (tag, create, inst, deps) => {
 export const updateEffectImpl = (fiberFlags, hookFlags, create, deps) => {
     const hook = updateWorkInProgressHook();
     const nextDeps = deps === undefined ? null : deps;
-    const effect = hook.memoizedState;
-    const inst = effect.inst;
+    let destroy = undefined;
 
     if (hookCore.currentHook !== null && nextDeps !== null) {
         const prevEffect = hookCore.currentHook.memoizedState;
         const prevDeps = prevEffect.deps;
+        destroy = prevEffect.destroy;
         // if deps "[]" when mounted, and the prevDeps is "[]" -> true
         // so run the effect ONCE
         // Why not just use the memoizedState from current hook?
@@ -95,13 +94,13 @@ export const updateEffectImpl = (fiberFlags, hookFlags, create, deps) => {
             //NOTE: 컴포넌트가 unmount될떄 destory를 호출해야되는데, 그것의 참조를 위해서이다.
             //NOTE: 기본적으로 업데이트큐에 있는걸 소비하는 식으로 하는데, component가 unmount될떄
             //NOTE: 클린업을 하려면 그것만을 위한 update가 존재해야되는데, 그것을 위해서이다.
-            pushEffect(NoHookEffect, create, inst, nextDeps);
+            pushEffect(NoHookEffect, create, destroy, nextDeps);
             return;
         }
     }
 
     hookCore.sideEffectTag |= fiberFlags;
-    hook.memoizedState = pushEffect(hookFlags, create, inst, nextDeps);
+    hook.memoizedState = pushEffect(hookFlags, create, destroy, nextDeps);
 };
 
 /**
