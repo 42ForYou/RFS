@@ -9,6 +9,7 @@ import {
     Fragment,
     ContextProvider,
     SimpleMemoComponent,
+    ForwardRef,
 } from "../const/CWorkTag.js";
 import { Placement, PerformedWork } from "../const/CSideEffectFlags.js";
 import { Update as UpdateEffect, Passive as PassiveEffect } from "../const/CSideEffectFlags.js";
@@ -233,7 +234,35 @@ const updateFunctionComponent = (_current, workInProgress, Component, nextProps,
     reconcileChildren(_current, workInProgress, nextChildren, renderExpirationTime);
     return workInProgress.child;
 };
+/**
+ *
+ * @param {TFiber|null} _current
+ * @param {TFiber} workInProgress
+ * @param {lambda} Component
+ * @param {any} nextProps
+ * @param {TExpirationTime} renderExpirationTime
+ * @returns {TFiber|null}
+ * @description forwardRef를 업데이트하는 함수 updateFunctionComponent와 로직이 거의 일치하는데
+ * @description ref를 인자로 받을 수 있도록 render라는 이름의 lambda를 통해 포팅하여 내부적으로 구현한다.
+ */
+const updateForwardRef = (_current, workInProgress, Component, nextProps, renderExpirationTime) => {
+    //updateFunctionComponent랑 거의 일치하는 로직인데, 내부적으로
+    //component부분에 ref라는 두번째 인자를 받을 수 있는 형식으로 render라는 Lambda로 포팅하여
+    //lamda(render)를 받고 내부적으로 renderWithHooks를 넘겨줄떄 기본 방식의 props만 받는
+    //Component를 넘겨주는게 아니라 포팅한 Render를 넣어줘서 ref를 인자로 받을 수 있게 해준다.
+    const render = Component.render;
+    const ref = workInProgress.ref;
 
+    prepareToReadContext(workInProgress, renderExpirationTime);
+    const nextChildren = renderWithHooks(_current, workInProgress, render, nextProps, ref, renderExpirationTime);
+    if (_current !== null && !didReceiveUpdate) {
+        bailoutHooks(_current, workInProgress, renderExpirationTime);
+        return bailoutOnAlreadyFinishedWork(_current, workInProgress, renderExpirationTime);
+    }
+    workInProgress.effectTag |= PerformedWork;
+    reconcileChildren(_current, workInProgress, nextChildren, renderExpirationTime);
+    return workInProgress.child;
+};
 /**
  *
  * @param {TFiber|null} current @see 파일경로: /type/TFiber.js
@@ -500,6 +529,11 @@ export const beginWork = (current, workInProgress, renderExpirationTime) => {
             const resolvedProps = workInProgress.pendingProps;
             //NOTE: unresolvedProps를 통해서 resolveDefulat해야 되는지 확인 -> 왠만하면 lazy관련된거라 필요 없을것같음
             return updateFunctionComponent(current, workInProgress, Component, resolvedProps, renderExpirationTime);
+        }
+        case ForwardRef: {
+            const type = workInProgress.type;
+            const resolvedProps = workInProgress.pendingProps;
+            return updateForwardRef(current, workInProgress, type, resolvedProps, renderExpirationTime);
         }
         case HostRoot:
             return updateHostRoot(current, workInProgress, renderExpirationTime);

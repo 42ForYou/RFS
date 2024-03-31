@@ -161,6 +161,9 @@ export const createFiberFromTypeAndProps = (type, key, pendingProps, mode, expir
                         case RFS_MEMO_TYPE:
                             fiberTag = MemoComponent;
                             break getTag;
+                        case RFS_FORWARD_REF_TYPE:
+                            fiberTag = ForwardRef;
+                            break getTag;
                     }
                 }
                 console.error("Unknown Fiber Tag - createFiberFromTypeAndProps");

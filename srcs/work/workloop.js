@@ -29,7 +29,7 @@ import {
     commitResetTextContent,
     commitWork,
     commitDeletion,
-    commitLifeCycles as commitLayoutEffectOnFiber,
+    commitBeforeMutationLifeCycles as commitLayoutEffectOnFiber,
     commitAttachRef,
 } from "../work/commitWork.js";
 import { completeWork } from "../work/completeWork.js";

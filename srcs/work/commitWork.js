@@ -511,9 +511,10 @@ const commitUnmount = (finishedRoot, current, renderPriorityLevel) => {
  * @description 해당 함수는 커밋할때 커밋할 lifeCycle을 커밋하는 함수이다.
  * @description TODO: layout문맥은 해결 되었는데 host문맥은 좀 더 dom모듈을 이해하고 해결해야한다.
  */
-export const commitLifeCycles = (finishedRoot, current, finishedWork, commitedExpirationTime) => {
+export const commitBeforeMutationLifeCycles = (finishedRoot, current, finishedWork, commitedExpirationTime) => {
     switch (finishedWork.tag) {
         case FunctionComponent:
+        case ForwardRef:
         case SimpleMemoComponent: {
             commitHookEffectList(UnmountLayout, MountLayout, finishedWork);
             break;
