@@ -1,5 +1,12 @@
 import { NoEffect, Passive, Placement } from "../const/CSideEffectFlags.js";
-import { FunctionComponent, HostComponent, HostText, SimpleMemoComponent } from "../const/CWorkTag.js";
+import {
+    FunctionComponent,
+    HostComponent,
+    HostText,
+    SimpleMemoComponent,
+    MemoComponent,
+    ForwardRef,
+} from "../const/CWorkTag.js";
 import { NoHookEffect, UnmountPassive, MountPassive } from "../const/CHookEffectTag.js";
 
 /**
@@ -308,6 +315,8 @@ export const commitPlacement = (finishedWork) => {
 export const commitWork = (current, finishedWork) => {
     switch (finishedWork.tag) {
         case FunctionComponent:
+        case ForwardRef:
+        case MemoComponent:
         case SimpleMemoComponent: {
             // NOTE: We currently never use MountMutation, but useLayout uses
             // UnmountMutation.
@@ -472,6 +481,8 @@ const commitNestedUnmounts = (finishedRoot, root, renderPriorityLevel) => {
 const commitUnmount = (finishedRoot, current, renderPriorityLevel) => {
     switch (current.tag) {
         case FunctionComponent:
+        case ForwardRef:
+        case MemoComponent:
         case SimpleMemoComponent: {
             //기본적으로 functionComponent는 hookEffectList를 unmount시켜야 합니다.
             const updateQueue = current.updateQueue;
@@ -511,9 +522,10 @@ const commitUnmount = (finishedRoot, current, renderPriorityLevel) => {
  * @description 해당 함수는 커밋할때 커밋할 lifeCycle을 커밋하는 함수이다.
  * @description TODO: layout문맥은 해결 되었는데 host문맥은 좀 더 dom모듈을 이해하고 해결해야한다.
  */
-export const commitLifeCycles = (finishedRoot, current, finishedWork, commitedExpirationTime) => {
+export const commitBeforeMutationLifeCycles = (finishedRoot, current, finishedWork, commitedExpirationTime) => {
     switch (finishedWork.tag) {
         case FunctionComponent:
+        case ForwardRef:
         case SimpleMemoComponent: {
             commitHookEffectList(UnmountLayout, MountLayout, finishedWork);
             break;

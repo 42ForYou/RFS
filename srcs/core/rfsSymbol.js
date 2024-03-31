@@ -13,6 +13,7 @@ export const RFS_FRAGMENT_TYPE = Symbol.for("rfs.fragment");
 export const RFS_PROVIDER_TYPE = Symbol.for("rfs.provider");
 export const RFS_CONTEXT_TYPE = Symbol.for("rfs.context");
 export const RFS_MEMO_TYPE = Symbol.for("rfs.memo");
+export const RFS_FORWARD_REF_TYPE = Symbol.for("rfs.forward_ref");
 
 const MAYBE_ITERATOR_SYMBOL = typeof Symbol === "function" && Symbol.iterator;
 

@@ -6,6 +6,7 @@ import {
     FunctionComponent,
     Fragment,
     ContextProvider,
+    MemoComponent,
 } from "../const/CWorkTag.js";
 import { popProvider } from "../context/newContext.js";
 import { popHostContainer, popHostContext, getRootHostContainer, getHostContext } from "../fiber/fiberHostContext.js";
@@ -265,6 +266,9 @@ export const completeWork = (current, workInProgress, renderExpirationTime) => {
         case ContextProvider: {
             //ContextProvider와 관련된 Context들을 pop한다.
             popProvider(workInProgress);
+            break;
+        }
+        case MemoComponent: {
             break;
         }
         default: {
