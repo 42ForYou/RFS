@@ -10,6 +10,7 @@ import {
     ContextProvider,
     SimpleMemoComponent,
     ForwardRef,
+    MemoComponent,
 } from "../const/CWorkTag.js";
 import { Placement, PerformedWork } from "../const/CSideEffectFlags.js";
 import { Update as UpdateEffect, Passive as PassiveEffect } from "../const/CSideEffectFlags.js";
@@ -19,7 +20,7 @@ import { shallowEqual } from "../shared/sharedEqual.js";
 import { markUnprocessedUpdateTime } from "./workloop.js";
 import { pushHostContainer, pushHostContext } from "../fiber/fiberHostContext.js";
 import { processUpdateQueue } from "../core/UpdateQueue.js";
-
+import { createFiberFromTypeAndProps, createWorkInProgress } from "../fiber/fiber.js";
 import is from "../shared/objectIs.js";
 
 /**
@@ -262,6 +263,86 @@ const updateForwardRef = (_current, workInProgress, Component, nextProps, render
     workInProgress.effectTag |= PerformedWork;
     reconcileChildren(_current, workInProgress, nextChildren, renderExpirationTime);
     return workInProgress.child;
+};
+
+/**
+ *
+ * @param {TFIber|null} current
+ * @param {TFIber} workInProgress
+ * @param {lambda} Component
+ * @param {any} nextProps
+ * @param {TExpirationTime} updateExpirationTime
+ * @param {TExpirationTime} renderExpirationTime
+ * @Returns {TFiber|null}
+ * @description - memoComponent를 업데이트하는 함수
+ * @description 만약 함수형 컴포넌트고, compare가 없다면 updateSimpleMemoComponent를 호출합니다.
+ * @description 아니라면 내부로직으로 들어가서 memoComponent를 업데이트합니다.
+ */
+const updateMemoComponent = (
+    current,
+    workInProgress,
+    Component,
+    nextProps,
+    updateExpirationTime,
+    renderExpirationTime
+) => {
+    if (current === null) {
+        //current가 없는 경우 새로 만들어야됨
+        if (Component.compare === null) {
+            //compare가 없는 경우 현재 wip자체를 그냥 simpleMemoComponent로 만들어서
+            //바꿔서 처리
+            const resolvedType = Component.type;
+            workInProgress.tag = SimpleMemoComponent;
+            workInProgress.type = resolvedType;
+            return updateSimpleMemoComponent(
+                current,
+                workInProgress,
+                resolvedType,
+                nextProps,
+                updateExpirationTime,
+                renderExpirationTime
+            );
+        }
+        //만약 compare가 있다면 따로 처리해야되는데 여기서 memo의 자식이 되는
+        //실제 function Component가 필요하고 그것을 생성해야됨
+        const child = createFiberFromTypeAndProps(
+            Component.type,
+            null,
+            nextProps,
+            workInProgress.mode,
+            renderExpirationTime
+        );
+        //child의 ref가 wip ref로 설정
+        child.ref = workInProgress.ref;
+        child.return = workInProgress;
+        workInProgress.child = child;
+        //child ref를 리턴해서 해당 컴포넌트를 업데이트하게 만듬
+        return child;
+    }
+
+    //current가 있는 경우
+    const currentChild = current.child;
+    //update가 있지만 우선순위가 밀리는경우
+    //해당 부분은 부모에의해 전파가 되는 상황에만 리렌더를 시키지 않는 것이 핵심임으로
+    //그렇다라는것은 해당 컴포넌트가 nowork와 같이 완전히 끝난 상태 이거나.
+    //더 이후의 업데이트만 있어서 현재 업데이트가 부모에 의해 전파되는 상황에만 bailout을 시도 가능하다
+    //아래 조건은 해당 상황을 체크하는 조건이다.
+    if (updateExpirationTime < renderExpirationTime) {
+        const prevProps = currentChild.memoizedProps;
+        let compare = Component.compare;
+        compare = compare !== null ? compare : shallowEqual;
+        if (compare(prevProps, nextProps) && current.ref === workInProgress.ref) {
+            //비교를 해봤을떄 업데이트를 해야되지만 우선순위가 밀린경우 bailout으로 밀린 업데이트가 있음을 표시해야함
+            return bailoutOnAlreadyFinishedWork(current, workInProgress, renderExpirationTime);
+        }
+    }
+
+    workInProgress.effectTag |= PerformedWork;
+    const newChild = createWorkInProgress(currentChild, nextProps, renderExpirationTime);
+    newChild.ref = workInProgress.ref;
+    newChild.return = workInProgress;
+    workInProgress.child = newChild;
+    return newChild;
 };
 /**
  *
@@ -545,6 +626,18 @@ export const beginWork = (current, workInProgress, renderExpirationTime) => {
             return updateFragment(current, workInProgress, renderExpirationTime);
         case ContextProvider:
             return updateContextProvider(current, workInProgress, renderExpirationTime);
+        case MemoComponent: {
+            const type = workInProgress.type;
+            const resolvedProps = workInProgress.pendingProps;
+            return updateMemoComponent(
+                current,
+                workInProgress,
+                type,
+                resolvedProps,
+                updateExpirationTime,
+                renderExpirationTime
+            );
+        }
         case SimpleMemoComponent:
             return updateSimpleMemoComponent(
                 current,

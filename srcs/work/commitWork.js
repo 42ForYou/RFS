@@ -1,5 +1,12 @@
 import { NoEffect, Passive, Placement } from "../const/CSideEffectFlags.js";
-import { FunctionComponent, HostComponent, HostText, SimpleMemoComponent } from "../const/CWorkTag.js";
+import {
+    FunctionComponent,
+    HostComponent,
+    HostText,
+    SimpleMemoComponent,
+    MemoComponent,
+    ForwardRef,
+} from "../const/CWorkTag.js";
 import { NoHookEffect, UnmountPassive, MountPassive } from "../const/CHookEffectTag.js";
 
 /**
@@ -308,6 +315,8 @@ export const commitPlacement = (finishedWork) => {
 export const commitWork = (current, finishedWork) => {
     switch (finishedWork.tag) {
         case FunctionComponent:
+        case ForwardRef:
+        case MemoComponent:
         case SimpleMemoComponent: {
             // NOTE: We currently never use MountMutation, but useLayout uses
             // UnmountMutation.
@@ -472,6 +481,8 @@ const commitNestedUnmounts = (finishedRoot, root, renderPriorityLevel) => {
 const commitUnmount = (finishedRoot, current, renderPriorityLevel) => {
     switch (current.tag) {
         case FunctionComponent:
+        case ForwardRef:
+        case MemoComponent:
         case SimpleMemoComponent: {
             //기본적으로 functionComponent는 hookEffectList를 unmount시켜야 합니다.
             const updateQueue = current.updateQueue;

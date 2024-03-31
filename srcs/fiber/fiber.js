@@ -1,5 +1,12 @@
 import { RFS_FRAGMENT_TYPE, RFS_MEMO_TYPE, RFS_PROVIDER_TYPE } from "../core/rfsSymbol.js";
-import { Fragment, FunctionComponent, HostRoot, HostText, IndeterminateComponent } from "../const/CWorkTag.js";
+import {
+    Fragment,
+    FunctionComponent,
+    HostRoot,
+    HostText,
+    IndeterminateComponent,
+    MemoComponent,
+} from "../const/CWorkTag.js";
 import { NoEffect } from "../const/CSideEffectFlags.js";
 import { NoWork } from "../const/CExpirationTime.js";
 import { ConcurrentMode } from "../const/CTypeOfMode.js";
