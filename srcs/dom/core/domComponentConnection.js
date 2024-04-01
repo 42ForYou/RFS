@@ -11,7 +11,7 @@
  * 필요할 수 있다
  */
 
-import { HostComponent, HostText, HostRoot } from "../const/CWorkTag.js";
+import { HostComponent, HostText, HostRoot } from "../../const/CWorkTag.js";
 
 /**
  * @description 랜덤한 문자열 키를 생성합니다
@@ -29,8 +29,28 @@ const connectContainerInstanceKey = "__rfsContainere$" + randomKey;
 
 /**
  *
- * @param {hostRoot} @type TFiberRoot  @description hostRoot -> 파이버루트에 해당하는 파이버인스턴스가 들어온다
- * @param {node} @type HTMLElement @description Dom인스턴스가 들어온다- 해당 파이버와 연결될
+ * @param {TFiber} hostInst hostComponentFiber인스턴스를 의미
+ * @param {TDOMElem} node domElement를 의미
+ * @description 해당함수는 미리 hostFiber와 domElement를 연결해주는 함수입니다.
+ */
+export const precacheFiberNode = (hostInst, node) => {
+    node[connectInstanceKey] = hostInst;
+};
+
+/**
+ *
+ * @param {TDOMElem} node
+ * @param {THostProps} props @see 파일경로: type/THostType.js
+ * @description rfs내부에서 관리하는 props객체를 domElement에 연결
+ */
+export const updateFiberProps = (node, props) => {
+    node[connectEventHandlersKey] = props;
+};
+
+/**
+ *
+ * @param {ThostRoot} @type TFiberRoot  @description hostRoot -> 파이버루트에 해당하는 파이버인스턴스가 들어온다
+ * @param {TDOMElem} @type HTMLElement @description Dom인스턴스가 들어온다- 해당 파이버와 연결될
  */
 export const markContainerAsRoot = (hostRoot, node) => {
     node[connectContainerInstanceKey] = hostRoot;

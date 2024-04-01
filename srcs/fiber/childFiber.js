@@ -127,7 +127,6 @@ const ChildReconciler = (shouldTrackSideEffects) => {
      * @description 예 3) 1->2->3->4->5 ==> 5->4->3->2->1로 바뀌는 경우 (5로)부터 방향이 같은 그룹이 하나도 없음으로 5만 이동을 시키지 않고
      * @description 나머지를 이동시킨다. ==> 이는 반전과 같은 구조보다는 방향을 일치 시키는 구조가 좀 더 많이 일어난다라고 가정한 것이다.
      */
-    //TODO: 배치 설명 가장 list내에서 인접한 그룹을 많이 남겨서 적게 이동한다라는 식으로 설명바꾸기
     const placeChild = (newFiber, lastPlacedIndex, newIndex) => {
         newFiber.index = newIndex;
         if (!shouldTrackSideEffects) {

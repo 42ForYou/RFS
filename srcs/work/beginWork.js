@@ -33,14 +33,12 @@ import is from "../shared/objectIs.js";
  */
 export const reconcileChildren = (current, workInProgress, nextChildren, renderExpirationTime) => {
     if (current === null) {
-        //TODO: mountChildFibers 구현
         // 아직 렌더링되지 않은 새 컴포넌트인 경우, 우리는
         // 최소한의 sideEffect을 적용하여 자식 집합을 업데이트하지 않습니다. 대신
         // 렌더링되기 전에 자식에 모두 추가합니다(모든 사이드 이펙트를 가함). 즉
         // 부작용을 추적하지 않음으로써 이 조정 패스를 최적화할 수 있습니다.
         workInProgress.child = mountChildFibers(workInProgress, null, nextChildren, renderExpirationTime);
     } else {
-        //TODO: reconcileChildFibers 구현
         // 현재 자식이 진행 중인 작업과 동일하면 다음을 의미합니다.
         // 아직 이 자식에 대한 작업을 시작하지 않았다는 뜻입니다. 따라서 우리는
         // 복제 알고리즘을 사용하여 현재 모든 자식의 복사본을 만듭니다.
