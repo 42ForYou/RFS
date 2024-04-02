@@ -198,12 +198,40 @@ const addEventPoolingTo = (EventConstructor) => {
 SyntheticEvent.Interface = EventInterface;
 addEventPoolingTo(SyntheticEvent);
 
+//NOTE: 중간 객체 생성하는 방식으로 만드는 이유 :
+// class Super {
+//     constructor() {
+//       console.log('Super의 생성자 호출');
+//       this.isSuperInstance = true;
+//     }
+
+//     superMethod() {
+//       return 'superMethod 호출됨';
+//     }
+//   }
+
+//   // 중간 객체 생성 방식
+//   function E() {}
+//   E.prototype = Super.prototype;
+
+//   const prototype = new E();
+//   console.log('중간 객체 생성 방식');
+//   console.log(prototype.superMethod());  // "superMethod 호출됨"
+//   console.log(prototype.isSuperInstance);  // undefined, Super의 생성자는 호출되지 않았음
+
+//   // 직접 Super 인스턴스 생성 방식
+//   const superInstance = new Super();
+//   console.log('\n직접 인스턴스 생성 방식');
+//   console.log(superInstance.superMethod());  // "superMethod 호출됨"
+//   console.log(superInstance.isSuperInstance);  // true, Super의 생성자가 호출되었음
+
 SyntheticEvent.extend = function (Interface) {
     // 현재 클래스를 Super로 참조. 확장하려는 base 클래스입니다.
     const Super = this;
 
     // E 함수는 중간 객체를 생성하기 위해 사용. 이는 프로토타입 체인을 복제.
-    const E = function () {};
+    // 순수하게 프로토타입을 복제하기 위해 Super.prototype을 상속합니다.-super객체 생성x
+    const E = () => {};
     E.prototype = Super.prototype;
     const prototype = new E();
 
@@ -223,6 +251,7 @@ SyntheticEvent.extend = function (Interface) {
 
     // Interface 객체를 통해 제공된 추가 속성을 Class의 Interface에 할당합니다.
     // 이는 Class가 특정 인터페이스를 구현하도록 확장하는 데 사용됩니다.
+    // 이는 property(interface)를 머지하는 방식으로 확장을 하게 됨
     Class.Interface = Object.assign({}, Super.Interface, Interface);
     // extend 메서드 자체도 상속하여, 생성된 클래스에서도 서브클래스를 만들 수 있도록 합니다.
     Class.extend = Super.extend;
