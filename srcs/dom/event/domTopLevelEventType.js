@@ -5,7 +5,7 @@ import { getVendorPrefixedEventName } from "./getVendorPrefixedEventName.js";
  * @returns {TTopLevelType}
  * @description 둘다 똑같은 스트링이지만 추상화 속에선 다른 타입으로 취급되기 때문에 string을 top level type으로 변환하는 함수입니다.
  */
-export const castStringToDOMTopLevelType = (topLevelType) => {
+const castStringToDOMTopLevelType = (topLevelType) => {
     return topLevelType;
 };
 
@@ -20,7 +20,7 @@ export const castStringToDOMTopLevelType = (topLevelType) => {
  * @returns {string}
  * @description 둘다 똑같은 스트링이지만 추상화 속에선 다른 타입으로 취급되기 때문에 top level type을 string으로 변환하는 함수입니다.
  */
-export const castDOMTopLevelTypeToString = (topLevelType) => {
+const castDOMTopLevelTypeToString = (topLevelType) => {
     return topLevelType;
 };
 
