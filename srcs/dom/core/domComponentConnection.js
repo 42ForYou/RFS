@@ -41,7 +41,8 @@ export const precacheFiberNode = (hostInst, node) => {
  *
  * @param {TDOMElem} node
  * @param {THostProps} props @see 파일경로: type/THostType.js
- * @description rfs내부에서 관리하는 props객체를 domElement에 연결
+ * @description rfs내부에서 관리하는 props객체를 domElement에 연결->
+ * 이벤트 핸들러 키에다가 넣어두고 나중에 여길 통로로 위에서 라우팅해서 쓰는듯
  */
 export const updateFiberProps = (node, props) => {
     node[connectEventHandlersKey] = props;
@@ -54,4 +55,73 @@ export const updateFiberProps = (node, props) => {
  */
 export const markContainerAsRoot = (hostRoot, node) => {
     node[connectContainerInstanceKey] = hostRoot;
+};
+
+/**
+ *
+ * @param {THostInstance} targetNode
+ * @returns {TFiber|null}
+ * @description 해당 domInstance와 연결된 파이버를 가져오는 함수입니다.
+ * @description 만약 연결이 안되 있다라면 부모 노드중 가장 가까운 노드를 찾아서 연결된 파이버를 가져옵니다.
+ */
+export const getClosestInstanceFromNode = (targetNode) => {
+    let targetInst = targetNode[connectInstanceKey];
+    if (targetInst) {
+        // Don't return HostRoot or SuspenseComponent here.
+        return targetInst;
+    }
+    //targetNode에 연결된 파이버가 없다면 부모노드로 이동
+    let parentNode = targetNode.parentNode;
+    while (parentNode) {
+        targetInst = parentNode[connectContainerInstanceKey] || parentNode[connectInstanceKey];
+        if (targetInst) {
+            return targetInst;
+        }
+        targetNode = parentNode;
+        parentNode = targetNode.parentNode;
+    }
+    return null;
+};
+
+/**
+ *
+ * @param {*} targetNode
+ * @returns {TFiber|null}
+ * @description 해당 domElementd와 연결된 파이버를 가져오는 함수입니다.
+ * @description 만약 연결이 안되있음 null을 반환합니다.
+ */
+export const getFiberCurrentPropsFromNode = (targetNode) => {
+    return targetNode[connectEventHandlersKey] || null;
+};
+
+/**
+ *
+ * @param {*} targetNode
+ * @returns {TFiber|null}
+ * @description 해당 노드로 부터 대응 되는 파이버를 가져오는데 HostFiber류만 가져옵니다.
+ */
+export const getInstanceFromNode = (targetNode) => {
+    const inst = targetNode[connectInstanceKey] || targetNode[connectContainerInstanceKey];
+    if (inst) {
+        if (inst.tag === HostComponent || inst.tag === HostText || inst.tag === HostRoot) {
+            return inst;
+        } else {
+            return null;
+        }
+    }
+    return null;
+};
+
+/**
+ *
+ * @param {TFiber} inst
+ * @returns {THostInstance}
+ * @description 해당 파이버에 대응되는 hostInstance를 가져오는 함수입니다.
+ */
+export const getNodeFromInstance = (inst) => {
+    if (inst.tag === HostComponent || inst.tag === HostText) {
+        return inst.stateNode;
+    }
+    console.error("getNodeFromInstance: Invalid argument.");
+    throw new Error("getNodeFromInstance: Invalid argument.");
 };
