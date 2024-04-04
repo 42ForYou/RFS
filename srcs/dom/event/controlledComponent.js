@@ -41,10 +41,19 @@ export const enqueueStateRestore = (target) => {
     }
 };
 
+/**
+ *
+ * @returns {boolean}
+ * @description 제어 컴포넌트가 보류중인 업데이트를 가지고 있는지 확인합니다.
+ */
 export const needsStateRestore = () => {
     return restoreTarget !== null || restoreQueue !== null;
 };
 
+/**
+ *
+ * @description 제어 컴포넌트의 상태를 복원합니다.
+ */
 export const restoreStateIfNeeded = () => {
     if (!restoreTarget) {
         return;

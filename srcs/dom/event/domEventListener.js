@@ -191,6 +191,15 @@ const releaseTopLevelCallbackBookKeeping = (instance) => {
         callbackBookKeepingPool.push(instance);
     }
 };
+/**
+ *
+ * @param {TTOPLevelType} topLevelType
+ * @param {TEventSystemFlags} eventSystemFlags
+ * @param {*} nativeEvent
+ * @param {*} targetInst
+ * @description: 이벤트를 디스패치하는 함수입니다.
+ * @description 실행부분을 하는 함수 입니다. 사용을 하고 나서는 releaseTopLevelCallbackBookKeeping를 사용하여 인스턴스를 반환해야합니다.
+ */
 const dispatchEventForPluginEventSystem = (topLevelType, eventSystemFlags, nativeEvent, targetInst) => {
     const bookKeeping = getTopLevelCallbackBookKeeping(topLevelType, nativeEvent, targetInst, eventSystemFlags);
     try {
