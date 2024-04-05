@@ -9,6 +9,7 @@ import {
     TEXT_NODE,
 } from "../../const/CDomNodeType.js";
 import { trapClickOnNonInteractiveElement, diffProperties } from "./domComponent.js";
+import { getChildNamespace } from "../core/domNamepsace.js";
 const shouldAutoFocusHostComponent = (type, props) => {
     switch (type) {
         case "button":
@@ -19,7 +20,33 @@ const shouldAutoFocusHostComponent = (type, props) => {
     }
     return false;
 };
+export const getRootHostContext = (rootContainerInstance) => {
+    let type;
+    let namespace;
+    const nodeType = rootContainerInstance.nodeType;
+    switch (nodeType) {
+        case DOCUMENT_NODE:
+        case DOCUMENT_FRAGMENT_NODE: {
+            type = nodeType === DOCUMENT_NODE ? "#document" : "#fragment";
+            const root = rootContainerInstance.documentElement;
+            namespace = root ? root.namespaceURI : getChildNamespace(null, "");
+            break;
+        }
+        default: {
+            const container = nodeType === COMMENT_NODE ? rootContainerInstance.parentNode : rootContainerInstance;
+            const ownNamespace = container.namespaceURI || null;
+            type = container.tagName;
+            namespace = getChildNamespace(ownNamespace, type);
+            break;
+        }
+    }
+    return namespace;
+};
 
+export const getChildHostContext = (parentHostContext, type, rootContainerInstance) => {
+    const parentNamespace = parentHostContext;
+    return getChildNamespace(parentNamespace, type);
+};
 /**
  *
  * @param {THostType} type @see 파일경로: type/THostType.js
