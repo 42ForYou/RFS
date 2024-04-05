@@ -489,3 +489,16 @@ export const updateProperties = (domElement, updatePayload, tag, lastRawProps, n
             break;
     }
 };
+export const restoreControlledState = (domElement, tag, props) => {
+    switch (tag) {
+        case "input":
+            rfsDOMInputRestoreControlledState(domElement, props);
+            return;
+        case "textarea":
+            rfsDOMTextareaRestoreControlledState(domElement, props);
+            return;
+        case "select":
+            rfsDOMSelectRestoreControlledState(domElement, props);
+            return;
+    }
+};

@@ -21,7 +21,8 @@
 //그리고 host에 대한 context를 넣어준다음에 이 환경 내에서 처리를 하게끔 하는거임
  */
 
-import { push, pop } from "./fiberStack.js";
+import { createCursor, push, pop } from "./fiberStack.js";
+import { getRootHostContext, getChildHostContext } from "../dom/core/domHost.js";
 /**
  * @type {TNoContextT} @see ../type/TContext.js
  */
@@ -73,7 +74,6 @@ export const getRootHostContainer = () => {
     return rootInstance;
 };
 
-//TODO: 해당 부분이 필요가 없다 라고 생각하면 제거할것
 //NOTE: 돔 모듈에서 정확히 필요한지 정의될것 같음. 지금 현재로썬 의미론 상
 //NOTE: 타당해보임
 /**
@@ -96,9 +96,7 @@ export const pushHostContainer = (fiber, nextRootInstance) => {
     // 스택의 항목 수가 달라질 수 있기 때문입니다.
     //   렌더러 코드의 어딘가에 getRootHostContext()가 던지는지 여부에 따라 // 스택의 항목 수가 달라지기 때문입니다.
     // 그래서 빈 값을 먼저 푸시합니다. 이렇게 하면 오류를 안전하게 처리할 수 있습니다.
-    //TODO: 해당 부분 DOm모듈 하면서 정확히 의미 이해
     push(contextStackCursor, NO_CONTEXT);
-    //TODO:getRootHostContext 구현
     const nextRootContext = getRootHostContext(nextRootInstance);
 
     // 마지막으로 실제 값을 푸시합니다.
@@ -128,12 +126,11 @@ export const getHostContext = () => {
  *
  * @param {TFiber} fiber
  * @description - 현재의 호스트 컨텍스트를 스택에 푸시합니다.(현재 호스트 컨텍스트 기반으로 다음 컨텍스트를 가져와서 푸시한다.)
- * @description - TODO: 자식의 context를 가져오는게 무슨 의미인지 정확히 이해가 안됨
+ * @description
  */
 export const pushHostContext = (fiber) => {
     const rootInstance = requiredContext(rootInstanceStackCursor.current);
     const context = requiredContext(contextStackCursor.current);
-    //TODO: getChildHostContext 구현 dom모듈에서
     const nextContext = getChildHostContext(context, fiber.type, rootInstance);
 
     //nextContext와 같다면 푸시하지 않는다.
@@ -151,7 +148,6 @@ export const pushHostContext = (fiber) => {
  * @description - 현재의 호스트 컨텍스트를 스택에서 팝합니다.
  */
 export const popHostContext = (fiber) => {
-    //TODO: 왜 이렇게 하는지도 dom모듈에서 정확히 설명할것
     // 이 파이버가 현재 컨텍스트를 제공하지 않으면 팝업하지 않습니다.
     // pushHostContext()는 고유한 컨텍스트를 제공하는 파이버만 푸시합니다.
     if (contextFiberStackCursor.current !== fiber) {

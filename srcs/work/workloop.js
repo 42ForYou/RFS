@@ -6,6 +6,7 @@ import {
     CommitContext,
     DiscreteEventContext,
 } from "../const/CExecutionContext.js";
+import { unwindInterruptedWork } from "./unwindWork.js";
 import { RootIncomplete, RootCompleted } from "../const/CRootExitStatus.js";
 import {
     expirationTimeToMs,
@@ -15,21 +16,21 @@ import {
     inferPriorityFromExpirationTime,
 } from "../fiber/fiberExiprationTime.js";
 import { markRootUpdatedAtTime, markRootExpiredAtTime, markRootFinishedAtTime } from "../fiber/fiberRoot.js";
-import { NoWork, Sync, Idle } from "../const/CExpirationTime.js";
+import { NoWork, Sync, Idle, Never } from "../const/CExpirationTime.js";
 import { createWorkInProgress } from "../fiber/fiber.js";
 import {
-    // scheduleCallback,
-    // cancelCallback,
+    scheduleCallback,
+    cancelCallback,
     getCurrentPriorityLevel,
     runWithPriority,
     shouldYield,
     requestPaint,
     now,
-    //TODO: implementFlushSyncCallbackQueue,scheduleSyncCallback
-    // flushSyncCallbackQueue,
-    // scheduleSyncCallback,
+    flushSyncCallbackQueue,
+    scheduleSyncCallback,
 } from "../scheduler/schedulerInterface.js";
 import { beginWork } from "../work/beginWork.js";
+import { resetContextDependencies } from "../context/newContext.js";
 import {
     commitPassiveHookEffects,
     commitPlacement,
@@ -50,6 +51,10 @@ import {
     IdlePriority,
 } from "../const/CRfsPriorityLevel.js";
 import { PerformedWork } from "../const/CSideEffectFlags.js";
+import { prepareForCommit, resetAfterCommit, cancelTimeout, noTimeout } from "../dom/core/domHost.js";
+
+import { currentDispatcher as rfsCurrentDispatcher } from "../core/currentDispatcher.js";
+
 /**
  * @description WorkLoop내부에서 nested하게 업데이트가 계속 반복되는걸 관리하는 객체입니다.
  * @description moduleScope로 관리되는 객체입니다.
@@ -108,7 +113,6 @@ export const currentWorkContext = {
     /**
      * @description 현재 WorkInProgressRoot의 ExitStatus를 나타냅니다.
      * @type {TRootExitStatus} @see 파일경로: [TRootExitStatus.js](srcs/type/TRootExitStatus.js)
-     *TODO:  구현해야되는지 확인
      */
     workInProgressRootExitStatus: RootIncomplete,
 
@@ -127,7 +131,6 @@ export const currentWorkContext = {
      *@description 핫 경로에서 발생하는 변환을 방지합니다.
      *@type {TExpirationTime} @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
      */
-    //TODO: 좀더 정확한 이해가 필요함
     workInProgressRootLatestProcessedExpirationTime: Sync,
 };
 
@@ -176,7 +179,7 @@ let currentEventTime = NoWork;
  * @type {map<TFiberRoot,TExpirationTime>} @see 파일경로: [TFiberRoot.js](srcs/type/TFiberRoot.js)
  * @description 현재 discrete한 업데이트를 기다리고 있는 루트를 보관하는 map입니다.
  */
-let rootWithPendingDiscreteUpdates = null;
+let rootsWithPendingDiscreteUpdates = null;
 /**
  * @description 현재 렌더링중인 루트에 대해서 컴포넌트가 남긴 작업이 있을떄
  * @description currentWorkContext에 처리되지 않은 다음 업데이트를 마킹합니다.
@@ -192,7 +195,6 @@ export const markUnprocessedUpdateTime = (expirationTime) => {
  *
  * @param {TExpirationTime} expirationTime @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
  * @description 마지막으로 processed된 루트의 ExpirationTime을 설정함
- * @description 커밋 ->finishRender와 관련있음 TODO: 좀더 정확히 이해가 필요함
  */
 export const markRenderEventTimeAndConfig = (expirationTime) => {
     if (expirationTime < currentWorkContext.workInProgressRootLatestProcessedExpirationTime && expirationTime > Idle) {
@@ -296,8 +298,6 @@ const prepareFreshStack = (root, expirationTime) => {
     //이전 태스크에 타임아웃으로 스케줄링된 작업을 취소합니다.
     const timeoutHandle = root.timeoutHandle;
     if (timeoutHandle !== noTimeout) {
-        //TODO: cancelTimeout
-        //TODO: noTimeout
         root.timeoutHandle = noTimeout;
         cancelTimeout(timeoutHandle);
     }
@@ -306,7 +306,6 @@ const prepareFreshStack = (root, expirationTime) => {
     if (currentWorkContext.workInProgress !== null) {
         let interruptedWork = currentWorkContext.workInProgress.return;
         while (interruptedWork !== null) {
-            //TODO: unwindInterruptedWork implement
             unwindInterruptedWork(interruptedWork);
             interruptedWork = interruptedWork.return;
         }
@@ -321,6 +320,20 @@ const prepareFreshStack = (root, expirationTime) => {
     currentWorkContext.workInProgressRootNextUnprocessedUpdateTime = NoWork;
 };
 
+const pushDispatcher = (root) => {
+    const prevDispatcher = rfsCurrentDispatcher.current;
+    rfsCurrentDispatcher.current = ContextOnlyDispatcher;
+    if (prevDispatcher === null) {
+        console.error("prevDispatcher is null");
+    } else {
+        return prevDispatcher;
+    }
+};
+
+const popDispatcher = (prevDispatcher) => {
+    rfsCurrentDispatcher.current = prevDispatcher;
+};
+
 /**
  *
  * @param {TExpirationTime} currentTime @see 파일경로: [TExpirationTime.js](srcs/type/TExpirationTime.js)
@@ -333,13 +346,13 @@ const prepareFreshStack = (root, expirationTime) => {
 export const computeExpirationForFiber = (currentTime, fiber) => {
     const mode = fiber.mode;
 
-    //Batched : https://github.com/facebook/react/pull/15502
+    //Batched : https://github.com/facebook/rfs/pull/15502
     //하나의 이벤트 핸들러안에 있는 여러개의 setState같은 건 배치처리를 이미 하고 있으나
     //외부시스템에 의한 업데이트 등에 대한 일괄 처리는 진행되고 있지 않음
     //그런데 이거에 대한 대처 방안은 사실 concurrent모드가 이를 해결함:
     //그러나 동기적인 모드에서는 concurrent모드가 아니기 때문에 이를 처리해야함
     //그거떄문에 이상적으로 배치모드라는 sync이외의 모드가 존재함
-    //이를 이용해서 배치모드는 모든 업데이트를 다음 React이벤트로 연기하는 일괄처리 기본모드를 활성화함
+    //이를 이용해서 배치모드는 모든 업데이트를 다음 rfs이벤트로 연기하는 일괄처리 기본모드를 활성화함
     const priorityLevel = getCurrentPriorityLevel();
     if ((mode & ConcurrentMode) === NoMode) {
         return priorityLevel === ImmediatePriority ? Sync : Batched;
@@ -437,7 +450,6 @@ const flushPassiveEffectsImpl = () => {
 
     currentWorkContext.executionContext = prevExecutionContext;
 
-    //TODO: implement flushSyncCallbackQueue
     //commit과정에서 syncCallback이 쌓여있으면 수행합니다.
     //Detail:
     //commitPassiveHookEffects에 create(),destroy() 에 의해
@@ -451,7 +463,32 @@ const flushPassiveEffectsImpl = () => {
         : nestedUpdate.nestedPassiveUpdateCount + 1;
     return true;
 };
+const resetChildExpirationTime = (completedWork) => {
+    if (currentWorkContext.renderExpirationTime !== Never && completedWork.childExpirationTime === Never) {
+        // The children of this component are hidden. Don't bubble their
+        // expiration times.
+        return;
+    }
 
+    let newChildExpirationTime = NoWork;
+
+    // Bubble up the earliest expiration time.
+
+    let child = completedWork.child;
+    while (child !== null) {
+        const childUpdateExpirationTime = child.expirationTime;
+        const childChildExpirationTime = child.childExpirationTime;
+        if (childUpdateExpirationTime > newChildExpirationTime) {
+            newChildExpirationTime = childUpdateExpirationTime;
+        }
+        if (childChildExpirationTime > newChildExpirationTime) {
+            newChildExpirationTime = childChildExpirationTime;
+        }
+        child = child.sibling;
+    }
+
+    completedWork.childExpirationTime = newChildExpirationTime;
+};
 /**
  * @description leaf를 반환 받은 경우 해당 파이버의 작업을 마무리(effect를 전달하거나, htmlElement를 만들거나, 변경된 부분을 기록합니다.)
  * @description 이후 찾을수 있다면 형제를 반환합니다. 없다면 null을 반환합니다.
@@ -465,7 +502,6 @@ const completeUnitOfWork = (unitOfWork) => {
 
         //호스트 환경과 관련된 부분의 대한 일을 처리합니다.
         const next = completeWork(current, currentWorkContext.workInProgress, currentWorkContext.renderExpirationTime);
-        //TODO: resetChildExpirationTime
         resetChildExpirationTime(currentWorkContext.workInProgress);
         //이 파이버에 대해서 새로운 work를 만드는데 완수했습니다. 다음에 이어서 작업을 할 수 있도록 반환합니다.
         if (next !== null) {
@@ -546,8 +582,6 @@ const performUnitOfWork = (unitOfWork) => {
     if (next === null) {
         next = completeUnitOfWork(unitOfWork);
     }
-    //TODO:필요한지 확인
-    //ReactCurrentOwner.current = null;
     return next;
 };
 
@@ -567,8 +601,8 @@ const performUnitOfWork = (unitOfWork) => {
  * @description WorkLoopSync:work시작
  * @description -*- performUnitOfWork:work시작과 마무리(effect리스트 전달)을 모두 진행합니다. 일반적으로 fiber가 리턴됩니다.(null인 경우 끝)
  * @description -*- -*- beginWork: 해당 파이버의 작업을 시작합니다. 여기선 bailout상황과 update~~상태로 분리됩니다.
- * @description -*- -*- -*- update~: 컴포넌트의 diff를 보고 업데이트가 되었으면 업데이트를 적용하고 만약 functionComponent와 같은 경우에 reactElement를 내뱉습니다 이후 reconciliation을 진행합니다.
- * @description -*- -*- -*- -*- reconcileChildren: 반환 ReactElement를 기반으로 새로운 파이버를 만들어 반환합니다
+ * @description -*- -*- -*- update~: 컴포넌트의 diff를 보고 업데이트가 되었으면 업데이트를 적용하고 만약 functionComponent와 같은 경우에 rfsElement를 내뱉습니다 이후 reconciliation을 진행합니다.
+ * @description -*- -*- -*- -*- reconcileChildren: 반환 rfsElement를 기반으로 새로운 파이버를 만들어 반환합니다
  * @description -*- -*- -*- bailoutOnAlreadyFinishedWork: 만약에 자손의 상태가 변경된 경우(자신이아니라) 자손의 workinprogress를 만들어 반환합니다.
  * @description -*- -*- completeUnitOfWork: null(leaft)일 경우 해당 파이버의 작업을 마무리합니다. work를 마무리 및 부모로 effect를 전달합니다. 그리고 이제 형제로 넘어갑니다.
  * @description -*- -* - -*- completework: 마운트라면 htmlelement를 만들고 업데이트라면 변경된 부분을 기록하여 work를 마무리합니다.
@@ -829,7 +863,6 @@ const commitRootImpl = (root, renderPriorityLevel) => {
         //이벤트 활성화 상태를 비활성화 하고 selection관련 정보를 저장합니다.
         //이는 이벤트 활성화를 막어 커밋단계에서의 사이드 이펙트를 막고, selection상태를 돔업데이트 이후에
         //복원하는데 사용하기 위함입니다.
-        //TODO: prepareForCommit ==>dom모듈
         prepareForCommit(root.containerInfo);
 
         //이제 처리할 nextEffect를 firstEffect로 설정합니다.
@@ -851,7 +884,6 @@ const commitRootImpl = (root, renderPriorityLevel) => {
             throw error;
         }
         //commit을 위해 멈춰두었던 이벤트활성화와 백업해둔 selection상태를 복원합니다.
-        //TODO: resetAfterCommit ==>dom모듈
         resetAfterCommit(root.containerInfo);
 
         // 이제 wipTree가 currentTree가 되어야 합니다. 이것은 항상 mutation phase이후에 일어나야합니다.
@@ -924,7 +956,6 @@ const commitRootImpl = (root, renderPriorityLevel) => {
 
     //만약 layoutWork가 스케쥴  되어 있으면 flush한다
     //NOTE: commit도중에 발생한 모든 동기적인 작업을 처리하도록 보장하는 것이다.
-    //TODO: flushSyncCallbackQueue 구현
     flushSyncCallbackQueue();
     return null;
 };
@@ -948,7 +979,6 @@ const commitRoot = (root) => {
 const finishConcurrentRender = (root) => {
     currentWorkContext.workInProgressRoot = null;
     commitRoot(root);
-    //TODO: 해당부분이 만약 rootExitStatus 가 필요하다면 리팩토링해야된다
 };
 
 /**
@@ -1003,14 +1033,11 @@ export const performConcurrentWorkOnRoot = (root, didTimeout) => {
     //현재 작업 컨텍스트를 초기화합니다.
     const prevExecutionContext = currentWorkContext.executionContext;
     currentWorkContext.executionContext |= RenderContext;
-    //TODO: pushDispatcher -context할떄
     const prevDispatcher = pushDispatcher(root);
     //만약 try로 래핑 필요하면 리팩
     workLoopConcurrent();
-    //TODO: resetContextDependencies
     resetContextDependencies();
     currentWorkContext.executionContext = prevExecutionContext;
-    //TODO: popDispatcher --context할떄
     popDispatcher(prevDispatcher);
     //모든 작업을 마무리했다면
     if (currentWorkContext.workInProgress === null) {
@@ -1020,19 +1047,21 @@ export const performConcurrentWorkOnRoot = (root, didTimeout) => {
         root.finishedExpirationTime = expirationTime;
         //커밋을 시작하는 코드
         finishConcurrentRender(root, finishedWork, expirationTime);
-        //TODO: 왜 earlyReturn안하고 스케쥴링을 하는지 확인
     }
 
     // 다시 비동기로 루트를 스케쥴링합니다.
     ensureRootIsScheduled(root);
     //POINT X:에 해당하는 부분 이 경우에는 그대로 우선순위에서 밀려서 root의 콜백이 기존의 콜백을 이용하게 됨
-    //TODO:이 부분이 어떻게 이용되는지 확인
-    //이 루트에 예약된 작업노드는 현재 실행된것과 똑같음, 연속을 반환해야됨 ?? TODO:이 말이 무슨말인지 확인
     //아마 스케줄러에서 해결되는 부분으로 보임
     if (originalCallbackNode === root.callbackNode) {
         return performConcurrentWorkOnRoot.bind(null, root);
     }
     return null;
+};
+
+const finishSyncRender = (root, exitStatus, expirationTime) => {
+    currentWorkContext.workInProgress = null;
+    commitRoot(root);
 };
 /**
  *
@@ -1054,8 +1083,8 @@ export const performSyncWorkOnRoot = (root) => {
         commitRoot(root);
     } else {
         //모아진 passiveEffect를 모두 수행합니다.
-        //React의 작동순서를 보면
-        //Render -> ReactUpdateDOM->cleanup LayoutEffects
+        //rfs의 작동순서를 보면
+        //Render -> rfsUpdateDOM->cleanup LayoutEffects
         //->RunLayoutEffects->Browser paints screen->
         //cleanup Effects -> RunEffects의 순환임으로 perform에서
         //cleanup Effects-> RunEffects가 먼저 수행되어야 합니다.
@@ -1076,21 +1105,17 @@ export const performSyncWorkOnRoot = (root) => {
         if (currentWorkContext.workInProgress !== null) {
             const prevExecutionContext = currentWorkContext.executionContext;
             currentWorkContext.executionContext |= RenderContext;
-            //TODO: pushDispatcher
             const prevDispatcher = pushDispatcher(root);
 
             workLoopSync();
 
-            //TODO: 필요한지확인
-            //resetContextDependencies();
+            resetContextDependencies();
             currentWorkContext.executionContext = prevExecutionContext;
-            //TODO: popDispatcher --context할떄
             popDispatcher(prevDispatcher);
 
             root.finishedWork = root.current.alternate;
             root.finishedExpirationTime = expirationTime;
             //커밋을 시작하는 코드
-            //TODO: implement finishSyncRender
             finishSyncRender(root, currentWorkContext.workInProgressRootExitStatus, expirationTime);
 
             /// Before exiting, make sure there's a callback scheduled for the next
@@ -1179,7 +1204,6 @@ const ensureRootIsScheduled = (root) => {
         root.callbackExpirationTime = Sync;
         root.callbackPriority = ImmediatePriority;
 
-        //TODO: scheduleSyncCallback
         //해당 함수는 schedule 모듈에서 구현할 예정입니다.
         root.callbackNode = scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root));
         return;
@@ -1214,7 +1238,6 @@ const ensureRootIsScheduled = (root) => {
             return;
         }
         //만약우선순위가 기존것보다 높다면 하던걸 멈추고 갈아치워야함
-        //TODO: cancelCallback
         //callback을 취소하고 새로운 callback을 준비합니다.
         cancelCallback(existingCallbackNode);
     }
@@ -1223,18 +1246,12 @@ const ensureRootIsScheduled = (root) => {
     let callbackNode;
     if (expirationTime === Sync) {
         // 동기적으로 스케쥴링 되어야하는 경우, 동기 큐에 schedule합니다.
-        //TODO: scheduleSyncCallback
         callbackNode = scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root));
     } else {
-        //TODO: scheduleCallback
-        //TODO: performConcurrentWorkOnRoot
         //비동기로 스케쥴링 되어야하는 경우, 비동기 큐에 schedule합니다.
-        callbackNode = scheduleCallback(
-            priorityLevel,
-            performConcurrentWorkOnRoot.bind(null, root),
-            //TODO: 이 밑 부분 정확히 해야됨
-            { timeout: expirationTimeToMs(expirationTime) - now() }
-        );
+        callbackNode = scheduleCallback(priorityLevel, performConcurrentWorkOnRoot.bind(null, root), {
+            timeout: expirationTimeToMs(expirationTime) - now(),
+        });
     }
     root.callbackNode = callbackNode;
 };
@@ -1257,23 +1274,9 @@ export const scheduleUpdateOnFiber = (fiber, expirationTime) => {
     const executionContext = currentWorkContext.executionContext;
     //expirationTime이 가장 높은 우선순위
     if (expirationTime === Sync) {
-        //TODO: 현재 주석과 관련된거 LegacyRender를 위한 것으로 보임 확정되면 주석 코드 제거
-        //TODO: 관련된 부분 C
-        //C begin
-        // if (
-        //     // Check if we're inside unbatchedUpdates
-        //     executionContext & (LegacyUnbatchedContext !== NoContext) &&
-        //     (executionContext & (RenderContext | CommitContext)) === NoContext
-        // ) {
-
-        //     //TODO: performSyncWorkOnRoot
-        //     performSyncWorkOnRoot(root);
-        // } else {
-        //C end
         ensureRootIsScheduled(root);
         //Reconciler가 놀고있는 경우 Work를 바로 실행
         if (executionContext === NoContext) {
-            //TODO: flushSyncCallbackQueue
             flushSyncCallbackQueue();
         }
         // } C
@@ -1295,7 +1298,7 @@ export const scheduleUpdateOnFiber = (fiber, expirationTime) => {
     //  연속 이벤트는 사용자와의 상호작용 중 연속적으로 발생할 수 있는 이벤트이며, 예를 들어, 스크롤(onScroll), 마우스 이동(onMouseMove), 윈도우 리사이징(onResize) 등이 여기에 해당한다. 이러한 이벤트는 애플리케이션의 성능에 영향을 미칠 수 있으므로, 필요에 따라 업데이트 빈도를 조절하여 처리된다.
 
     // 이러한 맥락에서, 이산 이벤트는 바로 처리되어야 함에도 불구하고, 실행 중인 우선 순위 레벨이 UserBlockingPriority보다
-    // 높은 경우에만 펜딩으로 진행됨을 의미한다. 이는 React가 다양한 우선 순위의 이벤트를 효과적으로 관리하고 사용자 경험을 최적화하기 위한 메커니즘의 일부이다.
+    // 높은 경우에만 펜딩으로 진행됨을 의미한다. 이는 rfs가 다양한 우선 순위의 이벤트를 효과적으로 관리하고 사용자 경험을 최적화하기 위한 메커니즘의 일부이다.
     if (
         (executionContext & DiscreteEventContext) !== NoContext &&
         (priorityLevel === UserBlockingPriority || priorityLevel === ImmediatePriority)
@@ -1303,14 +1306,14 @@ export const scheduleUpdateOnFiber = (fiber, expirationTime) => {
     }
     {
         //이산 이벤트를 기다리고 있는 이벤트가 없으면 map을 생성하고 expirationTime을 설정합니다.
-        if (rootWithPendingDiscreteUpdates === null) {
-            rootWithPendingDiscreteUpdates = new Map([[root, expirationTime]]);
+        if (rootsWithPendingDiscreteUpdates === null) {
+            rootsWithPendingDiscreteUpdates = new Map([[root, expirationTime]]);
         } else {
-            const lastDiscreteTime = rootWithPendingDiscreteUpdates.get(root);
+            const lastDiscreteTime = rootsWithPendingDiscreteUpdates.get(root);
             // 해당 루트에 대한 lastDiscreteTime이 우선순위가 더 낮다면 expirationTime을 설정합니다. 만약 그렇지 않다면
             // expirationTime을 설정하지 않습니다.
             if (lastDiscreteTime === undefined || lastDiscreteTime > expirationTime) {
-                rootWithPendingDiscreteUpdates.set(root, expirationTime);
+                rootsWithPendingDiscreteUpdates.set(root, expirationTime);
             }
         }
     }
@@ -1329,7 +1332,6 @@ export const scheduleWork = scheduleUpdateOnFiber;
  * @description 우선순위는 userBlockingPriority로 설정되고
  * @description 이전 실행문맥이 없고, 이산 이벤트 문맥에서 동기적인 작업이 발생해야 하는 상황이라면
  * @description flush를 수행합니다.
- * @description TODO: 해당 문맥을 좀더 event하면서 이해해야됨
  */
 export const discreteUpdates = (fn, a, b, c, d) => {
     const previousExecutionContext = currentWorkContext.executionContext;
@@ -1344,4 +1346,35 @@ export const discreteUpdates = (fn, a, b, c, d) => {
             flushSyncCallbackQueue();
         }
     }
+};
+
+const flushPendingDiscreteUpdates = () => {
+    if (rootsWithPendingDiscreteUpdates !== null) {
+        // For each root with pending discrete updates, schedule a callback to
+        // immediately flush them.
+        const roots = rootsWithPendingDiscreteUpdates;
+        rootsWithPendingDiscreteUpdates = null;
+        roots.forEach((expirationTime, root) => {
+            markRootExpiredAtTime(root, expirationTime);
+            ensureRootIsScheduled(root);
+        });
+        // Now flush the immediate queue.
+        flushSyncCallbackQueue();
+    }
+};
+
+export const flushDiscreteUpdates = () => {
+    // However, `act` uses `batchedUpdates`, so there's no way to distinguish
+    // those two cases. Need to fix this before exposing flushDiscreteUpdates
+    // as a public API.
+    if ((currentWorkContext.executionContext & (BatchedContext | RenderContext | CommitContext)) !== NoContext) {
+        // We're already rendering, so we can't synchronously flush pending work.
+        // This is probably a nested event dispatch triggered by a lifecycle/effect,
+        // like `el.focus()`. Exit.
+        return;
+    }
+    flushPendingDiscreteUpdates();
+    // If the discrete updates scheduled passive effects, flush them now so that
+    // they fire before the next serial event.
+    flushPassiveEffects();
 };

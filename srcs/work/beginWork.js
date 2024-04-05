@@ -12,6 +12,7 @@ import {
     ForwardRef,
     MemoComponent,
 } from "../const/CWorkTag.js";
+import { shouldSetTextContent } from "../dom/core/domHost.js";
 import { Placement, PerformedWork } from "../const/CSideEffectFlags.js";
 import { Update as UpdateEffect, Passive as PassiveEffect } from "../const/CSideEffectFlags.js";
 import { cloneChildFibers, reconcileChildFibers, mountChildFibers } from "../fiber/childFiber.js";
@@ -111,9 +112,7 @@ const updateHostComponent = (current, workInProgress, renderExpirationTime) => {
     const prevProps = current !== null ? current.memoizedProps : null;
 
     let nextChildren = nextProps.children;
-    //TODO: shouldSetTextContent 구현 DOM모듈에서
     //호스트 컴포넌트는 자식으로 문자열 하나만 가지고 있을떄 해당 문자열을 파이버로 만들지 않음.
-    //TODO: 위에 설명확인
     const isDirectTextChild = shouldSetTextContent(type, nextProps);
     if (isDirectTextChild) {
         //이것은 문자열을 파이버로 만들지 않기 위해 초기화합니다.

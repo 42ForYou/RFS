@@ -8,7 +8,17 @@ import {
     COMMENT_NODE,
     TEXT_NODE,
 } from "../../const/CDomNodeType.js";
+import {
+    isEnabled as rfsBrowserEventEmitterIsEnabled,
+    setEnabled as rfsBrowserEventEmitterSetEnabled,
+} from "../event/eventEmmiter.js";
+import { getSelectionInformation, restoreSelection } from "../core/element/inputSelection.js";
+
 import { trapClickOnNonInteractiveElement, diffProperties } from "./domComponent.js";
+import { getChildNamespace } from "../core/domNamepsace.js";
+
+let eventsEnabled = null;
+let selectionInformation = null;
 const shouldAutoFocusHostComponent = (type, props) => {
     switch (type) {
         case "button":
@@ -19,7 +29,33 @@ const shouldAutoFocusHostComponent = (type, props) => {
     }
     return false;
 };
+export const getRootHostContext = (rootContainerInstance) => {
+    let type;
+    let namespace;
+    const nodeType = rootContainerInstance.nodeType;
+    switch (nodeType) {
+        case DOCUMENT_NODE:
+        case DOCUMENT_FRAGMENT_NODE: {
+            type = nodeType === DOCUMENT_NODE ? "#document" : "#fragment";
+            const root = rootContainerInstance.documentElement;
+            namespace = root ? root.namespaceURI : getChildNamespace(null, "");
+            break;
+        }
+        default: {
+            const container = nodeType === COMMENT_NODE ? rootContainerInstance.parentNode : rootContainerInstance;
+            const ownNamespace = container.namespaceURI || null;
+            type = container.tagName;
+            namespace = getChildNamespace(ownNamespace, type);
+            break;
+        }
+    }
+    return namespace;
+};
 
+export const getChildHostContext = (parentHostContext, type, rootContainerInstance) => {
+    const parentNamespace = parentHostContext;
+    return getChildNamespace(parentNamespace, type);
+};
 /**
  *
  * @param {THostType} type @see 파일경로: type/THostType.js
@@ -136,14 +172,14 @@ export const appendChildToContainer = (container, child) => {
     }
     // 이 컨테이너는 포털에 사용될 수 있습니다.
     // 포털 내부의 무언가를 클릭하면 해당 클릭은 버블을 발생시켜야 합니다.
-    // React 트리를 통해 발생해야 합니다. 하지만 모바일 사파리에서는 클릭이
+    // rfs 트리를 통해 발생해야 합니다. 하지만 모바일 사파리에서는 클릭이
     // onclick 이벤트가 있는 조상이 존재하지 않는 한 *DOM* 트리를 통해 버블링되지 않습니다.
     // 이벤트가 있는 조상이 존재하지 않는 한 그래서 우리는 그것을 보지 못하고 디스패치하지 않을 것입니다.
-    // 이것이 바로 React 루트 컨테이너가 아닌 다른 컨테이너에 인라인 onclick
+    // 이것이 바로 rfs 루트 컨테이너가 아닌 다른 컨테이너에 인라인 onclick
     //가 정의되어 있는지 확인해야 합니다.
-    // https://github.com/facebook/react/issues/11918
-    const reactRootContainer = container._rfsRootContainer;
-    if ((reactRootContainer === null || reactRootContainer === undefined) && parentNode.onclick === null) {
+    // https://github.com/facebook/rfs/issues/11918
+    const rfsRootContainer = container._rfsRootContainer;
+    if ((rfsRootContainer === null || rfsRootContainer === undefined) && parentNode.onclick === null) {
         trapClickOnNonInteractiveElement(parentNode);
     }
 };
@@ -171,3 +207,33 @@ export const removeChildFromContainer = (container, child) => {
         container.removeChild(child);
     }
 };
+
+export const shouldSetTextContent = (type, props) => {
+    return (
+        type === "textarea" ||
+        type === "option" ||
+        type === "noscript" ||
+        typeof props.children === "string" ||
+        typeof props.children === "number" ||
+        (typeof props.dangerouslySetInnerHTML === "object" &&
+            props.dangerouslySetInnerHTML !== null &&
+            props.dangerouslySetInnerHTML.__html !== null)
+    );
+};
+
+export const prepareForCommit = (containerInfo) => {
+    eventsEnabled = rfsBrowserEventEmitterIsEnabled();
+    selectionInformation = getSelectionInformation();
+    rfsBrowserEventEmitterSetEnabled(false);
+};
+
+export const resetAfterCommit = (containerInfo) => {
+    restoreSelection(selectionInformation);
+    selectionInformation = null;
+    rfsBrowserEventEmitterSetEnabled(eventsEnabled);
+    eventsEnabled = null;
+};
+
+export const cancelTimeout = typeof clearTimeout === "function" ? clearTimeout : undefined;
+export const noTimeout = -1;
+export const isPrimaryRenderer = true;

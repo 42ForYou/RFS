@@ -23,7 +23,8 @@ export const MAX_SIGNED_31_BIT_INT = 1073741823;
 //expiration Time의 계산식은 general하게는 Sync - performance.now()로 하고 싶었는데-> 이러면 Sync,Batched crash날수 있으니까
 //MAGIC_NUMBER_OFFSET = Batched - 1을 사용한다. expirationTime = MAGIC_NUMBER_OFFSEt - performance.now()/10;
 export const NoWork = 0;
-export const Idle = 1;
+export const Never = 1;
+export const Idle = 2;
 export const Sync = MAX_SIGNED_31_BIT_INT;
 export const Batched = Sync - 1;
 export const MAGIC_NUMBER_OFFSET = Batched - 1;

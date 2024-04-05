@@ -2,9 +2,12 @@ import { pop, push } from "../fiber/fiberStack.js";
 import { markWorkInProgressReceivedUpdate } from "../work/beginWork.js";
 import createContextItem from "./constructor/contextItem.js";
 import contextCore from "./core/contextCore.js";
-// TODO: import { isPrimaryRenderer } from "react-dom";
+import { isPrimaryRenderer } from "../dom/core/domHost.js";
 // RFS의 ReactDOMHostConfig에서 isPrimaryRenderer를 가져옵니다.
-
+export const resetContextDependencies = () => {
+    contextCore.currentlyRenderingFiber = null;
+    contextCore.lastContextDependency = null;
+};
 /**
  *
  * @param {TFiber} providerFiber - Provider의 fiber
