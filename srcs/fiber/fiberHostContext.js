@@ -74,7 +74,6 @@ export const getRootHostContainer = () => {
     return rootInstance;
 };
 
-//TODO: 해당 부분이 필요가 없다 라고 생각하면 제거할것
 //NOTE: 돔 모듈에서 정확히 필요한지 정의될것 같음. 지금 현재로썬 의미론 상
 //NOTE: 타당해보임
 /**
@@ -98,7 +97,6 @@ export const pushHostContainer = (fiber, nextRootInstance) => {
     //   렌더러 코드의 어딘가에 getRootHostContext()가 던지는지 여부에 따라 // 스택의 항목 수가 달라지기 때문입니다.
     // 그래서 빈 값을 먼저 푸시합니다. 이렇게 하면 오류를 안전하게 처리할 수 있습니다.
     push(contextStackCursor, NO_CONTEXT);
-    //TODO:getRootHostContext 구현
     const nextRootContext = getRootHostContext(nextRootInstance);
 
     // 마지막으로 실제 값을 푸시합니다.
@@ -128,12 +126,11 @@ export const getHostContext = () => {
  *
  * @param {TFiber} fiber
  * @description - 현재의 호스트 컨텍스트를 스택에 푸시합니다.(현재 호스트 컨텍스트 기반으로 다음 컨텍스트를 가져와서 푸시한다.)
- * @description - TODO: 자식의 context를 가져오는게 무슨 의미인지 정확히 이해가 안됨
+ * @description
  */
 export const pushHostContext = (fiber) => {
     const rootInstance = requiredContext(rootInstanceStackCursor.current);
     const context = requiredContext(contextStackCursor.current);
-    //TODO: getChildHostContext 구현 dom모듈에서
     const nextContext = getChildHostContext(context, fiber.type, rootInstance);
 
     //nextContext와 같다면 푸시하지 않는다.
