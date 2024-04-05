@@ -9,18 +9,19 @@
 // 상태 복원: 만약 제어 컴포넌트가 보류중인 업데이트를 가지고 있다면 (controlledComponentsHavePendingUpdates가 true인 경우), flushDiscreteUpdatesImpl 함수를 호출하여 보류중인 업데이트를 처리하고, restoreStateIfNeeded 함수를 통해 필요한 경우 DOM 노드의 상태를 제어된 값으로 복원합니다.
 
 // 이러한 과정은 제어 컴포넌트가 예상대로 정확하게 동작하도록 보장하는 데 중요합니다. 특히, 리액트가 업데이트를 "건너뛰어(bail out)" 최적화를 수행할 때, DOM 상태가 리액트의 상태와 불일치할 수 있는 문제를 방지합니다. 이는 사용자 경험을 일관되게 유지하고, 예상치 못한 동작을 방지하는 데 도움이 됩니다.
+
+import { getInstanceFromNode, getFiberCurrentPropsFromNode } from "./eventPluginUtil.js";
+
 let restoreImpl = null;
 let restoreTarget = null;
 let restoreQueue = null;
 
 const restoreStateOfTarget = (target) => {
-    //TODO: getInstanceFromNode->정확히는 연결
     const internalInstance = getInstanceFromNode(target);
     if (!internalInstance) {
         // Unmounted
         return;
     }
-    //TODO: getFiberCurrentPropsFromNode->정확히는 연결
     const props = getFiberCurrentPropsFromNode(internalInstance.stateNode);
     restoreImpl(internalInstance.stateNode, internalInstance.type, props);
 };

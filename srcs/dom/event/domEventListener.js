@@ -1,14 +1,8 @@
 import { DiscreteEvent, UserBlockingEvent, ContinuousEvent } from "../../const/CEventPriority.js";
-import SimpleEventPlugin from "../event/simpleEventPlugin.js";
+import SimpleEventPlugin from "../event/EventPlugin/simpleEventPlugin.js";
 import { getRawEventName } from "./domTopLevelEventType.js";
 import { getEventTarget } from "./getEventTarget.js";
-import {
-    PLUGIN_EVENT_SYSTEM,
-    IS_PASSIVE, //NOTE: 아마도 Flare를 위한 것들인것같은데 필요 없으면 제거해도 될듯
-    IS_ACTIVE,
-    PASSIVE_NOT_SUPPORTED,
-    IS_REPLAYED,
-} from "../../const/CEventSystemFlags.js";
+import { PLUGIN_EVENT_SYSTEM } from "../../const/CEventSystemFlags.js";
 import * as Scheduler from "../../scheduler/schedulerImpl.js";
 import { getClosestInstanceFromNode } from "../../dom/core/domComponentConnection.js";
 import { getNearestMountedFiber } from "../../Reconciler/fiberTreeReflection.js";
