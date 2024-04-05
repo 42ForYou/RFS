@@ -2,6 +2,7 @@ import { DOCUMENT_NODE, DOCUMENT_FRAGMENT_NODE } from "../../const/CDomNodeType.
 import { Namespaces, getIntrinsicNamespace } from "./domNamepsace.js";
 
 import { setValueForProperty } from "./domPropertyOperation.js";
+import { toStringOrTrustedType } from "./toStringValue.js";
 import {
     initWrapperState as rfsDOMInputInitWrapperState,
     getHostProps as rfsDOMInputGetHostProps,
@@ -45,6 +46,24 @@ import { listenTo, trapBubbledEvent, getListeningSetForElement } from "../event/
 const HTML_NAMESPACE = Namespaces.html;
 const AUTOFOCUS = "autoFocus";
 const DANGEROUSLY_SET_INNER_HTML = "dangerouslySetInnerHTML";
+const CHILDREN = "children";
+const STYLE = "style";
+const HTML = "__html";
+const LISTENERS = "listeners";
+const noop = () => {};
+
+export const trapClickOnNonInteractiveElement = (node) => {
+    // 모바일 Safari에서 버블 클릭 이벤트가 제대로 발생하지 않습니다.
+    // 비대화형 요소, 즉 위임된 클릭 리스너에서 버블 클릭 이벤트가
+    // 실행되지 않습니다. 이 버그의 해결 방법은 대상 노드에 빈 클릭 리스너를 첨부하는 것입니다.
+    // 리스너를 대상 노드에 첨부하는 것입니다.
+    // http://www.quirksmode.org/blog/archives/2010/09/click_event_del.html
+    // 클릭 속성을 사용하여 설정하기만 하면 됩니다.
+    // 북키핑을 관리할 필요가 없습니다. 리스너가 제거되었을 때 이를 지워야 하는지 확실하지 않습니다.
+    // 제거해야 하는지 잘 모르겠습니다.
+    // 할 일: 관련 Safari에만 이 작업을 수행하면 될까요?
+    node.onclick = noop;
+};
 
 const ensureListeningTo = (rootContainerElement, registrationName) => {
     const isDocumentOrFragment =
@@ -285,6 +304,149 @@ const updateDOMProperties = (domElement, updatePayload, wasCustomComponentTag, i
             setValueForProperty(domElement, propKey, propValue, isCustomComponentTag);
         }
     }
+};
+
+export const diffProperties = (domElement, tag, lastRawProps, nextRawProps, rootContainerElement) => {
+    let updatePayload = null;
+
+    let lastProps;
+    let nextProps;
+    switch (tag) {
+        case "input":
+            lastProps = rfsDOMInputGetHostProps(domElement, lastRawProps);
+            nextProps = rfsDOMInputGetHostProps(domElement, nextRawProps);
+            updatePayload = [];
+            break;
+        case "option":
+            lastProps = rfsDOMOptionGetHostProps(domElement, lastRawProps);
+            nextProps = rfsDOMOptionGetHostProps(domElement, nextRawProps);
+            updatePayload = [];
+            break;
+        case "select":
+            lastProps = rfsDOMSelectGetHostProps(domElement, lastRawProps);
+            nextProps = rfsDOMSelectGetHostProps(domElement, nextRawProps);
+            updatePayload = [];
+            break;
+        case "textarea":
+            lastProps = rfsDOMTextareaGetHostProps(domElement, lastRawProps);
+            nextProps = rfsDOMTextareaGetHostProps(domElement, nextRawProps);
+            updatePayload = [];
+            break;
+        default:
+            lastProps = lastRawProps;
+            nextProps = nextRawProps;
+            if (typeof lastProps.onClick !== "function" && typeof nextProps.onClick === "function") {
+                trapClickOnNonInteractiveElement(domElement);
+            }
+            break;
+    }
+
+    let propKey;
+    let styleName;
+    let styleUpdates = null;
+    for (propKey in lastProps) {
+        if (nextProps.hasOwnProperty(propKey) || !lastProps.hasOwnProperty(propKey) || lastProps[propKey] === null) {
+            continue;
+        }
+        if (propKey === STYLE) {
+            const lastStyle = lastProps[propKey];
+            for (styleName in lastStyle) {
+                if (lastStyle.hasOwnProperty(styleName)) {
+                    if (!styleUpdates) {
+                        styleUpdates = {};
+                    }
+                    styleUpdates[styleName] = "";
+                }
+            }
+        } else if (propKey === DANGEROUSLY_SET_INNER_HTML || propKey === CHILDREN) {
+            // Noop. This is handled by the clear text mechanism.
+        } else if (propKey === AUTOFOCUS) {
+            // Noop. It doesn't work on updates anyway.
+        } else if (registrationNameModules.hasOwnProperty(propKey)) {
+            // This is a special case. If any listener updates we need to ensure
+            // that the "current" fiber pointer gets updated so we need a commit
+            // to update this element.
+            if (!updatePayload) {
+                updatePayload = [];
+            }
+        } else {
+            // For all other deleted properties we add it to the queue. We use
+            // the whitelist in the commit phase instead.
+            (updatePayload = updatePayload || []).push(propKey, null);
+        }
+    }
+    for (propKey in nextProps) {
+        const nextProp = nextProps[propKey];
+        const lastProp = lastProps !== null ? lastProps[propKey] : undefined;
+        if (!nextProps.hasOwnProperty(propKey) || nextProp === lastProp || (nextProp === null && lastProp === null)) {
+            continue;
+        }
+        if (propKey === STYLE) {
+            if (lastProp) {
+                // Unset styles on `lastProp` but not on `nextProp`.
+                for (styleName in lastProp) {
+                    if (lastProp.hasOwnProperty(styleName) && (!nextProp || !nextProp.hasOwnProperty(styleName))) {
+                        if (!styleUpdates) {
+                            styleUpdates = {};
+                        }
+                        styleUpdates[styleName] = "";
+                    }
+                }
+                // Update styles that changed since `lastProp`.
+                for (styleName in nextProp) {
+                    if (nextProp.hasOwnProperty(styleName) && lastProp[styleName] !== nextProp[styleName]) {
+                        if (!styleUpdates) {
+                            styleUpdates = {};
+                        }
+                        styleUpdates[styleName] = nextProp[styleName];
+                    }
+                }
+            } else {
+                // Relies on `updateStylesByID` not mutating `styleUpdates`.
+                if (!styleUpdates) {
+                    if (!updatePayload) {
+                        updatePayload = [];
+                    }
+                    updatePayload.push(propKey, styleUpdates);
+                }
+                styleUpdates = nextProp;
+            }
+        } else if (propKey === DANGEROUSLY_SET_INNER_HTML) {
+            const nextHtml = nextProp ? nextProp[HTML] : undefined;
+            const lastHtml = lastProp ? lastProp[HTML] : undefined;
+            if (nextHtml !== null) {
+                if (lastHtml !== nextHtml) {
+                    (updatePayload = updatePayload || []).push(propKey, toStringOrTrustedType(nextHtml));
+                }
+            } else {
+                // TODO: It might be too late to clear this if we have children
+                // inserted already.
+            }
+        } else if (propKey === CHILDREN) {
+            if (lastProp !== nextProp && (typeof nextProp === "string" || typeof nextProp === "number")) {
+                (updatePayload = updatePayload || []).push(propKey, "" + nextProp);
+            }
+        } else if (registrationNameModules.hasOwnProperty(propKey)) {
+            if (nextProp !== null) {
+                // We eagerly listen to this even though we haven't committed yet.
+                ensureListeningTo(rootContainerElement, propKey);
+            }
+            if (!updatePayload && lastProp !== nextProp) {
+                // This is a special case. If any listener updates we need to ensure
+                // that the "current" props pointer gets updated so we need a commit
+                // to update this element.
+                updatePayload = [];
+            }
+        } else {
+            // For any other property we always add it to the queue and then we
+            // filter it out using the whitelist during the commit.
+            (updatePayload = updatePayload || []).push(propKey, nextProp);
+        }
+    }
+    if (styleUpdates) {
+        (updatePayload = updatePayload || []).push(STYLE, styleUpdates);
+    }
+    return updatePayload;
 };
 
 /**

@@ -8,6 +8,13 @@ import {
     ContextProvider,
     MemoComponent,
 } from "../const/CWorkTag.js";
+import {
+    createInstance,
+    createTextInstance,
+    appendInitialChild,
+    finalizeInitialChildren,
+    prepareUpdate,
+} from "../dom/core/domHost.js";
 import { popProvider } from "../context/newContext.js";
 import { popHostContainer, popHostContext, getRootHostContainer, getHostContext } from "../fiber/fiberHostContext.js";
 import { Ref } from "../const/CWorkTag.js";
@@ -31,7 +38,7 @@ const markUpdate = (workInProgress) => {
 
 /**
  *
- * @param {any} parent ->domInstance TODO:domInstance의 타입을 정의해야함
+ * @param {any} parent ->domInstance
  * @param {TFiber} workInProgress
  * @description 한 레벨 내에 있는 모든 dom자식들을 새로 생성된 parent에 연결하는 함수이다.
  * @description dom의 레벨과 파이버의 레벨은 다를 수 있기 때문에 이를 수행할 수 있는 로직이 필요하다.
@@ -48,7 +55,6 @@ const appendAllChildren = (parent, workInProgress) => {
     let node = workInProgress.child;
     while (node !== null) {
         if (node.tag === HostComponent || node.tag === HostText) {
-            //TODO: appendInitialChild 구현 ==>dom모듈
             //host관련 fiber일 경우 dom인스턴스를 parent에 연결한다.
             appendInitialChild(parent, node.stateNode);
         } else if (node.child !== null) {
@@ -95,8 +101,8 @@ const updateHostText = (workInProgress, oldText, newText) => {
  *
  * @param {TFiber} current
  * @param {TFiber} workInProgress
- * @param {any} type : domElementType TODO:관련 타입을 dom모듈에서 정의해야함
- * @param {any} newProps : domProps TODO:관련 타입을 dom모듈에서 정의해야함
+ * @param {any} type : domElementType
+ * @param {any} newProps : domProps
  * @param {TDOMContainer} rootContainerInstance @see 파일경로: type/TDomType.js
  */
 const updateHostComponent = (current, workInProgress, type, newProps, rootContainerInstance) => {
@@ -129,13 +135,12 @@ const updateHostComponent = (current, workInProgress, type, newProps, rootContai
     }
 
     // If we get updated because one of our children updated, we don't
-    // have newProps so we'll have to reuse them. TODO: 해당 부분의 의미를 찾아볼 필요가 있음
+    // have newProps so we'll have to reuse them.
 
     //update를 하기위해서 domInstance와 관련된 Context를 가져온다.
     const instance = workInProgress.stateNode;
     const currentHostContext = getHostContext();
 
-    //TODO: prepareUpdate 구현
     //dom업데이트를 위한 payload를 준비한다.->dom연산 업데이트를 예약한다
     const updatePayload = prepareUpdate(instance, type, oldProps, newProps, rootContainerInstance, currentHostContext);
     //wip의 업데이트 큐를 dom업데이트를 위한 payload로 갱신한다.
@@ -203,7 +208,6 @@ export const completeWork = (current, workInProgress, renderExpirationTime) => {
                 const currentHostContext = getHostContext();
 
                 //dom인스턴스를 생성한다.
-                //TODO: createInstance 구현 dom모듈
                 const instance = createInstance(
                     type,
                     newProps,
@@ -219,7 +223,6 @@ export const completeWork = (current, workInProgress, renderExpirationTime) => {
 
                 workInProgress.stateNode = instance;
                 if (
-                    //TODO: finalizeInitialChildren 구현 ==>dom모듈
                     //dom과 관련되서 수행해야되는 이벤트, 속성, 관련된 많은 작업들을 다 처리한다.
                     finalizeInitialChildren(instance, type, newProps, rootContainerInstance, currentHostContext)
                 ) {
@@ -249,7 +252,6 @@ export const completeWork = (current, workInProgress, renderExpirationTime) => {
                 const rootContainerInstance = getRootHostContainer();
                 //현재 HostText와 관련된 Context들을 가져온다.
                 const currentHostContext = getHostContext();
-                //TODO: createTextInstance 구현
                 //dom인스턴스를 생성해서 workInProgress에 연결한다.
                 workInProgress.stateNode = createTextInstance(
                     newText,

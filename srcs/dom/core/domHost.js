@@ -8,6 +8,7 @@ import {
     COMMENT_NODE,
     TEXT_NODE,
 } from "../../const/CDomNodeType.js";
+import { trapClickOnNonInteractiveElement, diffProperties } from "./domComponent.js";
 const shouldAutoFocusHostComponent = (type, props) => {
     switch (type) {
         case "button":
@@ -17,22 +18,6 @@ const shouldAutoFocusHostComponent = (type, props) => {
             return !!props.autoFocus;
     }
     return false;
-};
-
-const noop = () => {};
-
-export const trapClickOnNonInteractiveElement = (node) => {
-    // 모바일 Safari에서 버블 클릭 이벤트가 제대로 발생하지 않습니다.
-    // 비대화형 요소, 즉 위임된 클릭 리스너에서 버블 클릭 이벤트가
-    // 실행되지 않습니다. 이 버그의 해결 방법은 대상 노드에 빈 클릭 리스너를 첨부하는 것입니다.
-    // 리스너를 대상 노드에 첨부하는 것입니다.
-    // http://www.quirksmode.org/blog/archives/2010/09/click_event_del.html
-    // 클릭 속성을 사용하여 설정하기만 하면 됩니다.
-    // 북키핑을 관리할 필요가 없습니다. 리스너가 제거되었을 때 이를 지워야 하는지 확실하지 않습니다.
-    // 제거해야 하는지 잘 모르겠습니다.
-    // 할 일: 관련 Safari에만 이 작업을 수행하면 될까요?
-    // TODO: Only do this for the relevant Safaris maybe?
-    node.onclick = noop;
 };
 
 /**
@@ -80,6 +65,9 @@ export const finalizeInitialChildren = (domElement, type, props, rootContainerIn
     return shouldAutoFocusHostComponent(type, props);
 };
 
+export const prepareUpdate = (domElement, type, oldProps, newProps, rootContainerInstance, hostContext) => {
+    return diffProperties(domElement, type, oldProps, newProps, rootContainerInstance);
+};
 /**
  *
  * @param {*} instance
