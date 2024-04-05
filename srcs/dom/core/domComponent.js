@@ -1,5 +1,37 @@
-import { DOCUMENT_NODE } from "../../const/CDomNodeType.js";
+import { DOCUMENT_NODE, DOCUMENT_FRAGMENT_NODE } from "../../const/CDomNodeType.js";
 import { Namespaces, getIntrinsicNamespace } from "./domNamepsace.js";
+
+import { setValueForProperty } from "./domPropertyOperation.js";
+import {
+    initWrapperState as rfsDOMInputInitWrapperState,
+    getHostProps as rfsDOMInputGetHostProps,
+    postMountWrapper as rfsDOMInputPostMountWrapper,
+    updateChecked as rfsDOMInputUpdateChecked,
+    updateWrapper as rfsDOMInputUpdateWrapper,
+    restoreControlledState as rfsDOMInputRestoreControlledState,
+} from "./domInput.js";
+import {
+    getHostProps as rfsDOMOptionGetHostProps,
+    postMountWrapper as rfsDOMOptionPostMountWrapper,
+} from "./domOption.js";
+import {
+    initWrapperState as rfsDOMSelectInitWrapperState,
+    getHostProps as rfsDOMSelectGetHostProps,
+    postMountWrapper as rfsDOMSelectPostMountWrapper,
+    restoreControlledState as rfsDOMSelectRestoreControlledState,
+    postUpdateWrapper as rfsDOMSelectPostUpdateWrapper,
+} from "./domSelect.js";
+import {
+    initWrapperState as rfsDOMTextareaInitWrapperState,
+    getHostProps as rfsDOMTextareaGetHostProps,
+    postMountWrapper as rfsDOMTextareaPostMountWrapper,
+    updateWrapper as rfsDOMTextareaUpdateWrapper,
+    restoreControlledState as rfsDOMTextareaRestoreControlledState,
+} from "./domTextarea.js";
+import { track } from "../core/element/inputValueTracking.js";
+import setInnerHTML from "./setInnerHTML.js";
+import setTextContent from "./setTextContent.js";
+import { setValueForStyles } from "./cssPropertyOperation.js";
 import {
     TOP_ERROR,
     TOP_INVALID,
@@ -9,8 +41,17 @@ import {
     TOP_TOGGLE,
     mediaEventTypes,
 } from "../event/domTopLevelEventType.js";
-import { trapBubbledEvent } from "../event/eventEmmiter.js";
+import { listenTo, trapBubbledEvent, getListeningSetForElement } from "../event/eventEmmiter.js";
 const HTML_NAMESPACE = Namespaces.html;
+const AUTOFOCUS = "autoFocus";
+const DANGEROUSLY_SET_INNER_HTML = "dangerouslySetInnerHTML";
+
+const ensureListeningTo = (rootContainerElement, registrationName) => {
+    const isDocumentOrFragment =
+        rootContainerElement.nodeType === DOCUMENT_NODE || rootContainerElement.nodeType === DOCUMENT_FRAGMENT_NODE;
+    const doc = isDocumentOrFragment ? rootContainerElement : rootContainerElement.ownerDocument;
+    listenTo(registrationName, doc);
+};
 /**
  *
  * @param {THostContainer} rootContainerElement @see 파일경로: type/THostType.js
@@ -84,6 +125,48 @@ const isCustomComponent = (tagName, props) => {
     }
 };
 
+const setInitialDOMProperties = (tag, domElement, rootContainerElement, nextProps, isCustomComponentTag) => {
+    for (const propKey in nextProps) {
+        if (!nextProps.hasOwnProperty(propKey)) {
+            continue;
+        }
+        const nextProp = nextProps[propKey];
+        if (propKey === STYLE) {
+            // Relies on `updateStylesByID` not mutating `styleUpdates`.
+            setValueForStyles(domElement, nextProp);
+        } else if (propKey === DANGEROUSLY_SET_INNER_HTML) {
+            const nextHtml = nextProp ? nextProp[HTML] : undefined;
+            if (nextHtml !== null) {
+                setInnerHTML(domElement, nextHtml);
+            }
+        } else if (propKey === CHILDREN) {
+            if (typeof nextProp === "string") {
+                // Avoid setting initial textContent when the text is empty. In IE11 setting
+                // textContent on a <textarea> will cause the placeholder to not
+                // show within the <textarea> until it has been focused and blurred again.
+                // https://github.com/facebook/rfs/issues/6731#issuecomment-254874553
+                const canSetTextContent = tag !== "textarea" || nextProp !== "";
+                if (canSetTextContent) {
+                    setTextContent(domElement, nextProp);
+                }
+            } else if (typeof nextProp === "number") {
+                setTextContent(domElement, "" + nextProp);
+            }
+        } else if (propKey === AUTOFOCUS) {
+            // We polyfill it separately on the client during commit.
+            // We could have excluded it in the property list instead of
+            // adding a special case here, but then it wouldn't be emitted
+            // on server rendering (but we *do* want to emit it in SSR).
+        } else if (registrationNameModules.hasOwnProperty(propKey)) {
+            if (nextProp !== null) {
+                ensureListeningTo(rootContainerElement, propKey);
+            }
+        } else if (nextProp !== null) {
+            setValueForProperty(domElement, propKey, nextProp, isCustomComponentTag);
+        }
+    }
+};
+
 /**
  *
  * @param {THostInstance} domElement @see 파일경로: type/THostType.js
@@ -96,7 +179,6 @@ export const setInitialProperties = (domElement, tag, rawProps, rootContainerEle
     const isCustomComponentTag = isCustomComponent(tag, rawProps);
 
     let props;
-    //TODO: props관리 로직 문맥파악
     //NOTE: 이부분은 특수하게 처리해야 되서 이벤트 위임이 아니라 해당 domElement에 이벤트를 등록해야 하는 경우에 대한 부분
     switch (tag) {
         case "iframe":
@@ -107,7 +189,6 @@ export const setInitialProperties = (domElement, tag, rawProps, rootContainerEle
             break;
         case "video":
         case "audio":
-            //TODO: for문 문맥파악
             for (let i = 0; i < mediaEventTypes.length; i++) {
                 trapBubbledEvent(mediaEventTypes[i], domElement);
             }
@@ -134,64 +215,115 @@ export const setInitialProperties = (domElement, tag, rawProps, rootContainerEle
             props = rawProps;
             break;
         case "input":
-            //TODO: ReactDOMInputInitWrapperState구현
-            ReactDOMInputInitWrapperState(domElement, rawProps);
-            //TODO: ReactDOMInputValidateProps구현
-            props = ReactDOMInputGetHostProps(domElement, rawProps);
+            rfsDOMInputInitWrapperState(domElement, rawProps);
+            props = rfsDOMInputGetHostProps(domElement, rawProps);
             trapBubbledEvent(TOP_INVALID, domElement);
             // For controlled components we always need to ensure we're listening
             // to onChange. Even if there is no listener.
-            //TODO: ensureListeningTo구현
             ensureListeningTo(rootContainerElement, "onChange");
             break;
         case "option":
-            //TODO: ReactDOMOptionValidateProps구현
-            ReactDOMOptionValidateProps(domElement, rawProps);
-            //TODO: ReactDOMOptionGetHostProps구현
-            props = ReactDOMOptionGetHostProps(domElement, rawProps);
+            props = rfsDOMOptionGetHostProps(domElement, rawProps);
             break;
         case "select":
-            //TODO: ReactDOMSelectInitWrapperState구현
-            ReactDOMSelectInitWrapperState(domElement, rawProps);
-            //TODO: ReactDOMSelectValidateProps구현
-            props = ReactDOMSelectGetHostProps(domElement, rawProps);
+            rfsDOMSelectInitWrapperState(domElement, rawProps);
+            props = rfsDOMSelectGetHostProps(domElement, rawProps);
             trapBubbledEvent(TOP_INVALID, domElement);
             // For controlled components we always need to ensure we're listening
             // to onChange. Even if there is no listener.
-            //TODO: ensureListeningTo구현
             ensureListeningTo(rootContainerElement, "onChange");
             break;
         case "textarea":
-            //TODO: ReactDOMTextareaInitWrapperState구현
-            ReactDOMTextareaInitWrapperState(domElement, rawProps);
-            //TODO: ReactDOMTextareaValidateProps구현
-            props = ReactDOMTextareaGetHostProps(domElement, rawProps);
+            rfsDOMTextareaInitWrapperState(domElement, rawProps);
+            props = rfsDOMTextareaGetHostProps(domElement, rawProps);
             trapBubbledEvent(TOP_INVALID, domElement);
             // For controlled components we always need to ensure we're listening
             // to onChange. Even if there is no listener.
-            //TODO: ensureListeningTo구현
             ensureListeningTo(rootContainerElement, "onChange");
             break;
         default:
             props = rawProps;
     }
 
-    //TODO: setInitialDOMProperties문맥 부터 구현
+    setInitialDOMProperties(tag, domElement, rootContainerElement, props, isCustomComponentTag);
+    switch (tag) {
+        case "input":
+            // up necessary since we never stop tracking anymore.
+            track(domElement);
+            rfsDOMInputPostMountWrapper(domElement, rawProps, false);
+            break;
+        case "textarea":
+            // up necessary since we never stop tracking anymore.
+            track(domElement);
+            rfsDOMTextareaPostMountWrapper(domElement, rawProps);
+            break;
+        case "option":
+            rfsDOMOptionPostMountWrapper(domElement, rawProps);
+            break;
+        case "select":
+            rfsDOMSelectPostMountWrapper(domElement, rawProps);
+            break;
+        default:
+            if (typeof props.onClick === "function") {
+                trapClickOnNonInteractiveElement(domElement);
+            }
+            break;
+    }
 };
+
+const updateDOMProperties = (domElement, updatePayload, wasCustomComponentTag, isCustomComponentTag) => {
+    for (let i = 0; i < updatePayload.length; i += 2) {
+        const propKey = updatePayload[i];
+        const propValue = updatePayload[i + 1];
+        if (propKey === STYLE) {
+            setValueForStyles(domElement, propValue);
+        } else if (propKey === DANGEROUSLY_SET_INNER_HTML) {
+            setInnerHTML(domElement, propValue);
+        } else if (propKey === CHILDREN) {
+            setTextContent(domElement, propValue);
+        } else {
+            setValueForProperty(domElement, propKey, propValue, isCustomComponentTag);
+        }
+    }
+};
+
 /**
  *
- * @param {THostInstance} domElement @see 파일경로: type/THostType.js
- * @param {THostType} type @see 파일경로: type/THostType.js
- * @param {THostProps} props @see 파일경로: type/THostType.js
- * @param {THostContainer} rootContainerInstance @see 파일경로: type/THostType.js
- * @returns {boolean}
- * @description children의 호스트 세팅관련된 모든것들을 마무리하는 함수입니다.
- * @description event관련 세팅, domProperty세팅등을 마무리합니다.
+ * @param {*} domElement
+ * @param {*} updatePayload
+ * @param {*} tag
+ * @param {*} lastRawProps
+ * @param {*} nextRawProps
+ * @description domElement의 프로퍼티를 업데이트하는 함수입니다.
  */
-export const finalizeInitialChildren = (domElement, type, props, rootContainerInstance) => {
-    //TODO: setInitialProperties구현
-    //hotsInstance의 이벤트, property등 기초적인 세팅을 진행
-    setInitialProperties(domElement, type, props, rootContainerInstance);
-    //TODO: shouldAutoFocusHostComponent구현
-    return shouldAutoFocusHostComponent(type, props);
+export const updateProperties = (domElement, updatePayload, tag, lastRawProps, nextRawProps) => {
+    // 업데이트 *before*  확인.
+    // 업데이트 도중에 여러 개를 체크할 수 있습니다.
+    // 체크된 라디오가 이름을 변경하려고 하면 브라우저는 다른 라디오의 체크를 거짓으로 만듭니다.
+    if (tag === "input" && nextRawProps.type === "radio" && nextRawProps.name !== null) {
+        rfsDOMInputUpdateChecked(domElement, nextRawProps);
+    }
+
+    const wasCustomComponentTag = isCustomComponent(tag, lastRawProps);
+    const isCustomComponentTag = isCustomComponent(tag, nextRawProps);
+    // Apply the diff.
+    updateDOMProperties(domElement, updatePayload, wasCustomComponentTag, isCustomComponentTag);
+
+    // changed.
+    switch (tag) {
+        case "input":
+            // 소품을 업데이트한 *후* 입력 주위의 래퍼를 업데이트합니다. 이것은
+            // `updateDOMProperties` 이후에 발생해야 합니다. 그렇지 않으면 HTML5 입력 유효성 검사
+            // 경고를 발생시키고 새 값이 할당되지 않도록 합니다.
+            rfsDOMInputUpdateWrapper(domElement, nextRawProps);
+            break;
+        case "textarea":
+            rfsDOMTextareaUpdateWrapper(domElement, nextRawProps);
+            break;
+        case "select":
+            // <select> value update needs to occur after <option> children
+            // reconciliation
+            rfsDOMSelectPostUpdateWrapper(domElement, nextRawProps);
+            break;
+    }
 };

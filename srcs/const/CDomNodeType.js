@@ -11,4 +11,5 @@ export const TEXT_NODE = 3;
 export const DOCUMENT_NODE = 9;
 export const DOCUMENT_TYPE_NODE = 10;
 export const DOCUMENT_FRAGMENT_NODE = 11;
+export const COMMENT_NODE = 8;
 // HTML node Type ends

@@ -27,7 +27,6 @@ import { push, pop } from "./fiberStack.js";
  */
 const NO_CONTEXT = {};
 
-//TODO: THostContext를 정의해야함 ->Dom모듈에서 정의할 예정 :string이 될것
 /**
  * @type {TStackCursor<THostContext | TNoContextT>} @see ../type/TStackCursor.js
  */
@@ -41,7 +40,6 @@ const contextStackCursor = createCursor(NO_CONTEXT);
  */
 const contextFiberStackCursor = createCursor(NO_CONTEXT);
 
-//TODO: TContainer를 정의해야함 ->Dom모듈에서 정의할 예정 :Document | Element가 될것
 /**
  * @type {TStackCursor<TContainer | TNoContextT>} @see ../type/TStackCursor.js
  */

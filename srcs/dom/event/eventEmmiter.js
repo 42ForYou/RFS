@@ -84,7 +84,7 @@ const ourMap = isPossibleWeakMap ? WeakMap : Map;
  * @description 위임하고 있는지를 저장한다.
  */
 const elementListeningSets = new ourMap();
-const getListeningSetForElement = (element) => {
+export const getListeningSetForElement = (element) => {
     let listeningSet = elementListeningSets.get(element);
     if (!listeningSet) {
         listeningSet = new Set();
@@ -151,7 +151,7 @@ export const listenToTopLevel = (topLevelType, mountAt, listeningSet) => {
  * @param {THostInstance|THostContainer} mountAt
  * @description mountAt에 해당 타입(registrationName)에 대한 리스닝을 추가한다
  */
-export const ListenTo = (registrationName, mountAt) => {
+export const listenTo = (registrationName, mountAt) => {
     //해당 엘리먼트에 대한 리스닝셋을 가져온다.
     const listeningSet = getListeningSetForElement(mountAt);
     const dependencies = registrationNameDependencies[registrationName];
