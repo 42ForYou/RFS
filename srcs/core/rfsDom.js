@@ -15,3 +15,5 @@ const rfsDOM = {
     unstableBatchedUpdates: batchedUpdates,
     createRoot: createRoot,
 };
+
+export default rfsDOM;
