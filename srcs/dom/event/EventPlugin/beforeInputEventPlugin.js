@@ -11,6 +11,7 @@ import {
     TOP_TEXT_INPUT,
     TOP_PASTE,
 } from "../domTopLevelEventType.js";
+import { accumulateTwoPhaseDispatches } from "../eventPropagators.js";
 import {
     getData as FallbackCompositionStateGetData,
     initialize as FallbackCompositionStateInitialize,
@@ -241,7 +242,6 @@ const extractCompositionEvent = (topLevelType, targetInst, nativeEvent, nativeEv
         }
     }
 
-    //TODO: accumulateTwoPhaseDispatches 함수구현
     accumulateTwoPhaseDispatches(event);
     return event;
 };

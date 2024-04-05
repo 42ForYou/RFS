@@ -1,4 +1,5 @@
 import { setEnabled, isEnabled, trapBubbledEvent, trapCapturedEvent } from "./domEventListener.js";
+import { registrationNameDependencies } from "./eventPluginRegistry.js";
 import {
     TOP_BLUR,
     TOP_CANCEL,
@@ -153,7 +154,6 @@ export const listenToTopLevel = (topLevelType, mountAt, listeningSet) => {
 export const ListenTo = (registrationName, mountAt) => {
     //해당 엘리먼트에 대한 리스닝셋을 가져온다.
     const listeningSet = getListeningSetForElement(mountAt);
-    //TODO: registrationNameDependencies 구현
     const dependencies = registrationNameDependencies[registrationName];
     //이벤트 플러그인 마다 종속성이 걸려있는 이벤트들이 있는데 simpleEventPlugin->그냥 자기자신(topLevelType)만
     //그것들을 다 듣도록 해야한다.-> 예를 들어 onChange같은걸 하면 -> input,keydown,keyup,click이런걸 가능하게해야됨

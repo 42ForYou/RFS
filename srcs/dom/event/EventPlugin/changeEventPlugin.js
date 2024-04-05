@@ -3,6 +3,7 @@ import { enqueueStateRestore } from "../controlledComponent.js";
 import { batchedUpdates } from "../genericBatching.js";
 import SyntheticEvent from "../SyntheticEvent/syntheticEvent.js";
 import { runEventsInBatch } from "../eventBatching.js";
+import { accumulateTwoPhaseDispatches } from "../eventPropagators.js";
 import {
     TOP_BLUR,
     TOP_CHANGE,
@@ -13,6 +14,7 @@ import {
     TOP_KEY_UP,
     TOP_SELECTION_CHANGE,
 } from "../domTopLevelEventType.js";
+import { updateValueIfChanged } from "../../core/element/inputValueTracking.js";
 import { getEventTarget } from "../getEventTarget.js";
 import isEventSupported from "../isEventSupported.js";
 import { getNodeFromInstance } from "../../core/domComponentConnection.js";
@@ -50,7 +52,6 @@ const createAndAccumulateChangeEvent = (inst, nativeEvent, target) => {
     event.type = "change";
     // Flag this event loop as needing state restore.
     enqueueStateRestore(target);
-    //TODO: accumulateTwoPhaseDispatches구현
     accumulateTwoPhaseDispatches(event);
     return event;
 };
@@ -102,7 +103,6 @@ const runEventInBatch = (event) => {
  */
 const getInstIfValueChanged = (targetInst) => {
     const targetNode = getNodeFromInstance(targetInst);
-    //TODO: updateValueIfChanged구현
     if (updateValueIfChanged(targetNode)) {
         return targetInst;
     }

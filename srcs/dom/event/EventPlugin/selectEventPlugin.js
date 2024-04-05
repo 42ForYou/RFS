@@ -3,7 +3,7 @@ import isTextInputElement from "../../core/isTextInputElement.js";
 import { shallowEqual } from "../../../shared/sharedEqual.js";
 import SyntheticEvent from "../SyntheticEvent/syntheticEvent.js";
 import { hasSelectionCapabilities } from "../../core/element/inputSelection.js";
-
+import { accumulateTwoPhaseDispatches } from "../eventPropagators.js";
 import {
     TOP_BLUR,
     TOP_CONTEXT_MENU,
@@ -134,7 +134,6 @@ const constructSelectEvent = (nativeEvent, nativeEventTarget) => {
         syntheticEvent.type = "select";
         syntheticEvent.target = activeElement;
 
-        //TODO: accumulateTwoPhaseDispatches 함수 구현
         //이벤트를 이벤트 흐름의 두 단계에 걸쳐 디스패치할 때 사용합니다.
         accumulateTwoPhaseDispatches(syntheticEvent);
 

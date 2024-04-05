@@ -21,11 +21,11 @@ const EventInterface = {
 const SyntheticEvent = class {
     //this.constructor.Interface == static Interface
     //dispatchConfig 이벤트 마다 이벤트의 특성을 config를 통해 각각 특성을 보관하는데 그 객체
-    //targetInst 이벤트가 발생한 타겟의 인스턴스(fiber) //TODO:이게 어떤식으로 들어가는지 나중에 체크필요
+    //targetInst 이벤트가 발생한 타겟의 인스턴스(fiber)
     /**
      *
-     * @param {TDispatchConfig} dispatchConfig ->이벤트 마다 이벤트의 특성을 config를 통해 각각 특성을 보관하는데 그 객체 //TODO: type을 정의해야함
-     * @param {TFiber}  targetInst 이벤트가 발생한 타겟의 인스턴스(fiber) //TODO:이게 어떤식으로 들어가는지 나중에 체크필요
+     * @param {TDispatchConfig} dispatchConfig ->이벤트 마다 이벤트의 특성을 config를 통해 각각 특성을 보관하는데 그 객체
+     * @param {TFiber}  targetInst 이벤트가 발생한 타겟의 인스턴스(fiber)
      * @param {*} nativeEvent 실제 브라우저에 의해 발생한 이벤트
      * @param {*} nativeEventTarget 실제 브라우저가 이벤트를 발생시킨 타겟
      * @description syntheticEvent를 생성하는 생성자
@@ -146,7 +146,7 @@ const SyntheticEvent = class {
         this.nativeEvent = null;
         this.isDefaultPrevented = functionThatReturnsFalse;
         this.isPropagationStopped = functionThatReturnsFalse;
-        //해당 부분은 dispatch에 의해 들어감 //TODO: type으로 property를 정의 하는게 좋을듯
+        //해당 부분은 dispatch에 의해 들어감
         this._dispatchListeners = null;
         this._dispatchInstances = null;
     }

@@ -16,6 +16,7 @@ import {
     isReplayableDiscreteEvent,
     queueDiscreteEvent,
 } from "./domEventReplaying.js";
+import { runExtractedPluginEventsInBatch } from "./eventPluginHub.js";
 const CALLBACK_BOOKKEEPING_POOL_SIZE = 10;
 const callbackBookKeepingPool = [];
 /**
@@ -132,7 +133,7 @@ const findRootContainerNode = (inst) => {
 /**
  *
  * @param {} bookKeeping
- * @description TODO: 해당 부분 문맥 정확히 파악
+ * @description topLevel에서 이벤트를 처리하는 함수입니다.
  */
 const handleTopLevel = (bookKeeping) => {
     const targetInst = bookKeeping.targetInst;
@@ -151,7 +152,7 @@ const handleTopLevel = (bookKeeping) => {
         if (tag === HostComponent || tag === HostText) {
             bookKeeping.ancestors.push(ancestorInst);
         }
-        //포탈을 이나 서버사이드렌더, 등을 위한 것으로 보임 여러 조상을 찾는건 확인 필요 TODO:
+        //포탈을 이나 서버사이드렌더, 등을 위한 것으로 보임 여러 조상을 찾는것으로 보임.
         ancestorInst = getClosestInstanceFromNode(root);
     } while (ancestorInst);
     for (let i = 0; i < bookKeeping.ancestors.length; i++) {
@@ -160,7 +161,6 @@ const handleTopLevel = (bookKeeping) => {
         const topLevelType = bookKeeping.topLevelType;
         const nativeEvent = bookKeeping.nativeEvent;
         runExtractedPluginEventsInBatch;
-        //TODO: runExtractedPluginEventsInBatch 구현
         runExtractedPluginEventsInBatch(
             topLevelType,
             nativeEvent,
@@ -286,7 +286,7 @@ const dispatchDiscreteEvent = (topLevelType, eventSystemFlags, nativeEvent) => {
 /**
  *
  * @param {THostInstance|THostContainer} element @see 파일경로: type/THostType.js
- * @param {TDOMTopLevelType} topLevelType @see 파일경로: type/TDOMTopLevelType.js TODO: TDOMTopLevelType.js파일 생성
+ * @param {TDOMTopLevelType} topLevelType
  * @param {boolean} capture로 사용되는지 여부를 확인하는 변수입니다.
  * @description eventHandler를 등록하는데 내부적으로 rfs에서 관리되는 이벤트 시스템을 사용합니다.
  * @description DiscreteEvent, UserBlockingEvent, ContinuousEvent로 나누어서 이벤트를 관리합니다.
@@ -327,7 +327,7 @@ const trapEventForPluginEventSystem = (element, topLevelType, capture) => {
 };
 /**
  *
- * @param {TDOMTopLevelType} topLevelType @see 파일경로: type/TDOMTopLevelType.js TODO: TDOMTopLevelType.js파일 생성
+ * @param {TDOMTopLevelType} topLevelType
  * @param {THostInstance|THostContainer} element @see 파일경로: type/THostType.js
  * @description 버블 되는 이벤트를 trap(인터럽트)하도록 이벤트를 설정하는 함수입니다.
  * @description 이벤트 위임에서는 element가 document로 들어와서 위임에 사용되고
@@ -338,7 +338,7 @@ export const trapBubbledEvent = (topLevelType, element) => {
 };
 /**
  *
- * @param {TDOMTopLevelType} topLevelType @see 파일경로: type/TDOMTopLevelType.js TODO: TDOMTopLevelType.js파일 생성
+ * @param {TDOMTopLevelType} topLevelType
  * @param {THostInstance|THostContainer} element @see 파일경로: type/THostType.js
  * @description 캡쳐되는 이벤트를 trap(인터럽트)하도록 이벤트를 설정하는 함수입니다.
  * @description 기본적으로 스크롤과 관련된 버블되지 않는 이벤트들을 이벤트 위임으로 다루기 위해 사용되거나

@@ -1,6 +1,6 @@
 import * as DOMTopLevelEventTypes from "../domTopLevelEventType.js";
 import { DiscreteEvent, UserBlockingEvent, ContinuousEvent } from "../../../const/CEventPriority.js";
-
+import { accumulateTwoPhaseDispatches } from "../eventPropagators.js";
 import SyntheticEvent from "../SyntheticEvent/syntheticEvent.js";
 import SyntheticAnimationEvent from "../SyntheticEvent/syntheticAnimationEvent.js";
 import SyntheticClipboardEvent from "../SyntheticEvent/syntheticClipboardEvent.js";
@@ -354,7 +354,6 @@ const SimpleEventPlugin = {
         }
         //NOTE: EventConstructor를 이용하여 SyntheticEvent를 생성
         const event = EventConstructor.getPooled(dispatchConfig, targetInst, nativeEvent, nativeEventTarget);
-        //TODO: accumulateTwoPhaseDispatches구현
         //Rfs 이벤트 시스템의 일부로, 특정 이벤트에 대해 "두 단계 디스패치(two-phase dispatch)" 과정을 준비.
         accumulateTwoPhaseDispatches(event);
         return event;

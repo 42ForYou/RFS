@@ -5,7 +5,7 @@ import SyntheticPointerEvent from "../SyntheticEvent/syntheticPointerEvent";
 import { getClosestInstanceFromNode, getNodeFromInstance } from "../../core/domComponentConnection.js";
 import { HostComponent, HostText } from "../../../const/CWorkTag.js";
 import { getNearestMountedFiber } from "../../../Reconciler/fiberTreeReflection.js";
-
+import { accumulateEnterLeaveDispatches } from "../eventPropagators.js";
 // EnterLeaveEventPlugin: 컴포넌트 간의 마우스 진입(enter) 및 떠남(leave) 이벤트를 처리합니다.
 const eventTypes = {
     //RegisterationName과 TopLevelType을 dependincies를 통해 연결합니다.
@@ -156,7 +156,6 @@ const EnterLeaveEventPlugin = {
         enter.target = toNode;
         enter.relatedTarget = fromNode;
 
-        //TODO: accumulateEnterLeaveDispatches
         //요소를 떠나는 이벤트(leave)와 요소로 진입하는 이벤트(enter)를 관리하고, 적절한 순서로 이벤트를 디스패치하기 위한 준비
         accumulateEnterLeaveDispatches(leave, enter, from, to);
 
