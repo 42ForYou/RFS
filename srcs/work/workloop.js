@@ -1,9 +1,17 @@
-import { NoContext, BatchedContext, EventContext, RenderContext, CommitContext } from "../const/CExecutionContext.js";
+import {
+    NoContext,
+    BatchedContext,
+    EventContext,
+    RenderContext,
+    CommitContext,
+    DiscreteEventContext,
+} from "../const/CExecutionContext.js";
 import { RootIncomplete, RootCompleted } from "../const/CRootExitStatus.js";
 import {
     expirationTimeToMs,
     msToExpirationTime,
     computeAsyncExpiration,
+    computeInteractiveExpiration,
     inferPriorityFromExpirationTime,
 } from "../fiber/fiberExiprationTime.js";
 import { markRootUpdatedAtTime, markRootExpiredAtTime, markRootFinishedAtTime } from "../fiber/fiberRoot.js";
@@ -164,6 +172,11 @@ const currentPassiveEffectContext = {
  */
 let currentEventTime = NoWork;
 
+/**
+ * @type {map<TFiberRoot,TExpirationTime>} @see 파일경로: [TFiberRoot.js](srcs/type/TFiberRoot.js)
+ * @description 현재 discrete한 업데이트를 기다리고 있는 루트를 보관하는 map입니다.
+ */
+let rootWithPendingDiscreteUpdates = null;
 /**
  * @description 현재 렌더링중인 루트에 대해서 컴포넌트가 남긴 작업이 있을떄
  * @description currentWorkContext에 처리되지 않은 다음 업데이트를 마킹합니다.
@@ -354,7 +367,6 @@ export const computeExpirationForFiber = (currentTime, fiber) => {
             expirationTime = Sync;
             break;
         case UserBlockingPriority:
-            //TODO: implement computeInteractiveExpiration
             expirationTime = computeInteractiveExpiration(currentTime);
             break;
         case NormalPriority:
@@ -1039,7 +1051,6 @@ export const performSyncWorkOnRoot = (root) => {
         //바로 실행해야되는 것들을 가지고 온건데
         //그것이 root.finishedExpirationTime이랑 같다라는건 이게 커밋이 일어나야 된다라는 것이고
         //이게 바로 수행되어야 된다라는 것이다.
-        //TODO: implement commitRoot
         commitRoot(root);
     } else {
         //모아진 passiveEffect를 모두 수행합니다.
@@ -1271,8 +1282,66 @@ export const scheduleUpdateOnFiber = (fiber, expirationTime) => {
         ensureRootIsScheduled(root);
     }
 
-    if ((executionContext & DiscreteEventContext) !== NoContext) {
-        //TODO: 이부분은 이벤트와 관련된 부분이다. 이부분을 나중에 구현해야함
+    // DiscreteEvent (이산 이벤트)는 우선 순위가 0으로 가장 높다.
+    // 이산 이벤트는 사용자의 직접적인 상호작용에 응답해야 하는 이벤트이며,
+    // 예를 들어, 클릭(onClick), 키 입력(onKeyPress) 등이 여기에 해당한다.
+    // 사용자의 행동에 대한 즉각적인 피드백이 필요하기 때문에 가장 높은 우선 순위를 갖는다.
+
+    // UserBlockingEvent (사용자 차단 이벤트)는 우선 순위가 1이다.
+    // 사용자 차단 이벤트는 애플리케이션의 반응성을 유지하기 위해 신속하게 처리되어야 하지만,
+    //  이산 이벤트만큼 즉각적인 반응을 요구하지 않는 이벤트이다. 예를 들어, 입력 필드에서의 텍스트 입력과 같이 사용자가 연속적인 행동을 취할 때 발생하는 이벤트가 이에 해당할 수 있다.
+
+    // ContinuousEvent (연속 이벤트)는 우선 순위가 2로 가장 낮다.
+    //  연속 이벤트는 사용자와의 상호작용 중 연속적으로 발생할 수 있는 이벤트이며, 예를 들어, 스크롤(onScroll), 마우스 이동(onMouseMove), 윈도우 리사이징(onResize) 등이 여기에 해당한다. 이러한 이벤트는 애플리케이션의 성능에 영향을 미칠 수 있으므로, 필요에 따라 업데이트 빈도를 조절하여 처리된다.
+
+    // 이러한 맥락에서, 이산 이벤트는 바로 처리되어야 함에도 불구하고, 실행 중인 우선 순위 레벨이 UserBlockingPriority보다
+    // 높은 경우에만 펜딩으로 진행됨을 의미한다. 이는 React가 다양한 우선 순위의 이벤트를 효과적으로 관리하고 사용자 경험을 최적화하기 위한 메커니즘의 일부이다.
+    if (
+        (executionContext & DiscreteEventContext) !== NoContext &&
+        (priorityLevel === UserBlockingPriority || priorityLevel === ImmediatePriority)
+    ) {
+    }
+    {
+        //이산 이벤트를 기다리고 있는 이벤트가 없으면 map을 생성하고 expirationTime을 설정합니다.
+        if (rootWithPendingDiscreteUpdates === null) {
+            rootWithPendingDiscreteUpdates = new Map([[root, expirationTime]]);
+        } else {
+            const lastDiscreteTime = rootWithPendingDiscreteUpdates.get(root);
+            // 해당 루트에 대한 lastDiscreteTime이 우선순위가 더 낮다면 expirationTime을 설정합니다. 만약 그렇지 않다면
+            // expirationTime을 설정하지 않습니다.
+            if (lastDiscreteTime === undefined || lastDiscreteTime > expirationTime) {
+                rootWithPendingDiscreteUpdates.set(root, expirationTime);
+            }
+        }
     }
 };
 export const scheduleWork = scheduleUpdateOnFiber;
+
+/**
+ *
+ * @param {lambda} fn
+ * @param {*} a
+ * @param {*} b
+ * @param {*} c
+ * @param {*} d
+ * @returns {any}
+ * @description] 이산 이벤트를 이산 이벤트 문맥 내에서 실행시킴.
+ * @description 우선순위는 userBlockingPriority로 설정되고
+ * @description 이전 실행문맥이 없고, 이산 이벤트 문맥에서 동기적인 작업이 발생해야 하는 상황이라면
+ * @description flush를 수행합니다.
+ * @description TODO: 해당 문맥을 좀더 event하면서 이해해야됨
+ */
+export const discreteUpdates = (fn, a, b, c, d) => {
+    const previousExecutionContext = currentWorkContext.executionContext;
+    currentWorkContext.executionContext |= DiscreteEventContext;
+    try {
+        return runWithPriority(UserBlockingPriority, fn.bind(null, a, b, c, d));
+    } finally {
+        currentWorkContext.executionContext = previousExecutionContext;
+        //이전에 하던 작업이 없고, discreteUpdates에 의해 동기 작업이 일어나야되는 상황이라면
+        //flush를 수행합니다.
+        if (currentWorkContext.executionContext === NoContext) {
+            flushSyncCallbackQueue();
+        }
+    }
+};

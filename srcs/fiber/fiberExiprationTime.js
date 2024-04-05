@@ -83,6 +83,17 @@ export const HIGH_PRIORITY_BATCH_SIZE = 100;
 
 /**
  *
+ * @param {TExpirationTime} currentTime
+ * @returns {TExpirationTime}
+ * @description Interative한 작업을 위한 만료시간을 계산합니다.
+ * @description 해당 근거는 앞선 근거에서 ineractive한 작업을 위한 ux에 대해서 150ms이하로 반응을 해야함으로
+ * @description 이를 기반으로 만료시간을 계산합니다.
+ */
+export const computeInteractiveExpiration = (currentTime) => {
+    return computeExpirationBucket(currentTime, HIGH_PRIORITY_EXPIRATION, HIGH_PRIORITY_BATCH_SIZE);
+};
+/**
+ *
  * @param {TExpirationTime} currentTime @see 파일경로: `srcs/type/TExpirationTime.js`
  * @param {TExpirationTime} expirationTime @see 파일경로: `srcs/type/TExpirationTime.js`
  * @description currentTime과 expirationTime으로 우선순위를 추론합니다.

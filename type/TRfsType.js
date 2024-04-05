@@ -44,3 +44,8 @@ const TRfsProvider = {
 };
 //
 const TRfsNode = TRfsElement || TRfsText || TRfsFragment || TRfsProvider;
+
+const TEventPriority = Number;
+const DiscreteEvent = 0;
+const UserBlockingEvent = 1;
+const ContinuousEvent = 2;

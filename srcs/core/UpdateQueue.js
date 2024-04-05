@@ -356,3 +356,31 @@ export const processUpdateQueue = (workInProgress, queue, props, renderExpiratio
     //memoizedState의 resultState를 넣어줌
     workInProgress.memoizedState = resultState;
 };
+
+const callCallback = (callback, context) => {
+    if (typeof callback !== "function") {
+        throw new Error("Invalid argument passed as callback. Expected a function. Instead received: " + callback);
+    }
+    callback.call(context);
+};
+const commitUpdateEffects = (effect, instance) => {
+    while (effect !== null) {
+        const callback = effect.callback;
+        if (callback !== null) {
+            effect.callback = null;
+            callCallback(callback, instance);
+        }
+        effect = effect.nextEffect;
+    }
+};
+
+export const commitUpdateQueue = (finishedWork, finishedQueue, instance, renderExpirationTime) => {
+    // If the finished render included captured updates, and there are still
+    // lower priority updates left over, we need to keep the captured updates
+    // in the queue so that they are rebased and not dropped once we process the
+    // queue again at the lower priority.
+
+    // Commit the effects
+    commitUpdateEffects(finishedQueue.firstEffect, instance);
+    finishedQueue.firstEffect = finishedQueue.lastEffect = null;
+};

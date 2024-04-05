@@ -17,11 +17,10 @@
 //todo: ReactDOMRoot.render
 //todo: ReactDOMRoot.unmount
 
-import { ELEMENT_NODE, DOCUMENT_NODE, DOCUMENT_FRAGMENT_NODE } from "./const.js";
+import { ELEMENT_NODE, DOCUMENT_NODE, DOCUMENT_FRAGMENT_NODE } from "../const/CDomNodeType.js";
 import { ConcurrentRoot } from "../const/CRootTag.js";
 import { createFiberRoot } from "../fiber/fiberRoot.js";
-//todo: dom.js
-import { markContainerAsRoot } from "../dom/dom.js";
+import { markContainerAsRoot } from "../dom/core/domComponentConnection.js";
 import { updateContainer } from "../reconciler/reconciler.js";
 /**
  * @param {container} container-> Type은 노드 타입-> Element|Document|DocumentFragment

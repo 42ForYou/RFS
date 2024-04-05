@@ -8,7 +8,20 @@ import {
     ForwardRef,
 } from "../const/CWorkTag.js";
 import { NoHookEffect, UnmountPassive, MountPassive } from "../const/CHookEffectTag.js";
-
+import {
+    getPublicInstance,
+    commitMount,
+    commitUpdate,
+    resetTextContent,
+    commitTextUpdate,
+    appendChild,
+    appendChildToContainer,
+    insertBefore,
+    insertInContainerBefore,
+    removeChild,
+    removeChildFromContainer,
+} from "../dom/core/domHost.js";
+import { commitUpdateQueue } from "../core/UpdateQueue.js";
 /**
  *
  * @param {THookEffectTag} unmountTag
@@ -94,7 +107,6 @@ export const commitAttachRef = (finishedWork) => {
         let instanceToUse;
         switch (finishedWork.tag) {
             case HostComponent:
-                //TODO: implement getPublicInstance =>dom모듈
                 instanceToUse = getPublicInstance(instance);
                 break;
             default:
@@ -141,7 +153,7 @@ const getHostParentFiber = (fiber) => {
 /**
  *
  * @param {TFiber} fiber
- * @returns {TDOMInstance} domInstance TODO: domInstance를 정의해야한다.=>dom모듈
+ * @returns {TDOMInstance} domInstance
  * @description 해당 파이버의 한 레벨 위의 가장 가까운 오른쪽 현재를 찾는 알고리즘이다.
  * @description 일단 만족할 수 없는 조건으로는 placement가 명시 되어있으면 바뀔 수 있고(후위 순회라 이후에 처리)
  * @description 결과가 잘못 될 수 있기 때문에 이를 고려해서 placement가 before가 될 수 없다.
@@ -242,7 +254,6 @@ export const commitPlacement = (finishedWork) => {
     //NOTE: 부모에서 자식을 지우면 돔 연산상 느려지기 떄문에 넣기 전에 삭제하고 넣는다
     //NOTE: 기본적으로 dom연산은 reflow가 오래걸리기 떄문에 reflow를 최소화하기 위한것이다.
     if (parentFiber.effectTag & ContentReset) {
-        //TODO: implement resetTextContent =>dom모듈
         resetTextContent(parent);
         parentFiber.effectTag &= ~ContentReset;
     }
@@ -263,18 +274,14 @@ export const commitPlacement = (finishedWork) => {
             const stateNode = node.stateNode;
             if (before) {
                 if (isContainer) {
-                    //TODO: implement insertInContainerBefore =>dom모듈
                     insertInContainerBefore(parent, stateNode, before);
                 } else {
-                    //TODO: implement insertBefore =>dom모듈
                     insertBefore(parent, stateNode, before);
                 }
             } else {
                 if (isContainer) {
-                    //TODO: implement appendChildToContainer =>dom모듈
                     appendChildToContainer(parent, stateNode);
                 } else {
-                    //TODO: implement appendChild =>dom모듈
                     appendChild(parent, stateNode);
                 }
             }
@@ -339,7 +346,6 @@ export const commitWork = (current, finishedWork) => {
                 finishedWork.updateQueue = null;
                 if (updatePayload !== null) {
                     //update를 커밋한다.
-                    //TODO: implement commitUpdate =>dom모듈
                     commitUpdate(instance, updatePayload, type, oldProps, newProps, finishedWork);
                 }
             }
@@ -362,7 +368,6 @@ export const commitWork = (current, finishedWork) => {
             //기존 텍스트를 가져온다.
             const oldText = current !== null ? current.memoizedProps : newText;
             //TextUpdate를 커밋한다.
-            //TODO: implement commitTextUpdate =>dom모듈
             commitTextUpdate(textInstance, oldText, newText);
             return;
         }
@@ -383,7 +388,6 @@ export const commitWork = (current, finishedWork) => {
  * @description 해당 domInstance의 textContent를 commit하는 함수이다.
  */
 export const commitResetTextContent = (current) => {
-    //TODO: implement resetTextContent =>dom모듈
     resetTextContent(current.stateNode);
 };
 
@@ -520,7 +524,6 @@ const commitUnmount = (finishedRoot, current, renderPriorityLevel) => {
  * @param {TFiber} finishedWork
  * @param {TExpirationTime} commitedExpirationTime
  * @description 해당 함수는 커밋할때 커밋할 lifeCycle을 커밋하는 함수이다.
- * @description TODO: layout문맥은 해결 되었는데 host문맥은 좀 더 dom모듈을 이해하고 해결해야한다.
  */
 export const commitBeforeMutationLifeCycles = (finishedRoot, current, finishedWork, commitedExpirationTime) => {
     switch (finishedWork.tag) {
@@ -531,19 +534,16 @@ export const commitBeforeMutationLifeCycles = (finishedRoot, current, finishedWo
             break;
         }
         case HostRoot: {
-            //TODO: 해당 문맥 dom모듈에서 정확히 이해하고 해결
             const updateQueue = finishedWork.updateQueue;
             if (updateQueue !== null) {
                 let instance = null;
                 if (finishedWork.child !== null) {
                     switch (finishedWork.child.tag) {
                         case HostComponent:
-                            //TODO: implement getPublicInstance =>dom모듈
                             instance = getPublicInstance(finishedWork.child.stateNode);
                             break;
                     }
                 }
-                //TODO: implement commitUpdateQueue =>dom모듈
                 commitUpdateQueue(finishedWork, updateQueue, instance, commitedExpirationTime);
             }
             return;
@@ -553,7 +553,6 @@ export const commitBeforeMutationLifeCycles = (finishedRoot, current, finishedWo
             if (current === null && finishedWork.effectTag & Update) {
                 const type = finishedWork.type;
                 const props = finishedWork.memoizedProps;
-                //TODO: implement commitMount =>dom모듈
                 commitMount(instance, type, props, finishedWork);
             }
             return;
@@ -630,21 +629,17 @@ const unmountHostComponents = (finishedRoot, current, renderPriorityLevel) => {
         if (node.tag === HostComponent || node.tag === HostText) {
             //NOTE: 예를 들면 cleanUp과 같은, component가 unmount가 될떄 실행되어야 하는데
             //NOTE: didWillUnmount와 관련된것들을 재귀적으로 모든 서브트리에 대해서 다 실행
-            //TODO: implement commitNestedUnmounts
             commitNestedUnmounts(finishedRoot, node, renderPriorityLevel);
 
             //재귀적으로 didWillUnmount와 관련된것들을 실행하고 난뒤는 이제 안전하게 트리에 삭제 가능하다.
             if (currentParentIsContainer) {
-                //TODO: implement removeChildFromContainer =>dom모듈
                 removeChildFromContainer(currentParent, node.stateNode);
             } else {
-                //TODO: implement removeChild =>dom모듈
                 removeChild(currentParent, node.stateNode);
             }
         } else {
             //NOTE: host가 아니라면 현 레벨에 대해서만 didWillUnmount와 관련된것들을 실행하고
             //NOTE: 한 레벨 아래로 내려간다. hostComponent를 찾기 위해서
-            //TODO: implement commitUnmount
             commitUnmount(finishedRoot, node, renderPriorityLevel);
             if (node.child !== null) {
                 //NOTE: 자식이 있다면 내려간다.
