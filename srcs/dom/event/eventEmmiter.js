@@ -162,4 +162,22 @@ export const ListenTo = (registrationName, mountAt) => {
         listenToTopLevel(dependency, mountAt, listeningSet);
     }
 };
+
+/**
+ *
+ * @param {*} registrationName
+ * @param {*} mountAt
+ * @returns {boolean}
+ * @description registrationName에 대한 모든 종속성을 듣고 있는지 확인한다.
+ */
+export const isListeningToAllDependencies = (registrationName, mountAt) => {
+    const listeningSet = getListeningSetForElement(mountAt);
+    const dependencies = registrationNameDependencies[registrationName];
+    for (let i = 0; i < dependencies.length; i++) {
+        if (!listeningSet.has(dependencies[i])) {
+            return false;
+        }
+    }
+    return true;
+};
 export { setEnabled, isEnabled, trapBubbledEvent, trapCapturedEvent };
