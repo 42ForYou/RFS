@@ -77,9 +77,11 @@ import { RFS_FORWARD_REF_TYPE } from "./rfsSymbol.js";
  * @description 부모의 ref를 하위 컴포넌트와 연결할 수 있게 해줍니다.
  * @description 정확히는 함수형 컴포넌트와 연결할 수 있게 해줍니다.
  */
-export const forwardRef = (render) => {
+const forwardRef = (render) => {
     return {
         $$typeof: RFS_FORWARD_REF_TYPE,
         render,
     };
 };
+
+export default forwardRef; 

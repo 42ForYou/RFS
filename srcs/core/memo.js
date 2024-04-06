@@ -23,10 +23,12 @@ import { RFS_MEMO_TYPE } from "./rfsSymbol.js";
  * @description 렌더링을 최적화 할 수 있도록 memoization을 제공하는 HOC(Higher Order Component)입니다.
  * @description compare을 사용하여 건너뛸 업데이트를 결정할 수 있습니다.
  */
-export const memo = (type, compare) => {
+const memo = (type, compare) => {
     return {
         $$typeof: RFS_MEMO_TYPE,
         type,
         compare: compare === undefined ? null : compare,
     };
 };
+
+export default memo;
