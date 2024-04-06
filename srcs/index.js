@@ -1,6 +1,6 @@
 import { RFS_FRAGMENT_TYPE } from "./core/rfsSymbol.js";
 import { createElement } from "./core/rfsElement.js";
-import { createContext } from "./context/createContext.js";
+import createContext from "./context/createContext.js";
 import forwardRef from "./core/forwardRef.js";
 import memo from "./core/memo.js";
 import useCallback from "./hooks/useCallback/useCallback.js";
