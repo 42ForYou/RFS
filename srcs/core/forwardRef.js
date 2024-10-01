@@ -84,4 +84,4 @@ const forwardRef = (render) => {
     };
 };
 
-export default forwardRef; 
+export default forwardRef;

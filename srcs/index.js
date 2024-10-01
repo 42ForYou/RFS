@@ -34,7 +34,6 @@ export {
     createContext,
     forwardRef,
     memo,
-
     useCallback,
     useContext,
     useEffect,
@@ -43,9 +42,8 @@ export {
     useReducer,
     useRef,
     useState,
-
     RFS_FRAGMENT_TYPE as Fragment,
     createElement,
-}
+};
 
 export default Rfs;
