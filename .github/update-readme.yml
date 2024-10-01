@@ -1,0 +1,24 @@
+name: Update README
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # 6시간마다 실행
+  workflow_dispatch:
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Generate README stats
+        run: |
+          curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+          "https://github-readme-stats.vercel.app/api/top-langs/?username=daekuelee&show_icons=true&hide=c%23,powershell&count_private=true&include_orgs=true&theme=holi" \
+          > stats.svg
+      - name: Commit updated README
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add stats.svg
+          git commit -m "Update README with new stats"
+          git push
